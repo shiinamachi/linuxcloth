@@ -1,0 +1,3 @@
+# Additional packages used only while creating a Windows base image.
+wimtools
+xorriso

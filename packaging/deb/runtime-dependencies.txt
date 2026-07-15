@@ -1,0 +1,11 @@
+# Debian/Ubuntu package-name candidates for the runtime feature set.
+# Verify availability and minimum behavior on each supported distribution release.
+qemu-system-x86
+qemu-system-gui
+qemu-utils
+ovmf
+swtpm
+swtpm-tools
+virt-viewer
+passt
+bubblewrap

@@ -1,0 +1,10 @@
+# Fedora-family package-name candidates for the runtime feature set.
+# Verify availability and minimum behavior on each supported distribution release.
+qemu-system-x86
+qemu-img
+edk2-ovmf
+swtpm
+swtpm-tools
+virt-viewer
+passt
+bubblewrap
