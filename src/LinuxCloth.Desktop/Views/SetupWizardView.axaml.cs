@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using LinuxCloth.Desktop.ViewModels;
 
 namespace LinuxCloth.Desktop.Views;
@@ -21,6 +22,13 @@ public sealed partial class SetupWizardView : UserControl
         : this()
     {
         DataContext = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        viewModel.Build.PropertyChanged += OnBuildPropertyChanged;
+        DetachedFromVisualTree += (_, _) =>
+        {
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            viewModel.Build.PropertyChanged -= OnBuildPropertyChanged;
+        };
     }
 
     private SetupWizardViewModel ViewModel =>
@@ -113,6 +121,24 @@ public sealed partial class SetupWizardView : UserControl
         catch (Exception exception)
         {
             ViewModel.ReportExternalActionError(exception);
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs eventArgs)
+    {
+        _ = sender;
+        if (eventArgs.PropertyName == nameof(SetupWizardViewModel.ErrorMessage) && ViewModel.HasError)
+        {
+            Dispatcher.UIThread.Post(() => ErrorSummary.Focus());
+        }
+    }
+
+    private void OnBuildPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs eventArgs)
+    {
+        _ = sender;
+        if (eventArgs.PropertyName == nameof(ImageSetupViewModel.ErrorMessage) && ViewModel.Build.HasError)
+        {
+            Dispatcher.UIThread.Post(() => BuildErrorSummary.Focus());
         }
     }
 }

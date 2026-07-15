@@ -10,6 +10,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
     private readonly FirstRunCoordinator _coordinator;
     private readonly DesktopRuntime _runtime;
     private bool _shutdownComplete;
+    private bool _isConfirmingClose;
     private MainWindowViewModel? _mainViewModel;
     private SetupWizardViewModel? _setupViewModel;
 
@@ -93,6 +94,10 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
 
     private async Task ShowSetupAsync(FirstRunSnapshot firstRun)
     {
+        Width = 980;
+        Height = 760;
+        MinWidth = 900;
+        MinHeight = 700;
         if (_mainViewModel is not null)
         {
             _mainViewModel.SetupRequested -= OnSetupRequested;
@@ -122,6 +127,10 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
 
     private async Task ShowMainAsync(DesktopStartupSnapshot startup)
     {
+        Width = 1380;
+        Height = 860;
+        MinWidth = 1080;
+        MinHeight = 700;
         await DisposeSetupAsync();
         if (_mainViewModel is not null)
         {
@@ -190,6 +199,28 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         }
 
         eventArgs.Cancel = true;
+        if (_isConfirmingClose)
+        {
+            return;
+        }
+
+        if (_setupViewModel?.HasActiveOperation == true)
+        {
+            _isConfirmingClose = true;
+            try
+            {
+                var confirmed = await new ActiveOperationCloseDialog().ShowDialog<bool>(this);
+                if (!confirmed)
+                {
+                    return;
+                }
+            }
+            finally
+            {
+                _isConfirmingClose = false;
+            }
+        }
+
         try
         {
             await DisposeAsync();
@@ -232,5 +263,55 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         _setupViewModel.LaterRequested -= OnLaterRequested;
         await _setupViewModel.DisposeAsync();
         _setupViewModel = null;
+    }
+}
+
+internal sealed class ActiveOperationCloseDialog : Window
+{
+    public ActiveOperationCloseDialog()
+    {
+        Title = "linuxcloth — 작업 중단 확인";
+        Width = 480;
+        Height = 250;
+        CanResize = false;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        var cancel = new Button { Content = "계속 작업", Classes = { "secondary" } };
+        cancel.Click += (_, _) => Close(false);
+        var stop = new Button { Content = "안전하게 중단하고 닫기", Classes = { "primary" } };
+        stop.Click += (_, _) => Close(true);
+        Content = new Grid
+        {
+            RowDefinitions = RowDefinitions.Parse("*,Auto"),
+            Margin = new Avalonia.Thickness(26),
+            Children =
+            {
+                new StackPanel
+                {
+                    Spacing = 12,
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = "진행 중인 작업을 중단할까요?",
+                            FontSize = 21,
+                            FontWeight = Avalonia.Media.FontWeight.Bold,
+                        },
+                        new TextBlock
+                        {
+                            Text = "패키지 설치는 시스템 트랜잭션 상태를 따릅니다. 이미지 생성은 현재 단계를 안전하게 중단하고 durable 스테이징 상태를 보존한 뒤 닫습니다.",
+                            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                        },
+                    },
+                },
+                new StackPanel
+                {
+                    [Grid.RowProperty] = 1,
+                    Orientation = Avalonia.Layout.Orientation.Horizontal,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                    Spacing = 10,
+                    Children = { cancel, stop },
+                },
+            },
+        };
     }
 }

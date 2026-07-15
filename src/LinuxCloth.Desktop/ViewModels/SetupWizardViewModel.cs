@@ -165,6 +165,8 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool HasActiveOperation => IsBusy || Build.IsBuilding;
+
     public bool CanGoBack => !IsBusy && !Build.IsBuilding && CurrentStep > SetupStep.HostInspection;
 
     public bool CanContinue => !IsBusy && !Build.IsBuilding && CurrentStep switch
@@ -352,6 +354,8 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         CancelMediaValidation();
         _mediaValidation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+        var validation = _mediaValidation;
+        IsBusy = true;
         WindowsMediaPath = Path.GetFullPath(path);
         _windowsFingerprint = null;
         Build.WindowsIsoPath = string.Empty;
@@ -361,7 +365,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         try
         {
             var fingerprint = await _runtime
-                .ValidateWindowsMediaAsync(WindowsMediaPath, _mediaValidation.Token)
+                .ValidateWindowsMediaAsync(WindowsMediaPath, validation.Token)
                 .ConfigureAwait(true);
             _windowsFingerprint = fingerprint;
             Build.WindowsIsoPath = fingerprint.Path;
@@ -375,6 +379,13 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
         finally
         {
+            if (ReferenceEquals(_mediaValidation, validation))
+            {
+                _mediaValidation.Dispose();
+                _mediaValidation = null;
+                IsBusy = false;
+            }
+
             RaiseMediaState();
         }
     }
@@ -384,6 +395,8 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         CancelMediaValidation();
         _mediaValidation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+        var validation = _mediaValidation;
+        IsBusy = true;
         VirtioMediaPath = Path.GetFullPath(path);
         _virtioFingerprint = null;
         Build.VirtioWinIsoPath = string.Empty;
@@ -393,7 +406,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         try
         {
             var fingerprint = await _runtime
-                .ValidateVirtioMediaAsync(VirtioMediaPath, _mediaValidation.Token)
+                .ValidateVirtioMediaAsync(VirtioMediaPath, validation.Token)
                 .ConfigureAwait(true);
             _virtioFingerprint = fingerprint;
             Build.VirtioWinIsoPath = fingerprint.Path;
@@ -407,6 +420,13 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
         finally
         {
+            if (ReferenceEquals(_mediaValidation, validation))
+            {
+                _mediaValidation.Dispose();
+                _mediaValidation = null;
+                IsBusy = false;
+            }
+
             RaiseMediaState();
         }
     }

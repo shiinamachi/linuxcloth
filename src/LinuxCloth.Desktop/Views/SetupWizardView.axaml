@@ -128,8 +128,8 @@
                   <TextBlock Text="Windows 11 x64 설치 미디어" FontSize="17" FontWeight="Bold" />
                   <TextBlock Text="Microsoft가 제공하는 x64 ISO를 사용하세요. 파일은 외부로 업로드되지 않습니다." Classes="muted" TextWrapping="Wrap" />
                   <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Button Classes="secondary" Content="Microsoft 공식 다운로드 페이지" Click="OnOpenWindowsDownload" />
-                    <Button Classes="primary" Content="이미 다운로드한 ISO 선택" Click="OnBrowseWindowsIso" AutomationProperties.Name="Windows 11 ISO 선택" />
+                    <Button Classes="secondary" Content="Microsoft 공식 다운로드 페이지" Click="OnOpenWindowsDownload" IsEnabled="{Binding !IsBusy}" />
+                    <Button Classes="primary" Content="이미 다운로드한 ISO 선택" Click="OnBrowseWindowsIso" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="Windows 11 ISO 선택" />
                   </StackPanel>
                   <Border Background="#0E1527" CornerRadius="10" Padding="13">
                     <StackPanel Spacing="5">
@@ -155,8 +155,8 @@
                     <TextBlock Text="이 빌드에는 검토된 고정 버전·SHA-256 매니페스트가 없으므로 자동 다운로드가 비활성화되어 있습니다. 공식 배포 페이지에서 stable ISO를 받은 뒤 선택하세요." TextWrapping="Wrap" />
                   </Border>
                   <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Button Classes="secondary" Content="virtio-win 공식 페이지" Click="OnOpenVirtioDownload" />
-                    <Button Classes="primary" Content="virtio-win ISO 선택" Click="OnBrowseVirtioIso" AutomationProperties.Name="virtio-win ISO 선택" />
+                    <Button Classes="secondary" Content="virtio-win 공식 페이지" Click="OnOpenVirtioDownload" IsEnabled="{Binding !IsBusy}" />
+                    <Button Classes="primary" Content="virtio-win ISO 선택" Click="OnBrowseVirtioIso" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="virtio-win ISO 선택" />
                   </StackPanel>
                   <Border Background="#0E1527" CornerRadius="10" Padding="13">
                     <StackPanel Spacing="5">
@@ -206,8 +206,8 @@
               <Border Classes="card" Padding="17">
                 <StackPanel Spacing="10">
                   <ProgressBar IsIndeterminate="True" IsVisible="{Binding Build.IsBuilding}" />
-                  <TextBlock Text="{Binding Build.BuildStatus}" TextWrapping="Wrap" AutomationProperties.Name="이미지 생성 진행 상태" />
-                  <TextBlock Text="{Binding Build.ErrorMessage}" IsVisible="{Binding Build.HasError}" Foreground="#FF9E9E" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Build.BuildStatus}" TextWrapping="Wrap" AutomationProperties.Name="이미지 생성 진행 상태" AutomationProperties.LiveSetting="Polite" />
+                  <TextBlock x:Name="BuildErrorSummary" Text="{Binding Build.ErrorMessage}" IsVisible="{Binding Build.HasError}" Foreground="#FF9E9E" TextWrapping="Wrap" Focusable="True" AutomationProperties.Name="이미지 생성 오류" AutomationProperties.LiveSetting="Assertive" />
                   <TextBlock Text="{Binding Build.StagingDirectory}" IsVisible="{Binding Build.HasStagingDirectory}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
                   <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                     <Button Classes="secondary" Content="이전 설정 계속하기" Command="{Binding Build.ResumeBuildCommand}" IsEnabled="{Binding Build.CanResumeBuild}" IsVisible="{Binding Build.HasStagingDirectory}" />
@@ -225,7 +225,7 @@
     <Border Grid.Row="2" Padding="22,14" Background="#10172A" BorderBrush="#29324F" BorderThickness="0,1,0,0">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
         <Button Grid.Column="0" Classes="secondary" Content="나중에 계속" Command="{Binding LaterCommand}" />
-        <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Foreground="#FF9E9E" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="12,0" />
+        <TextBlock x:Name="ErrorSummary" Grid.Column="1" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Foreground="#FF9E9E" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="12,0" Focusable="True" AutomationProperties.Name="현재 단계 오류" AutomationProperties.LiveSetting="Assertive" />
         <Button Grid.Column="2" Classes="secondary" Content="뒤로" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" />
         <Button Grid.Column="3" Classes="primary" Content="{Binding ContinueLabel}" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" IsVisible="{Binding !IsImageBuildStep}" />
       </Grid>
