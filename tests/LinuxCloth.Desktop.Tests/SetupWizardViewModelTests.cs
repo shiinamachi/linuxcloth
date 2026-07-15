@@ -82,6 +82,22 @@ public sealed class SetupWizardViewModelTests : IDisposable
         Assert.False(viewModel.CanInstallPackages);
     }
 
+    [Fact]
+    public async Task DisposalCancelsAndWaitsForActiveMediaValidation()
+    {
+        var runtime = new FakeSetupService { WaitForMediaCancellation = true };
+        var viewModel = CreateViewModel(runtime, new FakeStateStore(SetupState.Default), CreateFirstRun());
+        await viewModel.InitializeAsync();
+        var validation = viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        await runtime.MediaValidationStarted.Task;
+
+        await viewModel.DisposeAsync();
+        await validation;
+
+        Assert.True(runtime.MediaCancellationObserved);
+        Assert.False(viewModel.HasActiveOperation);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -201,6 +217,13 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
     private sealed class FakeSetupService : IDesktopSetupService
     {
+        public bool WaitForMediaCancellation { get; init; }
+
+        public bool MediaCancellationObserved { get; private set; }
+
+        public TaskCompletionSource MediaValidationStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public int WindowsValidationCount { get; private set; }
 
         public int VirtioValidationCount { get; private set; }
@@ -217,7 +240,13 @@ public sealed class SetupWizardViewModelTests : IDisposable
             CancellationToken cancellationToken = default)
         {
             WindowsValidationCount++;
-            return Task.FromResult(Fingerprint(path));
+            if (!WaitForMediaCancellation)
+            {
+                return Task.FromResult(Fingerprint(path));
+            }
+
+            MediaValidationStarted.TrySetResult();
+            return WaitForCancellationAsync(cancellationToken);
         }
 
         public Task<ImageBuildFileFingerprint> ValidateVirtioMediaAsync(
@@ -243,5 +272,20 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
         private static ImageBuildFileFingerprint Fingerprint(string path) =>
             new(Path.GetFullPath(path), new string('a', 64), 1024, 1);
+
+        private async Task<ImageBuildFileFingerprint> WaitForCancellationAsync(
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                throw new InvalidOperationException("미디어 검증이 취소되지 않았습니다.");
+            }
+            catch (OperationCanceledException)
+            {
+                MediaCancellationObserved = true;
+                throw;
+            }
+        }
     }
 }

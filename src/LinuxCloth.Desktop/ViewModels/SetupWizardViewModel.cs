@@ -19,6 +19,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private DesktopStartupSnapshot _startup;
     private SetupReadiness _readiness;
     private CancellationTokenSource? _mediaValidation;
+    private TaskCompletionSource? _mediaValidationFinished;
     private SetupState _state = SetupState.Default;
     private PackageInstallPreview? _packagePreview;
     private PackagePlan? _packagePlan;
@@ -28,6 +29,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private string _distributionLabel = "배포판 확인 대기 중";
     private string? _errorMessage;
     private bool _isBusy;
+    private bool _disposed;
     private bool _isInitialized;
     private bool _isLicenseConfirmed;
     private bool _rememberMediaPaths;
@@ -352,9 +354,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     public async Task ValidateWindowsMediaAsync(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        CancelMediaValidation();
+        await CancelMediaValidationAndWaitAsync().ConfigureAwait(true);
         _mediaValidation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
         var validation = _mediaValidation;
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _mediaValidationFinished = finished;
         IsBusy = true;
         WindowsMediaPath = Path.GetFullPath(path);
         _windowsFingerprint = null;
@@ -383,9 +387,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
             {
                 _mediaValidation.Dispose();
                 _mediaValidation = null;
+                _mediaValidationFinished = null;
                 IsBusy = false;
             }
 
+            finished.TrySetResult();
             RaiseMediaState();
         }
     }
@@ -393,9 +399,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     public async Task ValidateVirtioMediaAsync(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        CancelMediaValidation();
+        await CancelMediaValidationAndWaitAsync().ConfigureAwait(true);
         _mediaValidation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
         var validation = _mediaValidation;
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _mediaValidationFinished = finished;
         IsBusy = true;
         VirtioMediaPath = Path.GetFullPath(path);
         _virtioFingerprint = null;
@@ -424,9 +432,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
             {
                 _mediaValidation.Dispose();
                 _mediaValidation = null;
+                _mediaValidationFinished = null;
                 IsBusy = false;
             }
 
+            finished.TrySetResult();
             RaiseMediaState();
         }
     }
@@ -435,15 +445,20 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         _shutdown.Cancel();
-        CancelMediaValidation();
+        await CancelMediaValidationAndWaitAsync().ConfigureAwait(true);
         await Build.DisposeAsync().ConfigureAwait(true);
         if (_packageInstaller is IAsyncDisposable asyncDisposable)
         {
             await asyncDisposable.DisposeAsync().ConfigureAwait(true);
         }
 
-        _mediaValidation?.Dispose();
         _shutdown.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -674,11 +689,13 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         RaiseNavigationState();
     }
 
-    private void CancelMediaValidation()
+    private async Task CancelMediaValidationAndWaitAsync()
     {
         _mediaValidation?.Cancel();
-        _mediaValidation?.Dispose();
-        _mediaValidation = null;
+        if (_mediaValidationFinished is not null)
+        {
+            await _mediaValidationFinished.Task.ConfigureAwait(true);
+        }
     }
 
     private bool IsDoctorAvailable(string code) => _startup.Doctor.Report.Checks.Any(check =>
