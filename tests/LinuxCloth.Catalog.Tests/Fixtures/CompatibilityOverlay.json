@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "services": [
+    {
+      "serviceId": "WooriBank",
+      "status": "verified",
+      "preferredDisplay": "spice",
+      "testedWindowsBuild": "25H2",
+      "testedSporkVersion": "1.20.5",
+      "testedCatalogCommit": "abc123",
+      "testedQemuVersion": "10.0",
+      "knownIssues": [
+        "RDP 대신 SPICE 콘솔 사용"
+      ],
+      "lastVerifiedAt": "2026-07-14"
+    },
+    {
+      "serviceId": "Gov24",
+      "status": "partial",
+      "preferredDisplay": "qemu-console",
+      "knownIssues": []
+    }
+  ]
+}

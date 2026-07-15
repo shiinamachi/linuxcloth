@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableClothCatalog Fallback="ko-KR">
+  <Companions>
+    <Companion Id="IgnoredCompanion" DisplayName="Ignored" Url="https://example.com/ignored" />
+  </Companions>
+  <InternetServices>
+    <Service Id="WooriBank" DisplayName="우리은행 개인뱅킹" en-US-DisplayName="WOORI BANK" Category="Banking" Url="https://www.wooribank.com/">
+      <CompatNotes>SPICE 콘솔을 사용하세요.</CompatNotes>
+      <en-US-CompatNotes>Use the SPICE console.</en-US-CompatNotes>
+      <SearchKeywords>우리; 우리은행;woori</SearchKeywords>
+      <Packages>
+        <Package Name="Veraport" Url="https://downloads.example.com/veraport.exe" Arguments="/silent" />
+        <Package Name="LegacyHttp" Url="http://downloads.example.com/legacy.exe" />
+      </Packages>
+      <EdgeExtensions>
+        <EdgeExtension Name="TouchEn" CrxUrl="https://extensions.example.com/touchen.crx" ExtensionId="abcdefghijklmnop" />
+      </EdgeExtensions>
+      <CustomBootstrap><![CDATA[Write-Output "guest only"]]></CustomBootstrap>
+    </Service>
+    <Service Id="KookminBank" DisplayName="KB국민은행" en-US-DisplayName="KB KOOKMIN BANK" Category="Banking" Url="https://www.kbstar.com/">
+      <Packages />
+    </Service>
+    <Service Id="Gov24" DisplayName="정부24" Category="Government" Url="https://www.gov.kr/">
+      <SearchKeywords>민원;government</SearchKeywords>
+    </Service>
+  </InternetServices>
+</TableClothCatalog>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>LinuxCloth.Catalog</RootNamespace>
+    <AssemblyName>LinuxCloth.Catalog</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LinuxCloth.Core/LinuxCloth.Core.csproj" />
+  </ItemGroup>
+</Project>

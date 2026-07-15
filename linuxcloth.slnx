@@ -1,9 +1,10 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/LinuxCloth.Catalog/LinuxCloth.Catalog.csproj" />
     <Project Path="src/LinuxCloth.Core/LinuxCloth.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/LinuxCloth.Catalog.Tests/LinuxCloth.Catalog.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Core.Tests/LinuxCloth.Core.Tests.csproj" />
   </Folder>
 </Solution>
-
