@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>LinuxCloth.Runtime.Qemu</RootNamespace>
+    <AssemblyName>LinuxCloth.Runtime.Qemu</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LinuxCloth.Core/LinuxCloth.Core.csproj" />
+  </ItemGroup>
+</Project>
+
