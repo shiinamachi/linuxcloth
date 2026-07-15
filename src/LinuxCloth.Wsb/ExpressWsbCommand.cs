@@ -5,13 +5,39 @@ namespace LinuxCloth.Wsb;
 internal static class ExpressWsbCommand
 {
     private const string CommandPrefix =
-        "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process powershell.exe -WindowStyle Normal -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command','$Host.UI.RawUI.WindowTitle = ''TableCloth Setup''; Write-Host '' Getting TableCloth ready...'' -ForegroundColor Cyan; if (-not (Resolve-DnsName -Name github.com -QuickTimeout -ErrorAction SilentlyContinue)) { Get-NetAdapter | Where-Object Status -eq ''Up'' | Set-DnsClientServerAddress -ServerAddresses 8.8.8.8,1.1.1.1 }; [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor 3072; ";
+        "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command \"" +
+        "$ErrorActionPreference = 'Stop'; " +
+        "$Host.UI.RawUI.WindowTitle = 'linuxcloth - TableCloth Setup'; " +
+        "[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor 3072; " +
+        "$bootstrapUrl = '" + PinnedSporkRelease.BootstrapUrl + "'; " +
+        "$bootstrapPath = Join-Path $env:TEMP ('linuxcloth-' + [Guid]::NewGuid().ToString('N') + '.exe'); ";
 
-    private const string SiteIdsPrefix = "$env:TABLECLOTH_SITE_IDS = ''";
-    private const string SiteIdsSuffix = "''; ";
+    private const string SiteIdsPrefix = "$siteIds = '";
+    private const string SiteIdsSuffix = "'; ";
 
-    private const string CommandSuffix =
-        "try { iex ((New-Object Net.WebClient).DownloadString(''https://github.com/yourtablecloth/TableCloth/releases/latest/download/tablecloth-prepare.ps1'')) } catch { Write-Host ('' Failed: '' + $_.Exception.Message) -ForegroundColor Red; $null = Read-Host '' Press Enter to close'' }'\"";
+    private static readonly string CommandSuffix =
+        "try { " +
+        "Invoke-WebRequest -UseBasicParsing -Uri $bootstrapUrl -OutFile $bootstrapPath; " +
+        "if ((Get-Item -LiteralPath $bootstrapPath).Length -ne " +
+        PinnedSporkRelease.BootstrapSizeBytes + ") { throw 'Bootstrap size mismatch.' }; " +
+        "$bootstrapHash = (Get-FileHash -LiteralPath $bootstrapPath -Algorithm SHA256).Hash; " +
+        "if ($bootstrapHash -ne '" + PinnedSporkRelease.BootstrapSha256 +
+        "') { throw 'Bootstrap SHA-256 mismatch.' }; " +
+        "$signature = Get-AuthenticodeSignature -LiteralPath $bootstrapPath; " +
+        "if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) " +
+        "{ throw 'Bootstrap signature is not trusted.' }; " +
+        "$sha = [Security.Cryptography.SHA256]::Create(); " +
+        "try { $signerHash = ([BitConverter]::ToString($sha.ComputeHash(" +
+        "$signature.SignerCertificate.RawData))).Replace('-', '') } finally { $sha.Dispose() }; " +
+        "if ($signerHash -ne '" + PinnedSporkRelease.BootstrapSignerCertificateSha256 +
+        "') { throw 'Bootstrap signer mismatch.' }; " +
+        "& $bootstrapPath '--zip-url-template' '" + PinnedSporkRelease.SporkZipUrlTemplate +
+        "' '--sha256-map' '" + PinnedSporkRelease.SporkSha256Map +
+        "' '--site-ids' $siteIds; " +
+        "if ($LASTEXITCODE -ne 0) { throw ('SporkBootstrap failed with exit code ' + $LASTEXITCODE) } " +
+        "} catch { Write-Host ('Failed: ' + $_.Exception.Message) -ForegroundColor Red; " +
+        "$null = Read-Host 'Press Enter to close'; exit 1 " +
+        "} finally { Remove-Item -LiteralPath $bootstrapPath -Force -ErrorAction SilentlyContinue }\"";
 
     public static string Create(IReadOnlyList<ServiceId> serviceIds)
     {

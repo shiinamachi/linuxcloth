@@ -19,11 +19,21 @@ public sealed class ExpressWsbGeneratorTests
         Assert.Empty(parsed.MappedFolders);
         Assert.True(parsed.IsValidatedExpress);
         Assert.Equal(serviceIds, parsed.ExpressServiceIds);
-        Assert.Contains("$env:TABLECLOTH_SITE_IDS = ''WooriBank KB''", parsed.LogonCommand, StringComparison.Ordinal);
+        Assert.Contains("$siteIds = 'WooriBank KB'", parsed.LogonCommand, StringComparison.Ordinal);
         Assert.Contains(
-            "https://github.com/yourtablecloth/TableCloth/releases/latest/download/tablecloth-prepare.ps1",
+            PinnedSporkRelease.BootstrapUrl,
             parsed.LogonCommand,
             StringComparison.Ordinal);
+        Assert.Contains(PinnedSporkRelease.BootstrapSha256, parsed.LogonCommand, StringComparison.Ordinal);
+        Assert.Contains(
+            PinnedSporkRelease.BootstrapSignerCertificateSha256,
+            parsed.LogonCommand,
+            StringComparison.Ordinal);
+        Assert.Contains(PinnedSporkRelease.SporkZipUrlTemplate, parsed.LogonCommand, StringComparison.Ordinal);
+        Assert.Contains(PinnedSporkRelease.SporkSha256Map, parsed.LogonCommand, StringComparison.Ordinal);
+        Assert.DoesNotContain("/latest/", parsed.LogonCommand, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Invoke-Expression", parsed.LogonCommand, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("iex ", parsed.LogonCommand, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("MappedFolders", xml, StringComparison.Ordinal);
     }
 
@@ -72,5 +82,17 @@ public sealed class ExpressWsbGeneratorTests
             StringComparison.Ordinal);
 
         Assert.Throws<WsbValidationException>(() => WsbParser.Parse(injected));
+    }
+
+    [Fact]
+    public void ModifiedPinnedArtifactContractCannotPassNormalModeValidation()
+    {
+        var xml = ExpressWsbGenerator.Generate([ServiceId.Parse("WooriBank")]);
+        var modified = xml.Replace(
+            PinnedSporkRelease.BootstrapSha256,
+            new string('0', PinnedSporkRelease.BootstrapSha256.Length),
+            StringComparison.Ordinal);
+
+        Assert.Throws<WsbValidationException>(() => WsbParser.Parse(modified));
     }
 }
