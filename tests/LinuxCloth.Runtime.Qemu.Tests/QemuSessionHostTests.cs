@@ -8,6 +8,7 @@ namespace LinuxCloth.Runtime.Qemu.Tests;
 
 public sealed class QemuSessionHostTests : IDisposable
 {
+    private const string BootId = "11111111-2222-3333-4444-555555555555";
     private readonly string _runtimeRoot = Path.Combine(Path.GetTempPath(), $"lc-{Guid.NewGuid():N}"[..11]);
 
     [Fact]
@@ -17,13 +18,21 @@ public sealed class QemuSessionHostTests : IDisposable
         var launcher = new FakeProcessLauncher();
         var connector = new FakeQmpConnector(launcher) { ExitOnPowerdown = true };
         var progress = new SynchronousProgress();
-        var host = new QemuSessionHost(launcher, connector, FastPolicy());
+        var recordStore = new SessionRecordStore();
+        var host = CreateHost(launcher, connector, recordStore);
 
         var session = await host.StartAsync(CreateRequest(paths, progress));
 
         Assert.Equal(4, launcher.Processes.Count);
         Assert.Contains(launcher.Processes, process => process.Name == "qemu-system-x86_64");
         Assert.Contains(SessionState.Running, progress.States);
+        var persisted = await recordStore.ReadAsync(paths);
+        Assert.Equal(SessionState.Running, persisted.State);
+        Assert.Equal("test-image", persisted.ImageId);
+        Assert.Equal(4, persisted.Processes.Count);
+        Assert.Equal(
+            launcher.Processes.Single(process => process.Name == "qemu-system-x86_64").Identity,
+            persisted.Processes[SessionProcessNames.Qemu]);
 
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
@@ -42,7 +51,7 @@ public sealed class QemuSessionHostTests : IDisposable
         var paths = CreatePaths();
         var launcher = new FakeProcessLauncher();
         var connector = new FakeQmpConnector(launcher);
-        var host = new QemuSessionHost(launcher, connector, FastPolicy());
+        var host = CreateHost(launcher, connector);
         var session = await host.StartAsync(CreateRequest(paths));
 
         await session.StopAsync();
@@ -60,12 +69,51 @@ public sealed class QemuSessionHostTests : IDisposable
         var paths = CreatePaths();
         var launcher = new FakeProcessLauncher();
         var connector = new FakeQmpConnector(launcher) { ThrowOnConnect = true };
-        var host = new QemuSessionHost(launcher, connector, FastPolicy());
+        var host = CreateHost(launcher, connector);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => host.StartAsync(CreateRequest(paths)));
 
         Assert.All(launcher.Processes, process => Assert.True(process.Disposed));
         Assert.False(Directory.Exists(paths.SessionDirectory));
+    }
+
+    [Fact]
+    public async Task PreservesFailedSessionWhenAStartedProcessCannotBeStopped()
+    {
+        var paths = CreatePaths();
+        var launcher = new FakeProcessLauncher { UnstoppableName = "qemu-system-x86_64" };
+        var connector = new FakeQmpConnector(launcher) { ThrowOnConnect = true };
+        var recordStore = new SessionRecordStore();
+        var progress = new SynchronousProgress();
+        var host = CreateHost(launcher, connector, recordStore);
+
+        await Assert.ThrowsAsync<AggregateException>(
+            () => host.StartAsync(CreateRequest(paths, progress)));
+
+        Assert.True(Directory.Exists(paths.SessionDirectory));
+        var persisted = await recordStore.ReadAsync(paths);
+        Assert.Equal(SessionState.Failed, persisted.State);
+        Assert.Contains(SessionProcessNames.Qemu, persisted.Processes.Keys);
+        Assert.DoesNotContain(SessionState.Completed, progress.States);
+    }
+
+    [Fact]
+    public async Task RejectsConfigurationForAnotherSessionBeforeStartingProcesses()
+    {
+        var paths = CreatePaths();
+        var launcher = new FakeProcessLauncher();
+        var connector = new FakeQmpConnector(launcher);
+        var host = CreateHost(launcher, connector);
+        var request = CreateRequest(paths);
+        request = request with
+        {
+            Configuration = request.Configuration with { SessionId = Guid.NewGuid() },
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => host.StartAsync(request));
+
+        Assert.Empty(launcher.Processes);
+        Assert.False(File.Exists(paths.SessionRecordPath));
     }
 
     public void Dispose()
@@ -114,8 +162,25 @@ public sealed class QemuSessionHostTests : IDisposable
             paths.GuestBridgeSocketPath,
             paths.ConfigDirectory,
             paths.PasstSocketPath);
-        return new QemuSessionStartRequest(configuration, paths, "linuxcloth — 우리은행", progress);
+        return new QemuSessionStartRequest(
+            configuration,
+            paths,
+            "linuxcloth — 우리은행",
+            "test-image",
+            new string('a', 64),
+            progress);
     }
+
+    private static QemuSessionHost CreateHost(
+        FakeProcessLauncher launcher,
+        FakeQmpConnector connector,
+        SessionRecordStore? recordStore = null) =>
+        new(
+            launcher,
+            connector,
+            FastPolicy(),
+            recordStore,
+            new FixedBootIdProvider());
 
     private static QemuShutdownPolicy FastPolicy() =>
         new(
@@ -128,10 +193,15 @@ public sealed class QemuSessionHostTests : IDisposable
     {
         public List<FakeManagedProcess> Processes { get; } = [];
 
+        public string? UnstoppableName { get; init; }
+
         public Task<IManagedProcess> StartAsync(ProcessSpec spec, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var process = new FakeManagedProcess(spec.FileName, Processes.Count + 100);
+            var process = new FakeManagedProcess(
+                spec.FileName,
+                Processes.Count + 100,
+                string.Equals(Path.GetFileName(spec.FileName), UnstoppableName, StringComparison.Ordinal));
             Processes.Add(process);
 
             if (process.Name == "swtpm")
@@ -148,7 +218,7 @@ public sealed class QemuSessionHostTests : IDisposable
         }
     }
 
-    private sealed class FakeManagedProcess(string executable, int id) : IManagedProcess
+    private sealed class FakeManagedProcess(string executable, int id, bool unstoppable) : IManagedProcess
     {
         private readonly TaskCompletionSource<int> _exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -156,7 +226,7 @@ public sealed class QemuSessionHostTests : IDisposable
 
         public int Id { get; } = id;
 
-        public ProcessIdentity Identity { get; } = new(id, "boot", id, executable);
+        public ProcessIdentity Identity { get; } = new(id, BootId, id, executable);
 
         public bool HasExited => _exit.Task.IsCompleted;
 
@@ -173,6 +243,11 @@ public sealed class QemuSessionHostTests : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             TerminateCount++;
+            if (unstoppable)
+            {
+                throw new IOException("Synthetic process termination failure.");
+            }
+
             Exit(143);
             return Task.CompletedTask;
         }
@@ -181,12 +256,22 @@ public sealed class QemuSessionHostTests : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             KillCount++;
+            if (unstoppable)
+            {
+                throw new IOException("Synthetic process kill failure.");
+            }
+
             Exit(137);
             return Task.CompletedTask;
         }
 
         public ValueTask DisposeAsync()
         {
+            if (unstoppable)
+            {
+                throw new IOException("Synthetic process disposal failure.");
+            }
+
             Disposed = true;
             Exit(0);
             return ValueTask.CompletedTask;
@@ -263,5 +348,10 @@ public sealed class QemuSessionHostTests : IDisposable
         public List<SessionState> States { get; } = [];
 
         public void Report(SessionState value) => States.Add(value);
+    }
+
+    private sealed class FixedBootIdProvider : IBootIdProvider
+    {
+        public string GetBootId() => BootId;
     }
 }

@@ -126,6 +126,33 @@ public sealed class RecoverySessionManagerTests : IDisposable
         Assert.Equal(0, processes.InspectCount);
     }
 
+    [Fact]
+    public async Task PreservesInterruptedStartupWithoutDurableQemuIdentity()
+    {
+        var paths = SessionPaths.Create(_runtimeRoot, Guid.NewGuid());
+        paths.CreateDirectories();
+        var record = new SessionRecord(
+            paths.SessionId,
+            BootId,
+            SessionState.StartingNetwork,
+            "test-image",
+            new string('a', 64),
+            [ServiceId.Parse("WooriBank")]);
+        await _store.WriteAsync(paths, record);
+        var processes = new FakeProcessIdentityController(
+            new ProcessIdentity(101, BootId, 202, "/usr/bin/qemu-system-x86_64"),
+            RecoveryProcessStatus.Stopped);
+        var cleaner = new RecordingCleaner();
+        var manager = new RecoverySessionManager(_store, processes, cleaner: cleaner, policy: FastPolicy());
+
+        var result = await manager.RecoverAsync(paths);
+
+        Assert.Equal(RecoveryDisposition.PreservedFailure, result.Disposition);
+        Assert.Equal(0, processes.InspectCount);
+        Assert.Equal(0, cleaner.DeleteCount);
+        Assert.True(Directory.Exists(paths.SessionDirectory));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_runtimeRoot))

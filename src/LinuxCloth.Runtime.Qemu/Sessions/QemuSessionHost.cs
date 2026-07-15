@@ -9,6 +9,8 @@ public sealed record QemuSessionStartRequest(
     QemuLaunchConfiguration Configuration,
     SessionPaths Paths,
     string WindowTitle,
+    string ImageId,
+    string BaseImageSha256,
     IProgress<SessionState>? Progress = null);
 
 public sealed record QemuShutdownPolicy(
@@ -29,15 +31,21 @@ public sealed class QemuSessionHost
     private readonly IProcessLauncher _processLauncher;
     private readonly IQmpConnector _qmpConnector;
     private readonly QemuShutdownPolicy _shutdownPolicy;
+    private readonly SessionRecordStore _recordStore;
+    private readonly IBootIdProvider _bootIdProvider;
 
     public QemuSessionHost(
         IProcessLauncher processLauncher,
         IQmpConnector qmpConnector,
-        QemuShutdownPolicy? shutdownPolicy = null)
+        QemuShutdownPolicy? shutdownPolicy = null,
+        SessionRecordStore? recordStore = null,
+        IBootIdProvider? bootIdProvider = null)
     {
         _processLauncher = processLauncher ?? throw new ArgumentNullException(nameof(processLauncher));
         _qmpConnector = qmpConnector ?? throw new ArgumentNullException(nameof(qmpConnector));
         _shutdownPolicy = shutdownPolicy ?? QemuShutdownPolicy.Default;
+        _recordStore = recordStore ?? new SessionRecordStore();
+        _bootIdProvider = bootIdProvider ?? new LinuxBootIdProvider();
     }
 
     public async Task<QemuRunningSession> StartAsync(
@@ -52,14 +60,30 @@ public sealed class QemuSessionHost
         IManagedProcess? qemu = null;
         IManagedProcess? viewer = null;
         IQmpMonitor? qmp = null;
+        SessionRecordJournal? journal = null;
 
         try
         {
+            journal = new SessionRecordJournal(
+                _recordStore,
+                request.Paths,
+                _bootIdProvider.GetBootId(),
+                request.ImageId,
+                request.BaseImageSha256,
+                request.Configuration.Request.ServiceIds,
+                SessionState.StartingNetwork);
+            await journal.InitializeAsync(cancellationToken).ConfigureAwait(false);
+
             request.Progress?.Report(SessionState.StartingNetwork);
             swtpm = await StartLoggedAsync(
                 SidecarCommandBuilder.BuildSwtpm(request.Configuration.Toolchain, request.Paths),
                 request.Paths,
                 "swtpm",
+                cancellationToken).ConfigureAwait(false);
+            await journal.AddProcessAsync(
+                SessionProcessNames.Swtpm,
+                swtpm,
+                SessionState.StartingNetwork,
                 cancellationToken).ConfigureAwait(false);
             await WaitForEndpointAsync(
                 request.Paths.SwtpmSocketPath,
@@ -74,6 +98,11 @@ public sealed class QemuSessionHost
                     request.Paths,
                     "passt",
                     cancellationToken).ConfigureAwait(false);
+                await journal.AddProcessAsync(
+                    SessionProcessNames.Passt,
+                    passt,
+                    SessionState.StartingNetwork,
+                    cancellationToken).ConfigureAwait(false);
                 await WaitForEndpointAsync(
                     request.Paths.PasstSocketPath,
                     passt,
@@ -87,8 +116,14 @@ public sealed class QemuSessionHost
                 request.Paths,
                 "qemu",
                 cancellationToken).ConfigureAwait(false);
+            await journal.AddProcessAsync(
+                SessionProcessNames.Qemu,
+                qemu,
+                SessionState.StartingVm,
+                cancellationToken).ConfigureAwait(false);
 
             request.Progress?.Report(SessionState.WaitingForGuest);
+            await journal.TransitionAsync(SessionState.WaitingForGuest, cancellationToken).ConfigureAwait(false);
             qmp = await _qmpConnector.ConnectAsync(
                 request.Paths.QmpSocketPath,
                 TimeSpan.FromSeconds(20),
@@ -109,8 +144,14 @@ public sealed class QemuSessionHost
                     request.Paths,
                     "viewer",
                     cancellationToken).ConfigureAwait(false);
+                await journal.AddProcessAsync(
+                    SessionProcessNames.Viewer,
+                    viewer,
+                    SessionState.WaitingForGuest,
+                    cancellationToken).ConfigureAwait(false);
             }
 
+            await journal.TransitionAsync(SessionState.Running, cancellationToken).ConfigureAwait(false);
             request.Progress?.Report(SessionState.Running);
             return new QemuRunningSession(
                 request.Paths,
@@ -120,32 +161,43 @@ public sealed class QemuSessionHost
                 viewer,
                 qmp,
                 _shutdownPolicy,
+                journal,
                 request.Progress);
         }
         catch (Exception startFailure)
         {
             request.Progress?.Report(SessionState.Failed);
             var cleanupFailures = new List<Exception>();
+            if (journal is not null)
+            {
+                await journal.TryMarkFailedAsync(cleanupFailures).ConfigureAwait(false);
+            }
+
+            var processesStopped = false;
             try
             {
                 await CleanupFailedStartAsync(qmp, viewer, qemu, passt, swtpm).ConfigureAwait(false);
+                processesStopped = true;
             }
             catch (Exception cleanupFailure)
             {
                 cleanupFailures.Add(cleanupFailure);
             }
 
-            request.Progress?.Report(SessionState.Cleaning);
-            try
+            if (processesStopped)
             {
-                SessionCleaner.Delete(request.Paths);
-            }
-            catch (Exception cleanupFailure)
-            {
-                cleanupFailures.Add(cleanupFailure);
+                request.Progress?.Report(SessionState.Cleaning);
+                try
+                {
+                    SessionCleaner.Delete(request.Paths);
+                    request.Progress?.Report(SessionState.Completed);
+                }
+                catch (Exception cleanupFailure)
+                {
+                    cleanupFailures.Add(cleanupFailure);
+                }
             }
 
-            request.Progress?.Report(SessionState.Completed);
             if (cleanupFailures.Count > 0)
             {
                 cleanupFailures.Insert(0, startFailure);
@@ -277,6 +329,23 @@ public sealed class QemuSessionHost
     {
         var configuration = request.Configuration;
         var paths = request.Paths;
+        if (configuration.SessionId != paths.SessionId)
+        {
+            throw new ArgumentException("The QEMU configuration session identifier does not match its session path.", nameof(request));
+        }
+
+        if (configuration.MachineId == Guid.Empty)
+        {
+            throw new ArgumentException("The QEMU machine identifier cannot be empty.", nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.WindowTitle) ||
+            request.WindowTitle.Length > 256 ||
+            request.WindowTitle.Any(char.IsControl))
+        {
+            throw new ArgumentException("The viewer window title must be 1-256 printable characters.", nameof(request));
+        }
+
         var pairs = new (string Actual, string Expected)[]
         {
             (configuration.SessionDirectory, paths.SessionDirectory),
@@ -317,6 +386,7 @@ public sealed class QemuRunningSession : IAsyncDisposable
     private readonly IManagedProcess? _viewer;
     private readonly IQmpMonitor _qmp;
     private readonly QemuShutdownPolicy _policy;
+    private readonly SessionRecordJournal _journal;
     private readonly IProgress<SessionState>? _progress;
     private readonly SemaphoreSlim _stopGate = new(1, 1);
     private bool _stopped;
@@ -330,6 +400,7 @@ public sealed class QemuRunningSession : IAsyncDisposable
         IManagedProcess? viewer,
         IQmpMonitor qmp,
         QemuShutdownPolicy policy,
+        SessionRecordJournal journal,
         IProgress<SessionState>? progress)
     {
         _paths = paths;
@@ -339,6 +410,7 @@ public sealed class QemuRunningSession : IAsyncDisposable
         _viewer = viewer;
         _qmp = qmp;
         _policy = policy;
+        _journal = journal;
         _progress = progress;
     }
 
@@ -363,6 +435,9 @@ public sealed class QemuRunningSession : IAsyncDisposable
             _stopped = true;
             _progress?.Report(SessionState.Stopping);
             var failures = new List<Exception>();
+            await CaptureFailureAsync(
+                () => _journal.TransitionAsync(SessionState.Stopping, CancellationToken.None),
+                failures).ConfigureAwait(false);
             await CaptureFailureAsync(StopQemuAsync, failures).ConfigureAwait(false);
             await CaptureFailureAsync(() => StopOwnedProcessAsync(_viewer), failures).ConfigureAwait(false);
             await CaptureFailureAsync(() => StopOwnedProcessAsync(_passt), failures).ConfigureAwait(false);
@@ -370,15 +445,31 @@ public sealed class QemuRunningSession : IAsyncDisposable
             await CaptureFailureAsync(async () => await _qmp.DisposeAsync().ConfigureAwait(false), failures).ConfigureAwait(false);
             await CaptureFailureAsync(async () => await _qemu.DisposeAsync().ConfigureAwait(false), failures).ConfigureAwait(false);
 
-            try
+            if (!AreOwnedProcessesStopped())
             {
-                _progress?.Report(SessionState.Cleaning);
-                SessionCleaner.Delete(_paths);
-                _progress?.Report(SessionState.Completed);
+                await _journal.TryMarkFailedAsync(failures).ConfigureAwait(false);
+                failures.Add(new InvalidOperationException(
+                    "Session artifacts were preserved because at least one owned process is still running."));
             }
-            catch (Exception exception)
+            else
             {
-                failures.Add(exception);
+                if (SessionStateTransitions.CanTransition(_journal.CurrentState, SessionState.Cleaning))
+                {
+                    await CaptureFailureAsync(
+                        () => _journal.TransitionAsync(SessionState.Cleaning, CancellationToken.None),
+                        failures).ConfigureAwait(false);
+                }
+
+                try
+                {
+                    _progress?.Report(SessionState.Cleaning);
+                    SessionCleaner.Delete(_paths);
+                    _progress?.Report(SessionState.Completed);
+                }
+                catch (Exception exception)
+                {
+                    failures.Add(exception);
+                }
             }
 
             if (failures.Count > 0)
@@ -470,6 +561,12 @@ public sealed class QemuRunningSession : IAsyncDisposable
             await process.DisposeAsync().ConfigureAwait(false);
         }
     }
+
+    private bool AreOwnedProcessesStopped() =>
+        _qemu.HasExited &&
+        _swtpm.HasExited &&
+        (_passt?.HasExited ?? true) &&
+        (_viewer?.HasExited ?? true);
 
     private static async Task CaptureFailureAsync(Func<Task> operation, List<Exception> failures)
     {

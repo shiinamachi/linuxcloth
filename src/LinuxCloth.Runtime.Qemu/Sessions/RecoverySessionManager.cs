@@ -1,3 +1,4 @@
+using LinuxCloth.Core;
 using LinuxCloth.Runtime.Qemu.Processes;
 using LinuxCloth.Runtime.Qemu.Qmp;
 
@@ -216,6 +217,16 @@ public sealed class RecoverySessionManager
                 RecoveryDisposition.PreservedInvalidRecord,
                 Detail: "The session record could not be validated.",
                 Failure: exception);
+        }
+
+        if (record.State == SessionState.StartingNetwork &&
+            !record.Processes.ContainsKey(SessionProcessNames.Qemu))
+        {
+            return new RecoveryResult(
+                paths.SessionDirectory,
+                paths.SessionId,
+                RecoveryDisposition.PreservedFailure,
+                Detail: "Startup ended before a QEMU identity was durably recorded; automatic cleanup cannot prove that no unrecorded VM exists.");
         }
 
         try
