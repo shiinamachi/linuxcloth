@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>LinuxCloth.Application</RootNamespace>
+    <AssemblyName>LinuxCloth.Application</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LinuxCloth.Catalog/LinuxCloth.Catalog.csproj" />
+    <ProjectReference Include="../LinuxCloth.Core/LinuxCloth.Core.csproj" />
+    <ProjectReference Include="../LinuxCloth.Runtime.Qemu/LinuxCloth.Runtime.Qemu.csproj" />
+    <ProjectReference Include="../LinuxCloth.Wsb/LinuxCloth.Wsb.csproj" />
+  </ItemGroup>
+</Project>

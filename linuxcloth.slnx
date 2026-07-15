@@ -1,11 +1,13 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/LinuxCloth.Application/LinuxCloth.Application.csproj" />
     <Project Path="src/LinuxCloth.Catalog/LinuxCloth.Catalog.csproj" />
     <Project Path="src/LinuxCloth.Core/LinuxCloth.Core.csproj" />
     <Project Path="src/LinuxCloth.Runtime.Qemu/LinuxCloth.Runtime.Qemu.csproj" />
     <Project Path="src/LinuxCloth.Wsb/LinuxCloth.Wsb.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/LinuxCloth.Application.Tests/LinuxCloth.Application.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Catalog.Tests/LinuxCloth.Catalog.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Core.Tests/LinuxCloth.Core.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Runtime.Qemu.Tests/LinuxCloth.Runtime.Qemu.Tests.csproj" />
