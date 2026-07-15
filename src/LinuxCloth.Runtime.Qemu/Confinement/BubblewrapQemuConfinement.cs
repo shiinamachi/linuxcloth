@@ -82,7 +82,8 @@ public static class BubblewrapQemuConfinement
             },
             qemuProcess.StandardOutputPath,
             qemuProcess.StandardErrorPath,
-            inheritEnvironment: false);
+            inheritEnvironment: false,
+            identityExecutablePath: qemuProcess.FileName);
     }
 
     private static ValidatedResources Validate(

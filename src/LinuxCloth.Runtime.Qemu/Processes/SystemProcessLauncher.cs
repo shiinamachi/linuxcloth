@@ -5,7 +5,10 @@ namespace LinuxCloth.Runtime.Qemu.Processes;
 
 public sealed partial class SystemProcessLauncher : IProcessLauncher
 {
-    public Task<IManagedProcess> StartAsync(
+    private static readonly TimeSpan IdentityTransitionTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan IdentityPollInterval = TimeSpan.FromMilliseconds(10);
+
+    public async Task<IManagedProcess> StartAsync(
         ProcessSpec spec,
         CancellationToken cancellationToken = default)
     {
@@ -27,8 +30,8 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             }
 
             started = true;
-            IManagedProcess managed = new SystemManagedProcess(process, spec);
-            return Task.FromResult(managed);
+            var identity = await WaitForIdentityAsync(process, spec, cancellationToken).ConfigureAwait(false);
+            return new SystemManagedProcess(process, spec, identity);
         }
         catch
         {
@@ -40,6 +43,55 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             process.Dispose();
             throw;
         }
+    }
+
+    private static async Task<ProcessIdentity> WaitForIdentityAsync(
+        Process process,
+        ProcessSpec spec,
+        CancellationToken cancellationToken)
+    {
+        var expectedExecutable = spec.IdentityExecutablePath;
+        if (expectedExecutable is null)
+        {
+            return LinuxProcessIdentity.Read(process);
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+        while (stopwatch.Elapsed < IdentityTransitionTimeout)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (process.HasExited)
+            {
+                throw new InvalidOperationException(
+                    $"Process '{spec.FileName}' exited before becoming '{expectedExecutable}'.");
+            }
+
+            try
+            {
+                var identity = LinuxProcessIdentity.Read(process);
+                if (string.Equals(identity.ExecutablePath, expectedExecutable, StringComparison.Ordinal))
+                {
+                    return identity;
+                }
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException or
+                InvalidDataException or
+                IOException)
+            {
+                if (process.HasExited)
+                {
+                    throw new InvalidOperationException(
+                        $"Process '{spec.FileName}' exited before its final identity could be captured.",
+                        exception);
+                }
+            }
+
+            await Task.Delay(IdentityPollInterval, cancellationToken).ConfigureAwait(false);
+        }
+
+        throw new TimeoutException(
+            $"Process '{spec.FileName}' did not become '{expectedExecutable}' within {IdentityTransitionTimeout}.");
     }
 
     private static ProcessStartInfo CreateStartInfo(ProcessSpec spec)
@@ -84,10 +136,10 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
         private readonly Task _standardErrorPump;
         private bool _disposed;
 
-        public SystemManagedProcess(Process process, ProcessSpec spec)
+        public SystemManagedProcess(Process process, ProcessSpec spec, ProcessIdentity identity)
         {
             _process = process;
-            Identity = LinuxProcessIdentity.Read(process);
+            Identity = identity;
             _standardOutputPump = spec.StandardOutputPath is null
                 ? Task.CompletedTask
                 : PumpLogAsync(process.StandardOutput, spec.StandardOutputPath);

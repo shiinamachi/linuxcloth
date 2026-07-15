@@ -9,7 +9,8 @@ public sealed record ProcessSpec
         IReadOnlyDictionary<string, string?>? environment = null,
         string? standardOutputPath = null,
         string? standardErrorPath = null,
-        bool inheritEnvironment = false)
+        bool inheritEnvironment = false,
+        string? identityExecutablePath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
@@ -22,6 +23,19 @@ public sealed record ProcessSpec
         StandardOutputPath = standardOutputPath;
         StandardErrorPath = standardErrorPath;
         InheritEnvironment = inheritEnvironment;
+        if (identityExecutablePath is not null &&
+            (string.IsNullOrWhiteSpace(identityExecutablePath) ||
+             !Path.IsPathFullyQualified(identityExecutablePath) ||
+             identityExecutablePath.Any(char.IsControl)))
+        {
+            throw new ArgumentException(
+                "The expected identity executable path must be absolute.",
+                nameof(identityExecutablePath));
+        }
+
+        IdentityExecutablePath = identityExecutablePath is null
+            ? null
+            : Path.GetFullPath(identityExecutablePath);
     }
 
     public string FileName { get; }
@@ -37,6 +51,8 @@ public sealed record ProcessSpec
     public string? StandardErrorPath { get; }
 
     public bool InheritEnvironment { get; }
+
+    public string? IdentityExecutablePath { get; }
 }
 
 public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError)

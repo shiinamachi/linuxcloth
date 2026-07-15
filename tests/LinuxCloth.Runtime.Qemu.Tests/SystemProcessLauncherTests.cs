@@ -53,6 +53,29 @@ public sealed class SystemProcessLauncherTests : IDisposable
         Assert.True(process.HasExited);
     }
 
+    [Fact]
+    public async Task WaitsForWrapperToExecTheExpectedIdentity()
+    {
+        if (!OperatingSystem.IsLinux() ||
+            !File.Exists("/usr/bin/sh") ||
+            !File.Exists("/usr/bin/sleep"))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(_directory);
+        var spec = new ProcessSpec(
+            "/usr/bin/sh",
+            ["-c", "exec /usr/bin/sleep 30"],
+            identityExecutablePath: "/usr/bin/sleep");
+
+        await using var process = await new SystemProcessLauncher().StartAsync(spec);
+
+        Assert.Equal("/usr/bin/sleep", process.Identity.ExecutablePath);
+        await process.TerminateAsync();
+        _ = await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_directory))

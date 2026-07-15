@@ -47,6 +47,7 @@ public sealed class BubblewrapQemuConfinementTests : IDisposable
         AssertContainsSequence(confined.Arguments, "--bind", _sessionDirectory, _sessionDirectory);
         AssertContainsSequence(confined.Arguments, "--chdir", _sessionDirectory);
         Assert.False(confined.InheritEnvironment);
+        Assert.Equal(qemu.FileName, confined.IdentityExecutablePath);
         Assert.Equal("C", confined.Environment["LC_ALL"]);
         Assert.DoesNotContain("HOME", confined.Environment.Keys);
         Assert.DoesNotContain(confined.Arguments, static argument => argument == Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
