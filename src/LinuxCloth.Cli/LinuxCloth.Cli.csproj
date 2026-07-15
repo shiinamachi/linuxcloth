@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>LinuxCloth.Cli</RootNamespace>
+    <AssemblyName>linuxcloth</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LinuxCloth.Application/LinuxCloth.Application.csproj" />
+    <ProjectReference Include="../LinuxCloth.Catalog/LinuxCloth.Catalog.csproj" />
+    <ProjectReference Include="../LinuxCloth.Core/LinuxCloth.Core.csproj" />
+    <ProjectReference Include="../LinuxCloth.Runtime.Qemu/LinuxCloth.Runtime.Qemu.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../vendor/TableClothCatalog/docs/**/*">
+      <Link>catalog/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="../../vendor/TableClothCatalog/LICENSE">
+      <Link>catalog/LICENSE</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "linuxcloth.application": {
+        "type": "Project",
+        "dependencies": {
+          "LinuxCloth.Catalog": "[1.0.0, )",
+          "LinuxCloth.Core": "[1.0.0, )",
+          "LinuxCloth.Runtime.Qemu": "[1.0.0, )",
+          "LinuxCloth.Wsb": "[1.0.0, )"
+        }
+      },
+      "linuxcloth.catalog": {
+        "type": "Project",
+        "dependencies": {
+          "LinuxCloth.Core": "[1.0.0, )"
+        }
+      },
+      "linuxcloth.core": {
+        "type": "Project"
+      },
+      "linuxcloth.runtime.qemu": {
+        "type": "Project",
+        "dependencies": {
+          "LinuxCloth.Core": "[1.0.0, )"
+        }
+      },
+      "linuxcloth.wsb": {
+        "type": "Project",
+        "dependencies": {
+          "LinuxCloth.Core": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}
