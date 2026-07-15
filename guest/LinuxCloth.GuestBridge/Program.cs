@@ -24,8 +24,13 @@ internal static class Program
         {
             var driveProvider = new SystemConfigDriveProvider();
             var processRunner = new SystemProcessRunner();
+            using var bootstrapHttpClient = HttpBootstrapArtifactDownloader.CreateSecureHttpClient();
             var configResolver = new GuestConfigResolver(driveProvider, diagnosticLog);
-            var bootstrapLauncher = new PowerShellBootstrapLauncher(processRunner);
+            var bootstrapLauncher = new PinnedBootstrapLauncher(
+                new HttpBootstrapArtifactDownloader(bootstrapHttpClient),
+                new WindowsAuthenticodeVerifier(),
+                processRunner,
+                PrivateTemporaryDirectoryFactory.Instance);
             var provisioningProbeProcessor = new ProvisioningProbeProcessor(
                 driveProvider,
                 new SystemGuestBridgeExecutableProvider(),

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using LinuxCloth.Core;
 
 namespace LinuxCloth.GuestBridge;
@@ -18,53 +19,110 @@ internal interface IProcessRunner
         CancellationToken cancellationToken);
 }
 
-internal sealed class PowerShellBootstrapLauncher : IBootstrapLauncher
+internal sealed class BootstrapArtifactRejectedException : InvalidOperationException
 {
-    internal const string SiteIdsEnvironmentVariable = "TABLECLOTH_SITE_IDS";
-    internal const string ScriptUrlEnvironmentVariable = "LINUXCLOTH_OFFICIAL_SCRIPT_URL";
-    internal const string OfficialScriptUrl =
-        "https://github.com/yourtablecloth/TableCloth/releases/latest/download/tablecloth-prepare.ps1";
-
-    internal const string FixedBootstrapCommand =
-        "$ErrorActionPreference = 'Stop'; " +
-        "[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor 3072; " +
-        "Invoke-Expression ((New-Object Net.WebClient).DownloadString($env:LINUXCLOTH_OFFICIAL_SCRIPT_URL))";
-
-    private readonly IProcessRunner _processRunner;
-
-    public PowerShellBootstrapLauncher(IProcessRunner processRunner)
+    public BootstrapArtifactRejectedException()
+        : base("The pinned bootstrap artifact was rejected.")
     {
+    }
+}
+
+internal sealed class PinnedBootstrapLauncher : IBootstrapLauncher
+{
+    private const string BootstrapFileName = "SporkBootstrap.exe";
+
+    private readonly IBootstrapArtifactDownloader _downloader;
+    private readonly IExecutableSignatureVerifier _signatureVerifier;
+    private readonly IProcessRunner _processRunner;
+    private readonly IPrivateTemporaryDirectoryFactory _temporaryDirectoryFactory;
+
+    public PinnedBootstrapLauncher(
+        IBootstrapArtifactDownloader downloader,
+        IExecutableSignatureVerifier signatureVerifier,
+        IProcessRunner processRunner,
+        IPrivateTemporaryDirectoryFactory temporaryDirectoryFactory)
+    {
+        _downloader = downloader ?? throw new ArgumentNullException(nameof(downloader));
+        _signatureVerifier = signatureVerifier ??
+                             throw new ArgumentNullException(nameof(signatureVerifier));
         _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
+        _temporaryDirectoryFactory = temporaryDirectoryFactory ??
+                                     throw new ArgumentNullException(nameof(temporaryDirectoryFactory));
     }
 
-    public Task<int> LaunchAsync(
+    public async Task<int> LaunchAsync(
         IReadOnlyList<ServiceId> serviceIds,
         CancellationToken cancellationToken)
     {
         var validatedServiceIds = ValidateServiceIds(serviceIds);
-        var startInfo = CreateStartInfo(validatedServiceIds);
-        return _processRunner.RunAsync(startInfo, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using var temporaryDirectory = _temporaryDirectoryFactory.Create();
+        var bootstrapPath = Path.Combine(temporaryDirectory.DirectoryPath, BootstrapFileName);
+
+        BootstrapArtifactLease artifact;
+        try
+        {
+            artifact = await _downloader
+                .DownloadAsync(bootstrapPath, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (IsArtifactAcquisitionFailure(exception))
+        {
+            throw new BootstrapArtifactRejectedException();
+        }
+
+        using (artifact)
+        {
+            ExecutableSignatureVerificationResult verificationResult;
+            try
+            {
+                verificationResult = _signatureVerifier.Verify(
+                    artifact.Path,
+                    PinnedSporkRelease.BootstrapSignerCertificateSha256);
+            }
+            catch (Exception exception) when (IsSignatureVerificationFailure(exception))
+            {
+                throw new BootstrapArtifactRejectedException();
+            }
+
+            if (verificationResult is not ExecutableSignatureVerificationResult.Trusted)
+            {
+                throw new BootstrapArtifactRejectedException();
+            }
+
+            var startInfo = CreateStartInfo(
+                artifact.Path,
+                temporaryDirectory.DirectoryPath,
+                validatedServiceIds);
+            return await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
+        }
     }
 
-    private static ProcessStartInfo CreateStartInfo(IReadOnlyList<ServiceId> serviceIds)
+    private static ProcessStartInfo CreateStartInfo(
+        string bootstrapPath,
+        string workingDirectory,
+        IReadOnlyList<ServiceId> serviceIds)
     {
         var startInfo = new ProcessStartInfo
         {
-            FileName = GetWindowsPowerShellPath(),
+            FileName = bootstrapPath,
+            WorkingDirectory = workingDirectory,
             UseShellExecute = false,
             CreateNoWindow = false,
             ErrorDialog = false,
         };
 
-        startInfo.ArgumentList.Add("-NoLogo");
-        startInfo.ArgumentList.Add("-NoProfile");
-        startInfo.ArgumentList.Add("-ExecutionPolicy");
-        startInfo.ArgumentList.Add("Bypass");
-        startInfo.ArgumentList.Add("-Command");
-        startInfo.ArgumentList.Add(FixedBootstrapCommand);
-        startInfo.Environment[SiteIdsEnvironmentVariable] =
-            string.Join(' ', serviceIds.Select(serviceId => serviceId.Value));
-        startInfo.Environment[ScriptUrlEnvironmentVariable] = OfficialScriptUrl;
+        startInfo.ArgumentList.Add("--zip-url-template");
+        startInfo.ArgumentList.Add(PinnedSporkRelease.SporkZipUrlTemplate);
+        startInfo.ArgumentList.Add("--sha256-map");
+        startInfo.ArgumentList.Add(PinnedSporkRelease.SporkSha256Map);
+        startInfo.ArgumentList.Add("--site-ids");
+        startInfo.ArgumentList.Add(string.Join(' ', serviceIds.Select(serviceId => serviceId.Value)));
         return startInfo;
     }
 
@@ -96,13 +154,20 @@ internal sealed class PowerShellBootstrapLauncher : IBootstrapLauncher
         return copy;
     }
 
-    private static string GetWindowsPowerShellPath()
-    {
-        var systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
-        return string.IsNullOrEmpty(systemDirectory)
-            ? "powershell.exe"
-            : Path.Combine(systemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
-    }
+    private static bool IsArtifactAcquisitionFailure(Exception exception) =>
+        exception is BootstrapArtifactRejectedException or
+        OperationCanceledException or
+        HttpRequestException or
+        IOException or
+        UnauthorizedAccessException or
+        CryptographicException;
+
+    private static bool IsSignatureVerificationFailure(Exception exception) =>
+        exception is Win32Exception or
+        IOException or
+        UnauthorizedAccessException or
+        CryptographicException or
+        PlatformNotSupportedException;
 }
 
 internal sealed class SystemProcessRunner : IProcessRunner
@@ -117,7 +182,7 @@ internal sealed class SystemProcessRunner : IProcessRunner
         using var process = new Process { StartInfo = startInfo };
         if (!process.Start())
         {
-            throw new InvalidOperationException("Windows PowerShell did not start.");
+            throw new InvalidOperationException("The requested process did not start.");
         }
 
         try

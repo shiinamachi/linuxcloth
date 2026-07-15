@@ -7,6 +7,7 @@
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugSymbols>false</DebugSymbols>
     <DebugType>none</DebugType>
     <!-- A non-empty sentinel prevents the SDK from restoring its default .pdb related-file list. -->

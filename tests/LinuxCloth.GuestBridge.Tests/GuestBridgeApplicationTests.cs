@@ -53,7 +53,7 @@ public sealed class GuestBridgeApplicationTests
     }
 
     [Fact]
-    public async Task ReportsPowerShellStartFailureWithoutLeakingExceptionDetails()
+    public async Task ReportsBootstrapStartFailureWithoutLeakingExceptionDetails()
     {
         using var directory = new TemporaryDirectory();
         ConfigFixture.WriteValid(directory.Path);

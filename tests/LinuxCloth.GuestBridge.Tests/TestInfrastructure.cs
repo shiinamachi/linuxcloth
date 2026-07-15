@@ -107,12 +107,78 @@ internal sealed class CapturingProcessRunner : IProcessRunner
 {
     public ProcessStartInfo? StartInfo { get; private set; }
 
+    public int RunCount { get; private set; }
+
     public Task<int> RunAsync(
         ProcessStartInfo startInfo,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        RunCount++;
         StartInfo = startInfo;
         return Task.FromResult(0);
+    }
+}
+
+internal sealed class FakeBootstrapArtifactDownloader : IBootstrapArtifactDownloader
+{
+    public int DownloadCount { get; private set; }
+
+    public string? DestinationPath { get; private set; }
+
+    public Task<BootstrapArtifactLease> DownloadAsync(
+        string destinationPath,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        DownloadCount++;
+        DestinationPath = destinationPath;
+        using (var writer = new FileStream(
+            destinationPath,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None))
+        {
+            writer.Write("test bootstrap"u8);
+            writer.Flush(flushToDisk: true);
+        }
+
+        var readLock = new FileStream(
+            destinationPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read);
+        return Task.FromResult(new BootstrapArtifactLease(destinationPath, readLock));
+    }
+}
+
+internal sealed class FakeExecutableSignatureVerifier(
+    ExecutableSignatureVerificationResult result) : IExecutableSignatureVerifier
+{
+    public int VerifyCount { get; private set; }
+
+    public string? ExpectedSignerCertificateSha256 { get; private set; }
+
+    public ExecutableSignatureVerificationResult Verify(
+        string executablePath,
+        string expectedSignerCertificateSha256)
+    {
+        Assert.True(File.Exists(executablePath));
+        VerifyCount++;
+        ExpectedSignerCertificateSha256 = expectedSignerCertificateSha256;
+        return result;
+    }
+}
+
+internal sealed class StubHttpMessageHandler(
+    Func<HttpRequestMessage, HttpResponseMessage> responseFactory) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(responseFactory(request));
     }
 }
 
