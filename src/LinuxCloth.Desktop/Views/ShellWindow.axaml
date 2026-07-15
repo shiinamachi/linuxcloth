@@ -1,0 +1,24 @@
+<Window
+    x:Class="LinuxCloth.Desktop.Views.ShellWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="linuxcloth"
+    Width="1380"
+    Height="860"
+    MinWidth="900"
+    MinHeight="700"
+    WindowStartupLocation="CenterScreen">
+  <Grid>
+    <ContentControl x:Name="ShellContent" />
+    <Border x:Name="StartupPanel" Background="#0B1020" IsVisible="True">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18" MaxWidth="560">
+        <Border Width="62" Height="62" CornerRadius="18" Background="#6D5DFB">
+          <TextBlock Text="LC" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" FontWeight="Bold" />
+        </Border>
+        <TextBlock Text="linuxcloth를 준비하고 있습니다" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center" />
+        <TextBlock x:Name="StartupStatus" Text="이전 세션, 카탈로그, 호스트와 기준 이미지를 확인합니다…" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" />
+        <ProgressBar Width="280" IsIndeterminate="True" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

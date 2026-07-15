@@ -48,6 +48,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             ShowError);
     }
 
+    public event EventHandler? SetupRequested;
+
     public ObservableCollection<CategoryFilterViewModel> Categories { get; } = [];
 
     public ObservableCollection<ServiceCardViewModel> FilteredServices { get; } = [];
@@ -166,11 +168,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync(DesktopStartupSnapshot startup)
     {
+        ArgumentNullException.ThrowIfNull(startup);
         if (_isInitialized)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         IsBusy = true;
@@ -178,7 +181,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SessionStatus = "카탈로그와 시스템 상태를 준비하고 있습니다…";
         try
         {
-            var startup = await _runtime.InitializeAsync(_shutdown.Token);
             LoadCatalog(startup.Catalog.Services);
             LoadImages(startup.Images);
             ApplyDoctor(startup.Doctor);
@@ -202,13 +204,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             IsBusy = false;
             RaiseCommandState();
         }
+
+        return Task.CompletedTask;
     }
 
-    public ImageSetupViewModel CreateImageSetupViewModel() =>
-        new(
-            _runtime,
-            RefreshImagesAfterBuildAsync,
-            _shutdown.Token);
+    public void RequestSetup() => SetupRequested?.Invoke(this, EventArgs.Empty);
 
     public async Task RefreshImagesAsync()
     {
@@ -246,7 +246,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             service.Dispose();
         }
 
-        await _runtime.DisposeAsync();
         _shutdown.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -277,12 +276,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             IsBusy = false;
         }
-    }
-
-    private async Task RefreshImagesAfterBuildAsync(CancellationToken cancellationToken)
-    {
-        LoadImages(await _runtime.ListImagesAsync(cancellationToken));
-        SessionStatus = "새 Windows 기준 이미지가 등록되었습니다.";
     }
 
     private async Task LaunchSelectedAsync()
