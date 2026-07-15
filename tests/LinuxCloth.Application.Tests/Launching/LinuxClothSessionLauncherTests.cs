@@ -309,10 +309,12 @@ public sealed class LinuxClothSessionLauncherTests : IDisposable
             SessionPaths paths,
             SessionImageDefinition image,
             string qemuImgPath,
+            string bubblewrapPath,
             CancellationToken cancellationToken = default)
         {
             _ = image;
             _ = qemuImgPath;
+            _ = bubblewrapPath;
             cancellationToken.ThrowIfCancellationRequested();
             paths.CreateDirectories();
             File.WriteAllText(paths.OverlayPath, "overlay");

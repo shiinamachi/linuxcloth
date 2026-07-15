@@ -1,3 +1,4 @@
+using LinuxCloth.Runtime.Qemu.Confinement;
 using LinuxCloth.Runtime.Qemu.Processes;
 
 namespace LinuxCloth.Runtime.Qemu.Sessions;
@@ -15,18 +16,26 @@ public sealed class SessionArtifactPreparer
         SessionPaths paths,
         SessionImageDefinition image,
         string qemuImgPath,
+        string bubblewrapPath,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(paths);
         ArgumentNullException.ThrowIfNull(image);
         ValidateImage(image);
         ArgumentException.ThrowIfNullOrWhiteSpace(qemuImgPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bubblewrapPath);
 
         paths.CreateDirectories();
 
         try
         {
-            await CreateOverlayAsync(paths, image.BaseImagePath, qemuImgPath, cancellationToken).ConfigureAwait(false);
+            await CreateOverlayAsync(
+                    paths,
+                    image.BaseImagePath,
+                    qemuImgPath,
+                    bubblewrapPath,
+                    cancellationToken)
+                .ConfigureAwait(false);
             File.Copy(image.OvmfVariablesTemplatePath, paths.OvmfVariablesPath, overwrite: false);
             CopyDirectory(image.SwtpmStateTemplateDirectory, paths.SwtpmStateDirectory);
             ApplyPrivateModes(paths);
@@ -42,21 +51,27 @@ public sealed class SessionArtifactPreparer
         SessionPaths paths,
         string baseImagePath,
         string qemuImgPath,
+        string bubblewrapPath,
         CancellationToken cancellationToken)
     {
+        var command = new ProcessSpec(
+            qemuImgPath,
+            [
+                "create",
+                "-q",
+                "-f", "qcow2",
+                "-F", "qcow2",
+                "-b", Path.GetFullPath(baseImagePath),
+                paths.OverlayPath,
+            ],
+            paths.SessionDirectory,
+            new Dictionary<string, string?> { ["LC_ALL"] = "C" });
         var result = await _processRunner.RunAsync(
-            new ProcessSpec(
-                qemuImgPath,
-                [
-                    "create",
-                    "-q",
-                    "-f", "qcow2",
-                    "-F", "qcow2",
-                    "-b", Path.GetFullPath(baseImagePath),
-                    paths.OverlayPath,
-                ],
+            BubblewrapSessionToolConfinement.WrapQemuImg(
+                command,
+                bubblewrapPath,
                 paths.SessionDirectory,
-                new Dictionary<string, string?> { ["LC_ALL"] = "C" }),
+                baseImagePath),
             cancellationToken).ConfigureAwait(false);
 
         if (!result.IsSuccess)

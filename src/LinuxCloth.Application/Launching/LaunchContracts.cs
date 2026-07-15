@@ -95,6 +95,7 @@ public interface ISessionArtifactService
         SessionPaths paths,
         SessionImageDefinition image,
         string qemuImgPath,
+        string bubblewrapPath,
         CancellationToken cancellationToken = default);
 }
 

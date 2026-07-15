@@ -15,12 +15,21 @@ public sealed class SessionArtifactPreparerTests : IDisposable
         var paths = SessionPaths.Create(Path.Combine(_root, "run"), Guid.NewGuid());
         var runner = new RecordingProcessRunner(paths.OverlayPath);
 
-        await new SessionArtifactPreparer(runner).PrepareAsync(paths, image, "/usr/bin/qemu-img");
+        await new SessionArtifactPreparer(runner).PrepareAsync(
+            paths,
+            image,
+            "/usr/bin/qemu-img",
+            "/usr/bin/bwrap");
 
         var spec = Assert.Single(runner.Specs);
+        Assert.Equal("/usr/bin/bwrap", spec.FileName);
+        Assert.Equal("/usr/bin/qemu-img", spec.IdentityExecutablePath);
+        Assert.Contains("--unshare-all", spec.Arguments);
+        Assert.DoesNotContain("--share-net", spec.Arguments);
+        var separator = spec.Arguments.ToList().IndexOf("--");
         Assert.Equal(
             ["create", "-q", "-f", "qcow2", "-F", "qcow2", "-b", image.BaseImagePath, paths.OverlayPath],
-            spec.Arguments);
+            spec.Arguments.Skip(separator + 2));
         Assert.True(File.Exists(paths.OvmfVariablesPath));
         Assert.True(File.Exists(Path.Combine(paths.SwtpmStateDirectory, "tpm2-00.permall")));
     }
@@ -33,7 +42,11 @@ public sealed class SessionArtifactPreparerTests : IDisposable
         var paths = SessionPaths.Create(Path.Combine(_root, "run"), Guid.NewGuid());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new SessionArtifactPreparer(new FailingProcessRunner()).PrepareAsync(paths, image, "/usr/bin/qemu-img"));
+            () => new SessionArtifactPreparer(new FailingProcessRunner()).PrepareAsync(
+                paths,
+                image,
+                "/usr/bin/qemu-img",
+                "/usr/bin/bwrap"));
 
         Assert.False(Directory.Exists(paths.SessionDirectory));
     }
@@ -85,4 +98,3 @@ public sealed class SessionArtifactPreparerTests : IDisposable
             Task.FromResult(new ProcessResult(1, string.Empty, "failed"));
     }
 }
-

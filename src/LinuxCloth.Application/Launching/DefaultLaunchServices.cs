@@ -66,8 +66,9 @@ public sealed class QemuSessionArtifactService : ISessionArtifactService
         SessionPaths paths,
         SessionImageDefinition image,
         string qemuImgPath,
+        string bubblewrapPath,
         CancellationToken cancellationToken = default) =>
-        _preparer.PrepareAsync(paths, image, qemuImgPath, cancellationToken);
+        _preparer.PrepareAsync(paths, image, qemuImgPath, bubblewrapPath, cancellationToken);
 }
 
 public sealed class GuestConfigurationService : IGuestConfigurationService

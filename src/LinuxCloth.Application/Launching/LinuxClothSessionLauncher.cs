@@ -101,6 +101,7 @@ public sealed class LinuxClothSessionLauncher
                     paths,
                     image.Definition,
                     prerequisites.Toolchain.QemuImg,
+                    prerequisites.Bubblewrap,
                     cancellationToken)
                 .ConfigureAwait(false);
 
