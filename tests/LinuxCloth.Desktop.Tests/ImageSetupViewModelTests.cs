@@ -155,6 +155,29 @@ public sealed class ImageSetupViewModelTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => viewModel.ResumeBuildAsync());
     }
 
+    [Fact]
+    public async Task DelayedProgressCannotRestoreStagingAfterSuccessfulRegistration()
+    {
+        var previousContext = SynchronizationContext.Current;
+        var queuedContext = new QueuedSynchronizationContext();
+        SynchronizationContext.SetSynchronizationContext(queuedContext);
+        try
+        {
+            var service = new FakeImageBuildService { ReportProgressBeforeSuccess = true };
+            await using var viewModel = CreateReadyViewModel(service, _ => Task.CompletedTask);
+
+            await viewModel.StartBuildAsync();
+            queuedContext.Drain();
+
+            Assert.False(viewModel.HasStagingDirectory);
+            Assert.Contains("등록을 완료", viewModel.BuildStatus, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+    }
+
     private static ImageSetupViewModel CreateReadyViewModel(
         IDesktopImageBuildService service,
         Func<CancellationToken, Task> onRegistered) =>
@@ -183,6 +206,8 @@ public sealed class ImageSetupViewModelTests
 
         public bool WaitForCancellation { get; init; }
 
+        public bool ReportProgressBeforeSuccess { get; init; }
+
         public bool CancellationObserved { get; private set; }
 
         public Task<DesktopImageBuildDefaults> GetImageBuildDefaultsAsync(
@@ -195,7 +220,7 @@ public sealed class ImageSetupViewModelTests
             CancellationToken cancellationToken = default)
         {
             StartRequest = request;
-            if (CancelBuild || WaitForCancellation)
+            if (CancelBuild || WaitForCancellation || ReportProgressBeforeSuccess)
             {
                 progress.Report(
                     new DesktopImageBuildProgress(
@@ -266,5 +291,21 @@ public sealed class ImageSetupViewModelTests
     private sealed class InlineSynchronizationContext : SynchronizationContext
     {
         public override void Post(SendOrPostCallback callback, object? state) => callback(state);
+    }
+
+    private sealed class QueuedSynchronizationContext : SynchronizationContext
+    {
+        private readonly Queue<(SendOrPostCallback Callback, object? State)> _callbacks = new();
+
+        public override void Post(SendOrPostCallback callback, object? state) =>
+            _callbacks.Enqueue((callback, state));
+
+        public void Drain()
+        {
+            while (_callbacks.TryDequeue(out var work))
+            {
+                work.Callback(work.State);
+            }
+        }
     }
 }

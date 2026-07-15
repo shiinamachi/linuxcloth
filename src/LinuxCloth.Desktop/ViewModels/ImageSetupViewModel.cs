@@ -333,11 +333,27 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
             TaskCreationOptions.RunContinuationsAsynchronously);
         _operationFinished = operationFinished;
         var cancellationToken = _operationCancellation.Token;
-        var progress = new Progress<DesktopImageBuildProgress>(ApplyProgress);
+        var progressLifetime = new ProgressLifetime();
+        var progress = new Progress<DesktopImageBuildProgress>(value =>
+        {
+            if (progressLifetime.IsActive)
+            {
+                ApplyProgress(value);
+            }
+        });
         var task = operation(progress, cancellationToken);
         try
         {
-            var image = await task.ConfigureAwait(true);
+            ManagedWindowsImage image;
+            try
+            {
+                image = await task.ConfigureAwait(true);
+            }
+            finally
+            {
+                progressLifetime.Stop();
+            }
+
             StagingDirectory = string.Empty;
             BuildStatus = $"기준 이미지 '{image.ImageId.Value}' 등록을 완료했습니다.";
             await _onImageRegistered(CancellationToken.None).ConfigureAwait(true);
@@ -371,6 +387,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
         }
         finally
         {
+            progressLifetime.Stop();
             IsBuilding = false;
             operationFinished.TrySetResult();
             if (ReferenceEquals(_operationFinished, operationFinished))
@@ -456,4 +473,13 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
         WindowsImageBuildPhase.ReadyToFinalize => "검증을 마쳤습니다. 기준 이미지를 봉인하고 있습니다…",
         _ => "이미지 생성을 준비하고 있습니다…",
     };
+
+    private sealed class ProgressLifetime
+    {
+        private int _active = 1;
+
+        public bool IsActive => Volatile.Read(ref _active) == 1;
+
+        public void Stop() => Interlocked.Exchange(ref _active, 0);
+    }
 }
