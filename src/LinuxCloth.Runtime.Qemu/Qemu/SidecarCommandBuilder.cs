@@ -25,6 +25,7 @@ public static class SidecarCommandBuilder
             [
                 "--foreground",
                 "--one-off",
+                "--runas", "0",
                 "--socket", paths.PasstSocketPath,
                 "--no-map-gw",
                 "--no-dhcp-search",

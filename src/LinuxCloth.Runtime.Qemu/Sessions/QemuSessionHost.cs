@@ -81,7 +81,9 @@ public sealed class QemuSessionHost
 
             request.Progress?.Report(SessionState.StartingNetwork);
             swtpm = await StartLoggedAsync(
-                SidecarCommandBuilder.BuildSwtpm(request.Configuration.Toolchain, request.Paths),
+                BubblewrapSidecarConfinement.WrapSwtpm(
+                    SidecarCommandBuilder.BuildSwtpm(request.Configuration.Toolchain, request.Paths),
+                    request.Confinement),
                 request.Paths,
                 "swtpm",
                 cancellationToken).ConfigureAwait(false);
@@ -99,7 +101,9 @@ public sealed class QemuSessionHost
             if (request.Configuration.Request.NetworkEnabled)
             {
                 passt = await StartLoggedAsync(
-                    SidecarCommandBuilder.BuildPasst(request.Configuration.Toolchain, request.Paths),
+                    BubblewrapSidecarConfinement.WrapPasst(
+                        SidecarCommandBuilder.BuildPasst(request.Configuration.Toolchain, request.Paths),
+                        request.Confinement),
                     request.Paths,
                     "passt",
                     cancellationToken).ConfigureAwait(false);
@@ -129,6 +133,11 @@ public sealed class QemuSessionHost
 
             request.Progress?.Report(SessionState.WaitingForGuest);
             await journal.TransitionAsync(SessionState.WaitingForGuest, cancellationToken).ConfigureAwait(false);
+            await WaitForEndpointAsync(
+                request.Paths.QmpSocketPath,
+                qemu,
+                TimeSpan.FromSeconds(20),
+                cancellationToken).ConfigureAwait(false);
             qmp = await _qmpConnector.ConnectAsync(
                 request.Paths.QmpSocketPath,
                 TimeSpan.FromSeconds(20),
@@ -139,8 +148,18 @@ public sealed class QemuSessionHost
                 throw new InvalidOperationException($"QEMU entered unexpected state '{status}'.");
             }
 
+            await WaitForEndpointAsync(
+                request.Paths.GuestBridgeSocketPath,
+                qemu,
+                TimeSpan.FromSeconds(10),
+                cancellationToken).ConfigureAwait(false);
             if (request.Configuration.Request.DisplayMode == DisplayMode.Spice)
             {
+                await WaitForEndpointAsync(
+                    request.Paths.SpiceSocketPath,
+                    qemu,
+                    TimeSpan.FromSeconds(10),
+                    cancellationToken).ConfigureAwait(false);
                 viewer = await StartLoggedAsync(
                     SidecarCommandBuilder.BuildViewer(
                         request.Configuration.Toolchain,
@@ -298,6 +317,7 @@ public sealed class QemuSessionHost
             cancellationToken.ThrowIfCancellationRequested();
             if (File.Exists(path))
             {
+                ApplyPrivateEndpointMode(path);
                 return;
             }
 
@@ -310,6 +330,29 @@ public sealed class QemuSessionHost
         }
 
         throw new TimeoutException($"Timed out waiting for '{path}'.");
+    }
+
+    private static void ApplyPrivateEndpointMode(string path)
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var information = new FileInfo(path);
+        information.Refresh();
+        if (information.LinkTarget is not null ||
+            (information.Attributes & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new InvalidOperationException($"Session endpoint cannot be a symbolic link: {path}");
+        }
+
+        const UnixFileMode privateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        File.SetUnixFileMode(path, privateMode);
+        if (File.GetUnixFileMode(path) != privateMode)
+        {
+            throw new InvalidOperationException($"Session endpoint mode could not be restricted to 0600: {path}");
+        }
     }
 
     internal static async Task<bool> WaitForExitAsync(IManagedProcess process, TimeSpan timeout)

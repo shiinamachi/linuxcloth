@@ -19,6 +19,7 @@ public sealed class SidecarCommandBuilderTests
 
         Assert.Contains("--no-map-gw", spec.Arguments);
         Assert.Contains("--one-off", spec.Arguments);
+        AssertContainsSequence(spec.Arguments, "--runas", "0");
         Assert.Contains("--no-dhcp-search", spec.Arguments);
         Assert.Equal(2, spec.Arguments.Count(static argument => argument == "none"));
         Assert.DoesNotContain(spec.Arguments, static argument => argument.Contains("port-forward", StringComparison.Ordinal));
@@ -55,4 +56,19 @@ public sealed class SidecarCommandBuilderTests
 
     private static SessionPaths CreatePaths() =>
         SessionPaths.Create("/run/user/1000/lc", Guid.Parse("84829d83-7a80-41f1-8a98-489967999ac5"));
+
+    private static void AssertContainsSequence(
+        IReadOnlyList<string> values,
+        params string[] expected)
+    {
+        for (var index = 0; index <= values.Count - expected.Length; index++)
+        {
+            if (values.Skip(index).Take(expected.Length).SequenceEqual(expected))
+            {
+                return;
+            }
+        }
+
+        Assert.Fail($"Expected sequence was not found: {string.Join(" | ", expected)}");
+    }
 }

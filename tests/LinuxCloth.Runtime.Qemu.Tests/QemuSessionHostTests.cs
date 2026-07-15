@@ -26,6 +26,17 @@ public sealed class QemuSessionHostTests : IDisposable
 
         Assert.Equal(4, launcher.Processes.Count);
         Assert.Contains(launcher.Processes, process => process.Name == "qemu-system-x86_64");
+        Assert.All(
+            launcher.Specs.Where(spec => spec.IdentityExecutablePath is "/usr/bin/swtpm" or "/usr/bin/passt"),
+            spec => Assert.Equal("/usr/bin/bwrap", spec.FileName));
+        var confinedSwtpm = Assert.Single(
+            launcher.Specs,
+            spec => spec.IdentityExecutablePath == "/usr/bin/swtpm");
+        Assert.DoesNotContain("--share-net", confinedSwtpm.Arguments);
+        var confinedPasst = Assert.Single(
+            launcher.Specs,
+            spec => spec.IdentityExecutablePath == "/usr/bin/passt");
+        Assert.Contains("--share-net", confinedPasst.Arguments);
         var confinedQemu = Assert.Single(
             launcher.Specs,
             spec => spec.IdentityExecutablePath == "/usr/bin/qemu-system-x86_64");
@@ -40,6 +51,22 @@ public sealed class QemuSessionHostTests : IDisposable
         Assert.Equal(
             launcher.Processes.Single(process => process.Name == "qemu-system-x86_64").Identity,
             persisted.Processes[SessionProcessNames.Qemu]);
+        if (OperatingSystem.IsLinux())
+        {
+            const UnixFileMode privateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            string[] endpointPaths =
+            [
+                paths.SwtpmSocketPath,
+                paths.PasstSocketPath,
+                paths.QmpSocketPath,
+                paths.SpiceSocketPath,
+                paths.GuestBridgeSocketPath,
+            ];
+            foreach (var path in endpointPaths)
+            {
+                Assert.Equal(privateMode, File.GetUnixFileMode(path));
+            }
+        }
 
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
@@ -258,6 +285,12 @@ public sealed class QemuSessionHostTests : IDisposable
             {
                 var index = spec.Arguments.ToList().IndexOf("--socket");
                 File.WriteAllText(spec.Arguments[index + 1], string.Empty);
+            }
+            else if (process.Name == "qemu-system-x86_64")
+            {
+                File.WriteAllText(Path.Combine(spec.WorkingDirectory!, "qmp.sock"), string.Empty);
+                File.WriteAllText(Path.Combine(spec.WorkingDirectory!, "spice.sock"), string.Empty);
+                File.WriteAllText(Path.Combine(spec.WorkingDirectory!, "guest.sock"), string.Empty);
             }
 
             return Task.FromResult<IManagedProcess>(process);
