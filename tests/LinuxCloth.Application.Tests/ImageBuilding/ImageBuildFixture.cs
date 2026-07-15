@@ -159,6 +159,20 @@ internal sealed class StubInstallationMediaValidator : IInstallationMediaValidat
 {
     public int CallCount { get; private set; }
 
+    public Task<ImageBuildFileFingerprint> ValidateWindowsAsync(
+        string windowsIsoPath,
+        string xorrisoPath,
+        string bubblewrapPath,
+        CancellationToken cancellationToken = default) =>
+        ValidateFileAsync(windowsIsoPath, xorrisoPath, bubblewrapPath, cancellationToken);
+
+    public Task<ImageBuildFileFingerprint> ValidateVirtioWinAsync(
+        string virtioWinIsoPath,
+        string xorrisoPath,
+        string bubblewrapPath,
+        CancellationToken cancellationToken = default) =>
+        ValidateFileAsync(virtioWinIsoPath, xorrisoPath, bubblewrapPath, cancellationToken);
+
     public Task<ValidatedInstallationMedia> ValidateAsync(
         string windowsIsoPath,
         string virtioWinIsoPath,
@@ -174,6 +188,19 @@ internal sealed class StubInstallationMediaValidator : IInstallationMediaValidat
             new ValidatedInstallationMedia(
                 Fingerprint(windowsIsoPath),
                 Fingerprint(virtioWinIsoPath)));
+    }
+
+    private Task<ImageBuildFileFingerprint> ValidateFileAsync(
+        string path,
+        string xorrisoPath,
+        string bubblewrapPath,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = xorrisoPath;
+        _ = bubblewrapPath;
+        CallCount++;
+        return Task.FromResult(Fingerprint(path));
     }
 
     private static ImageBuildFileFingerprint Fingerprint(string path)

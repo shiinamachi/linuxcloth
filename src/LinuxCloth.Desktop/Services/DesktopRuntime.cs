@@ -22,7 +22,7 @@ public sealed record DesktopStartupSnapshot(
     IReadOnlyList<ResumableImageBuild> ResumableBuilds,
     IReadOnlyList<ImageBuildRecoveryIssue> ImageBuildRecoveryIssues);
 
-public sealed class DesktopRuntime : IDesktopImageBuildService, IAsyncDisposable
+public sealed class DesktopRuntime : IDesktopImageBuildService, IDesktopMediaValidationService, IAsyncDisposable
 {
     private readonly CatalogWorkspace _catalog;
     private readonly QemuDoctor _doctor;
@@ -131,6 +131,16 @@ public sealed class DesktopRuntime : IDesktopImageBuildService, IAsyncDisposable
     public Task<IReadOnlyList<ManagedWindowsImage>> ListImagesAsync(
         CancellationToken cancellationToken = default) =>
         _images.ListAsync(cancellationToken);
+
+    public Task<ImageBuildFileFingerprint> ValidateWindowsMediaAsync(
+        string path,
+        CancellationToken cancellationToken = default) =>
+        ValidateMediaAsync(path, validateWindows: true, cancellationToken);
+
+    public Task<ImageBuildFileFingerprint> ValidateVirtioMediaAsync(
+        string path,
+        CancellationToken cancellationToken = default) =>
+        ValidateMediaAsync(path, validateWindows: false, cancellationToken);
 
     public async Task<(
         IReadOnlyList<ResumableImageBuild> Builds,
@@ -349,6 +359,24 @@ public sealed class DesktopRuntime : IDesktopImageBuildService, IAsyncDisposable
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.RemoteViewer),
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.Xorriso),
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.Bubblewrap));
+    }
+
+    private async Task<ImageBuildFileFingerprint> ValidateMediaAsync(
+        string path,
+        bool validateWindows,
+        CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
+        var xorriso = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Xorriso);
+        var bubblewrap = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Bubblewrap);
+        var validator = new XorrisoInstallationMediaValidator(new SystemProcessRunner());
+        return validateWindows
+            ? await validator.ValidateWindowsAsync(path, xorriso, bubblewrap, cancellationToken)
+                .ConfigureAwait(false)
+            : await validator.ValidateVirtioWinAsync(path, xorriso, bubblewrap, cancellationToken)
+                .ConfigureAwait(false);
     }
 
     private static async Task<ManagedWindowsImage> CompleteImageBuildAsync(

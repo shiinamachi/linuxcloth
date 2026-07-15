@@ -41,6 +41,46 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidatesWindowsMediaIndependently()
+    {
+        var windowsIso = CreateFile("windows.iso", "windows");
+        var xorriso = CreateExecutable("xorriso");
+        var bubblewrap = CreateExecutable("bwrap");
+        var runner = new MediaProbeRunner(
+        [
+            "/efi/boot/bootx64.efi",
+            "/sources/install.wim",
+        ]);
+        var validator = new XorrisoInstallationMediaValidator(runner);
+
+        var fingerprint = await validator.ValidateWindowsAsync(windowsIso, xorriso, bubblewrap);
+
+        Assert.Equal(Path.GetFullPath(windowsIso), fingerprint.Path);
+        Assert.Equal(2, runner.Specs.Count);
+        Assert.All(runner.Specs, spec => Assert.Contains(windowsIso, spec.Arguments));
+    }
+
+    [Fact]
+    public async Task ValidatesVirtioMediaIndependently()
+    {
+        var virtioIso = CreateFile("virtio.iso", "virtio");
+        var xorriso = CreateExecutable("xorriso");
+        var bubblewrap = CreateExecutable("bwrap");
+        var runner = new MediaProbeRunner(
+        [
+            "/vioscsi/w11/amd64/vioscsi.inf",
+            "/NetKVM/w11/amd64/netkvm.inf",
+        ]);
+        var validator = new XorrisoInstallationMediaValidator(runner);
+
+        var fingerprint = await validator.ValidateVirtioWinAsync(virtioIso, xorriso, bubblewrap);
+
+        Assert.Equal(Path.GetFullPath(virtioIso), fingerprint.Path);
+        Assert.Equal(2, runner.Specs.Count);
+        Assert.All(runner.Specs, spec => Assert.Contains(virtioIso, spec.Arguments));
+    }
+
+    [Fact]
     public async Task RejectsAnIsoWithoutAnX64UefiBootImage()
     {
         var windowsIso = CreateFile("windows.iso", "windows");

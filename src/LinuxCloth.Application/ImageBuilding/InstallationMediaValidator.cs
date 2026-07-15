@@ -4,6 +4,18 @@ namespace LinuxCloth.Application.ImageBuilding;
 
 public interface IInstallationMediaValidator
 {
+    Task<ImageBuildFileFingerprint> ValidateWindowsAsync(
+        string windowsIsoPath,
+        string xorrisoPath,
+        string bubblewrapPath,
+        CancellationToken cancellationToken = default);
+
+    Task<ImageBuildFileFingerprint> ValidateVirtioWinAsync(
+        string virtioWinIsoPath,
+        string xorrisoPath,
+        string bubblewrapPath,
+        CancellationToken cancellationToken = default);
+
     Task<ValidatedInstallationMedia> ValidateAsync(
         string windowsIsoPath,
         string virtioWinIsoPath,
@@ -56,22 +68,32 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
         string bubblewrapPath,
         CancellationToken cancellationToken = default)
     {
+        var windowsFingerprint = await ValidateWindowsAsync(
+                windowsIsoPath,
+                xorrisoPath,
+                bubblewrapPath,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var virtioFingerprint = await ValidateVirtioWinAsync(
+                virtioWinIsoPath,
+                xorrisoPath,
+                bubblewrapPath,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return new ValidatedInstallationMedia(windowsFingerprint, virtioFingerprint);
+    }
+
+    public async Task<ImageBuildFileFingerprint> ValidateWindowsAsync(
+        string windowsIsoPath,
+        string xorrisoPath,
+        string bubblewrapPath,
+        CancellationToken cancellationToken = default)
+    {
         var windowsIso = ValidateIsoFile(
             windowsIsoPath,
             "Windows installation ISO",
             MaximumWindowsIsoBytes);
-        var virtioWinIso = ValidateIsoFile(
-            virtioWinIsoPath,
-            "virtio-win ISO",
-            MaximumVirtioWinIsoBytes);
-        var xorriso = ImageBuildPathGuard.RequireRegularFile(
-            xorrisoPath,
-            "xorriso executable",
-            requireExecutable: true);
-        var bubblewrap = ImageBuildPathGuard.RequireRegularFile(
-            bubblewrapPath,
-            "Bubblewrap executable",
-            requireExecutable: true);
+        var (xorriso, bubblewrap) = ValidateTools(xorrisoPath, bubblewrapPath);
 
         foreach (var alternatives in WindowsRequirements)
         {
@@ -85,6 +107,24 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
                 .ConfigureAwait(false);
         }
 
+        return await ImageBuildFileHasher.HashAsync(
+                windowsIso,
+                "Windows installation ISO",
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<ImageBuildFileFingerprint> ValidateVirtioWinAsync(
+        string virtioWinIsoPath,
+        string xorrisoPath,
+        string bubblewrapPath,
+        CancellationToken cancellationToken = default)
+    {
+        var virtioWinIso = ValidateIsoFile(
+            virtioWinIsoPath,
+            "virtio-win ISO",
+            MaximumVirtioWinIsoBytes);
+        var (xorriso, bubblewrap) = ValidateTools(xorrisoPath, bubblewrapPath);
         foreach (var alternatives in VirtioWinRequirements)
         {
             await RequireAnyIsoEntryAsync(
@@ -97,17 +137,11 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
                 .ConfigureAwait(false);
         }
 
-        var windowsFingerprint = await ImageBuildFileHasher.HashAsync(
-                windowsIso,
-                "Windows installation ISO",
-                cancellationToken)
-            .ConfigureAwait(false);
-        var virtioFingerprint = await ImageBuildFileHasher.HashAsync(
+        return await ImageBuildFileHasher.HashAsync(
                 virtioWinIso,
                 "virtio-win ISO",
                 cancellationToken)
             .ConfigureAwait(false);
-        return new ValidatedInstallationMedia(windowsFingerprint, virtioFingerprint);
     }
 
     public static ProcessSpec BuildProbe(string xorrisoPath, string isoPath, string entryPath)
@@ -204,6 +238,19 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
 
         return fullPath;
     }
+
+    private static (string Xorriso, string Bubblewrap) ValidateTools(
+        string xorrisoPath,
+        string bubblewrapPath) =>
+        (
+            ImageBuildPathGuard.RequireRegularFile(
+                xorrisoPath,
+                "xorriso executable",
+                requireExecutable: true),
+            ImageBuildPathGuard.RequireRegularFile(
+                bubblewrapPath,
+                "Bubblewrap executable",
+                requireExecutable: true));
 
     private async Task RequireAnyIsoEntryAsync(
         string xorrisoPath,
