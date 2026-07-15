@@ -103,6 +103,8 @@ public sealed class QemuVmSessionStarter : IVmSessionStarter
     {
         private readonly QemuRunningSession _inner;
         private readonly Task _completion;
+        private readonly SemaphoreSlim _disposeGate = new(1, 1);
+        private bool _disposed;
 
         public QemuRunningLinuxClothSession(QemuRunningSession inner)
         {
@@ -119,14 +121,28 @@ public sealed class QemuVmSessionStarter : IVmSessionStarter
 
         public async ValueTask DisposeAsync()
         {
+            await _disposeGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                await _inner.StopAsync(CancellationToken.None).ConfigureAwait(false);
-                await _completion.ConfigureAwait(false);
+                if (_disposed)
+                {
+                    return;
+                }
+
+                try
+                {
+                    await _inner.StopAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _completion.ConfigureAwait(false);
+                }
+                finally
+                {
+                    await _inner.DisposeAsync().ConfigureAwait(false);
+                    _disposed = true;
+                }
             }
             finally
             {
-                await _inner.DisposeAsync().ConfigureAwait(false);
+                _disposeGate.Release();
             }
         }
 
