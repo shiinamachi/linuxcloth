@@ -59,10 +59,9 @@ public static class QemuCommandBuilder
             configuration.Toolchain.QemuSystem,
             arguments,
             configuration.SessionDirectory,
-            new Dictionary<string, string?>
-            {
-                ["LC_ALL"] = "C",
-            });
+            request.DisplayMode == DisplayMode.QemuConsole
+                ? HostEnvironment.Desktop()
+                : HostEnvironment.Minimal());
     }
 
     private static void AddNetwork(List<string> arguments, QemuLaunchConfiguration configuration)

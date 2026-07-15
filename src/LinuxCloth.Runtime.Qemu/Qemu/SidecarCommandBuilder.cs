@@ -16,7 +16,7 @@ public static class SidecarCommandBuilder
                 "--log", "file=-",
             ],
             paths.SessionDirectory,
-            new Dictionary<string, string?> { ["LC_ALL"] = "C" });
+            HostEnvironment.Minimal());
 
     public static ProcessSpec BuildPasst(QemuToolchain toolchain, SessionPaths paths) =>
         new(
@@ -32,7 +32,7 @@ public static class SidecarCommandBuilder
                 "--quiet",
             ],
             paths.SessionDirectory,
-            new Dictionary<string, string?> { ["LC_ALL"] = "C" });
+            HostEnvironment.Minimal());
 
     public static ProcessSpec BuildViewer(QemuToolchain toolchain, SessionPaths paths, string windowTitle) =>
         new(
@@ -42,5 +42,5 @@ public static class SidecarCommandBuilder
                 new Uri($"spice+unix://{paths.SpiceSocketPath}").AbsoluteUri,
             ],
             paths.SessionDirectory,
-            new Dictionary<string, string?> { ["LC_ALL"] = "C.UTF-8" });
+            HostEnvironment.Desktop());
 }

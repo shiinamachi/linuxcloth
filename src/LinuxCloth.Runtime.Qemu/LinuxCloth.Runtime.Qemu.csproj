@@ -2,9 +2,9 @@
   <PropertyGroup>
     <RootNamespace>LinuxCloth.Runtime.Qemu</RootNamespace>
     <AssemblyName>LinuxCloth.Runtime.Qemu</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../LinuxCloth.Core/LinuxCloth.Core.csproj" />
   </ItemGroup>
 </Project>
-

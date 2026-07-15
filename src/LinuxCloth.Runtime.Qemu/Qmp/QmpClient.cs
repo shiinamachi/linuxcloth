@@ -6,7 +6,7 @@ using System.Threading.Channels;
 
 namespace LinuxCloth.Runtime.Qemu.Qmp;
 
-public sealed partial class QmpClient : IAsyncDisposable
+public sealed partial class QmpClient : IQmpMonitor
 {
     private readonly Socket _socket;
     private readonly NetworkStream _stream;

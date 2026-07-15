@@ -6,7 +6,10 @@ public sealed record ProcessSpec
         string fileName,
         IEnumerable<string>? arguments = null,
         string? workingDirectory = null,
-        IReadOnlyDictionary<string, string?>? environment = null)
+        IReadOnlyDictionary<string, string?>? environment = null,
+        string? standardOutputPath = null,
+        string? standardErrorPath = null,
+        bool inheritEnvironment = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
@@ -16,6 +19,9 @@ public sealed record ProcessSpec
         Environment = environment is null
             ? new Dictionary<string, string?>()
             : new Dictionary<string, string?>(environment, StringComparer.Ordinal);
+        StandardOutputPath = standardOutputPath;
+        StandardErrorPath = standardErrorPath;
+        InheritEnvironment = inheritEnvironment;
     }
 
     public string FileName { get; }
@@ -25,10 +31,15 @@ public sealed record ProcessSpec
     public string? WorkingDirectory { get; }
 
     public IReadOnlyDictionary<string, string?> Environment { get; }
+
+    public string? StandardOutputPath { get; }
+
+    public string? StandardErrorPath { get; }
+
+    public bool InheritEnvironment { get; }
 }
 
 public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError)
 {
     public bool IsSuccess => ExitCode == 0;
 }
-

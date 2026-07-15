@@ -51,6 +51,11 @@ public sealed class SystemProcessRunner : IProcessRunner
             CreateNoWindow = true,
         };
 
+        if (!spec.InheritEnvironment)
+        {
+            startInfo.Environment.Clear();
+        }
+
         if (spec.WorkingDirectory is not null)
         {
             startInfo.WorkingDirectory = spec.WorkingDirectory;
@@ -84,4 +89,3 @@ public sealed class SystemProcessRunner : IProcessRunner
         }
     }
 }
-
