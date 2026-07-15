@@ -2,6 +2,7 @@ using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Application.Images;
 using LinuxCloth.Desktop.Infrastructure;
 using LinuxCloth.Desktop.Services;
+using LinuxCloth.Desktop.Setup;
 
 namespace LinuxCloth.Desktop.ViewModels;
 
@@ -26,6 +27,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
     private string _stagingDirectory = string.Empty;
     private string _virtioWinIsoPath = string.Empty;
     private string _windowsIsoPath = string.Empty;
+    private HostCapacitySnapshot _hostCapacity = HostCapacitySnapshot.Unknown;
 
     public ImageSetupViewModel(
         IDesktopImageBuildService imageBuildService,
@@ -138,6 +140,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
 
             if (SetProperty(ref _cpuCount, value))
             {
+                RaiseResourceWarning();
                 RaiseCommandState();
             }
         }
@@ -155,6 +158,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
 
             if (SetProperty(ref _memoryMiB, value))
             {
+                RaiseResourceWarning();
                 RaiseCommandState();
             }
         }
@@ -207,6 +211,28 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
+    public string ResourceWarning
+    {
+        get
+        {
+            var warnings = new List<string>();
+            if (_hostCapacity.LogicalProcessorCount > 0 && CpuCount > _hostCapacity.LogicalProcessorCount)
+            {
+                warnings.Add($"가상 CPU가 호스트 논리 CPU {_hostCapacity.LogicalProcessorCount}개보다 많습니다.");
+            }
+
+            if (_hostCapacity.AvailableMemoryBytes > 0 &&
+                (long)MemoryMiB * 1024 * 1024 > _hostCapacity.AvailableMemoryBytes * 3 / 4)
+            {
+                warnings.Add("가상 메모리가 호스트에서 사용 가능한 메모리의 75%를 초과합니다.");
+            }
+
+            return string.Join(' ', warnings);
+        }
+    }
+
+    public bool HasResourceWarning => ResourceWarning.Length > 0;
+
     public async Task InitializeAsync()
     {
         if (_isInitialized)
@@ -245,6 +271,12 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
             : defaults.OvmfCodePath is null || defaults.OvmfVariablesTemplatePath is null
                 ? "검증된 Secure Boot OVMF 디스크립터를 찾지 못했습니다. 배포판의 QEMU 펌웨어 패키지를 설치하세요."
                 : "GuestBridge와 Secure Boot OVMF를 자동으로 확인했습니다.";
+    }
+
+    public void ApplyHostCapacity(HostCapacitySnapshot capacity)
+    {
+        _hostCapacity = capacity ?? throw new ArgumentNullException(nameof(capacity));
+        RaiseResourceWarning();
     }
 
     public async Task CancelAndWaitAsync()
@@ -457,6 +489,12 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
         StartBuildCommand.RaiseCanExecuteChanged();
         ResumeBuildCommand.RaiseCanExecuteChanged();
         CancelBuildCommand.RaiseCanExecuteChanged();
+    }
+
+    private void RaiseResourceWarning()
+    {
+        OnPropertyChanged(nameof(ResourceWarning));
+        OnPropertyChanged(nameof(HasResourceWarning));
     }
 
     private static string RequireAbsolutePath(string value, string label)

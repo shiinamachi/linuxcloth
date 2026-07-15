@@ -106,7 +106,11 @@ public sealed class SetupWizardViewModelTests : IDisposable
             stateStore,
             new DistributionInfoReader(osRelease),
             new PackagePlanResolver(new FakeManifestSource()),
-            new ManualOnlyPackageInstaller());
+            new ManualOnlyPackageInstaller(),
+            HostCapacityInspector.Evaluate(
+                16L * 1024 * 1024 * 1024,
+                128L * 1024 * 1024 * 1024,
+                8));
     }
 
     private static FirstRunSnapshot CreateFirstRun()

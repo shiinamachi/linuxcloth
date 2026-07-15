@@ -111,7 +111,8 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
             new SetupStateStore(_runtime.Paths),
             new DistributionInfoReader(),
             new PackagePlanResolver(),
-            new PackageKitPackageInstaller(new PackageKitDbusClient()));
+            new PackageKitPackageInstaller(new PackageKitDbusClient()),
+            HostCapacityInspector.Inspect(_runtime.Paths.DataDirectory));
         _setupViewModel.Completed += OnSetupCompleted;
         _setupViewModel.LaterRequested += OnLaterRequested;
         ShellContent.Content = new SetupWizardView(_setupViewModel);

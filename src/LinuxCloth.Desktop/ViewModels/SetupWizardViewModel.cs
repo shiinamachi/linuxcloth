@@ -15,6 +15,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private readonly PackagePlanResolver _packagePlanResolver;
     private readonly IDesktopSetupService _runtime;
     private readonly ISetupStateStore _stateStore;
+    private readonly HostCapacitySnapshot _hostCapacity;
     private DesktopStartupSnapshot _startup;
     private SetupReadiness _readiness;
     private CancellationTokenSource? _mediaValidation;
@@ -42,7 +43,8 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         ISetupStateStore stateStore,
         DistributionInfoReader distributionReader,
         PackagePlanResolver packagePlanResolver,
-        IPackageInstaller packageInstaller)
+        IPackageInstaller packageInstaller,
+        HostCapacitySnapshot hostCapacity)
     {
         _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         ArgumentNullException.ThrowIfNull(firstRun);
@@ -52,6 +54,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         _distributionReader = distributionReader ?? throw new ArgumentNullException(nameof(distributionReader));
         _packagePlanResolver = packagePlanResolver ?? throw new ArgumentNullException(nameof(packagePlanResolver));
         _packageInstaller = packageInstaller ?? throw new ArgumentNullException(nameof(packageInstaller));
+        _hostCapacity = hostCapacity ?? throw new ArgumentNullException(nameof(hostCapacity));
         _currentStep = SetupStep.HostInspection;
 
         foreach (var (step, title) in StepDefinitions)
@@ -60,6 +63,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
 
         Build = new ImageSetupViewModel(_runtime, OnImageRegisteredAsync, _shutdown.Token);
+        Build.ApplyHostCapacity(_hostCapacity);
         BackCommand = new AsyncCommand(GoBackAsync, () => CanGoBack, ShowError);
         ContinueCommand = new AsyncCommand(ContinueAsync, () => CanContinue, ShowError);
         ReinspectCommand = new AsyncCommand(RefreshHostAsync, () => !IsBusy, ShowError);
@@ -558,6 +562,21 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
                 check.IsRequired,
                 check.Detail));
         }
+
+        HostChecks.Add(new DoctorCheckViewModel(
+            "호스트 메모리",
+            _hostCapacity.HasRecommendedMemory,
+            IsRequired: false,
+            _hostCapacity.AvailableMemoryBytes <= 0
+                ? "사용 가능한 메모리를 확인하지 못했습니다."
+                : $"사용 가능 {FormatBytes((ulong)_hostCapacity.AvailableMemoryBytes)} · 기본값 권장 6 GiB"));
+        HostChecks.Add(new DoctorCheckViewModel(
+            "호스트 디스크",
+            _hostCapacity.HasMinimumDiskSpace,
+            IsRequired: false,
+            _hostCapacity.AvailableDiskBytes <= 0
+                ? "사용 가능한 디스크 공간을 확인하지 못했습니다."
+                : $"사용 가능 {FormatBytes((ulong)_hostCapacity.AvailableDiskBytes)} · 최소 권장 64 GiB"));
 
         OnPropertyChanged(nameof(CanBuildImage));
         OnPropertyChanged(nameof(CanLaunchOnline));

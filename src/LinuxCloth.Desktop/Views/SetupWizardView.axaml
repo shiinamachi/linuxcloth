@@ -197,6 +197,7 @@
                       <StackPanel Grid.Column="2"><TextBlock Text="메모리 (MiB)" Classes="muted"/><NumericUpDown Value="{Binding Build.MemoryMiB}" Minimum="4096" Maximum="131072" Increment="1024" /></StackPanel>
                     </Grid>
                   </Expander>
+                  <TextBlock Text="{Binding Build.ResourceWarning}" IsVisible="{Binding Build.HasResourceWarning}" Foreground="#FFC76B" TextWrapping="Wrap" />
                 </StackPanel>
               </Border>
               <Border Background="#192943" BorderBrush="#31517E" BorderThickness="1" CornerRadius="10" Padding="14">
