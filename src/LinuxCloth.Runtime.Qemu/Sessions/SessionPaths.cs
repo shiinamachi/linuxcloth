@@ -18,12 +18,14 @@ public sealed record SessionPaths
         SwtpmSocketPath = Path.Combine(SessionDirectory, "tpm.sock");
         QmpSocketPath = Path.Combine(SessionDirectory, "qmp.sock");
         SpiceSocketPath = Path.Combine(SessionDirectory, "spice.sock");
+        GuestBridgeSocketPath = Path.Combine(SessionDirectory, "guest.sock");
         PasstSocketPath = Path.Combine(SessionDirectory, "net.sock");
         SessionRecordPath = Path.Combine(SessionDirectory, "session.json");
 
         ValidateSocketPath(SwtpmSocketPath);
         ValidateSocketPath(QmpSocketPath);
         ValidateSocketPath(SpiceSocketPath);
+        ValidateSocketPath(GuestBridgeSocketPath);
         ValidateSocketPath(PasstSocketPath);
     }
 
@@ -46,6 +48,8 @@ public sealed record SessionPaths
     public string QmpSocketPath { get; }
 
     public string SpiceSocketPath { get; }
+
+    public string GuestBridgeSocketPath { get; }
 
     public string PasstSocketPath { get; }
 

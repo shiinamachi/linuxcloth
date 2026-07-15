@@ -14,6 +14,6 @@ public sealed record QemuLaunchConfiguration(
     string SwtpmSocketPath,
     string QmpSocketPath,
     string SpiceSocketPath,
+    string GuestBridgeSocketPath,
     string ConfigDirectory,
     string? PasstSocketPath);
-

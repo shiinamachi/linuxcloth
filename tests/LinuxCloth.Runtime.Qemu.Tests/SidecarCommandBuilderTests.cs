@@ -18,6 +18,8 @@ public sealed class SidecarCommandBuilderTests
         var spec = SidecarCommandBuilder.BuildPasst(Toolchain, CreatePaths());
 
         Assert.Contains("--no-map-gw", spec.Arguments);
+        Assert.Contains("--one-off", spec.Arguments);
+        Assert.Contains("--no-dhcp-search", spec.Arguments);
         Assert.Equal(2, spec.Arguments.Count(static argument => argument == "none"));
         Assert.DoesNotContain(spec.Arguments, static argument => argument.Contains("port-forward", StringComparison.Ordinal));
     }
@@ -29,8 +31,9 @@ public sealed class SidecarCommandBuilderTests
 
         var spec = SidecarCommandBuilder.BuildSwtpm(Toolchain, paths);
 
-        Assert.Contains($"dir={paths.SwtpmStateDirectory}", spec.Arguments);
-        Assert.Contains($"type=unixio,path={paths.SwtpmSocketPath}", spec.Arguments);
+        Assert.Contains("dir=swtpm,mode=0600,lock", spec.Arguments);
+        Assert.Contains("type=unixio,path=tpm.sock,mode=0600,terminate", spec.Arguments);
+        Assert.DoesNotContain(spec.Arguments, static argument => argument.Contains("startup-clear", StringComparison.Ordinal));
     }
 
     [Fact]

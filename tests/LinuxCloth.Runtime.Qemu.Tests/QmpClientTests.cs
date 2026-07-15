@@ -31,7 +31,42 @@ public sealed class QmpClientTests : IAsyncLifetime
         await using var client = await QmpClient.ConnectAsync(socketPath, TimeSpan.FromSeconds(2));
 
         Assert.Equal("running", await client.QueryStatusAsync());
+        Assert.Equal("RESUME", (await client.WaitForEventAsync("RESUME", TimeSpan.FromSeconds(1))).Name);
         await server;
+    }
+
+    [Fact]
+    public async Task QuitAcceptsEarlyEndOfStream()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var socketPath = Path.Combine(_directory, "quit.sock");
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(1);
+        var server = ServeQuitAsync(listener);
+
+        await using var client = await QmpClient.ConnectAsync(socketPath, TimeSpan.FromSeconds(2));
+
+        await client.QuitAsync();
+        await server;
+    }
+
+    [Fact]
+    public async Task MissingSocketReportsTimeout()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var socketPath = Path.Combine(_directory, "missing.sock");
+
+        await Assert.ThrowsAsync<TimeoutException>(
+            () => QmpClient.ConnectAsync(socketPath, TimeSpan.FromMilliseconds(150)));
     }
 
     public Task DisposeAsync()
@@ -58,6 +93,17 @@ public sealed class QmpClientTests : IAsyncLifetime
         Assert.Contains("query-status", query, StringComparison.Ordinal);
         await WriteAsync(stream, "{\"event\":\"RESUME\",\"data\":{}}");
         await WriteAsync(stream, "{\"return\":{\"status\":\"running\",\"running\":true},\"id\":\"2\"}");
+    }
+
+    private static async Task ServeQuitAsync(Socket listener)
+    {
+        using var socket = await listener.AcceptAsync();
+        await using var stream = new NetworkStream(socket, ownsSocket: false);
+        await WriteAsync(stream, "{\"QMP\":{\"version\":{\"qemu\":{\"major\":11,\"minor\":0,\"micro\":0},\"package\":\"\"},\"capabilities\":[]}}");
+        _ = await ReadAsync(stream);
+        await WriteAsync(stream, "{\"return\":{},\"id\":\"1\"}");
+        var quit = await ReadAsync(stream);
+        Assert.Contains("quit", quit, StringComparison.Ordinal);
     }
 
     private static async Task<string> ReadAsync(Stream stream)

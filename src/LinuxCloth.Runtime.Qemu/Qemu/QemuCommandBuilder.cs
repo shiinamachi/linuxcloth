@@ -16,6 +16,7 @@ public static class QemuCommandBuilder
         {
             "-nodefaults",
             "-no-user-config",
+            "-run-with", "exit-with-parent=on",
             "-enable-kvm",
             "-machine", "q35,accel=kvm,smm=on,vmport=off",
             "-cpu", "host,hv_relaxed=on,hv_vapic=on,hv_spinlocks=0x1fff,hv_time=on",
@@ -24,6 +25,7 @@ public static class QemuCommandBuilder
             "-name", $"linuxcloth-{configuration.SessionId:N}",
             "-uuid", configuration.MachineId.ToString("D"),
             "-rtc", "base=localtime,clock=host",
+            "-boot", "order=c,menu=off,strict=on",
             "-global", "ICH9-LPC.disable_s3=1",
             "-global", "driver=cfi.pflash01,property=secure,value=on",
             "-drive", Drive("if=pflash,format=raw,unit=0,readonly=on,file=", configuration.OvmfCodePath),
@@ -39,9 +41,13 @@ public static class QemuCommandBuilder
             "-device", "qemu-xhci,id=xhci",
             "-drive", Drive("if=none,id=config,format=raw,readonly=on,file=fat:", configuration.ConfigDirectory),
             "-device", "usb-storage,drive=config,removable=on",
+            "-device", "virtio-serial-pci,id=virtio-serial0",
+            "-chardev", $"socket,id=guestbridge,path={Escape(configuration.GuestBridgeSocketPath)},server=on,wait=off",
+            "-device", "virtserialport,bus=virtio-serial0.0,nr=1,chardev=guestbridge,name=org.linuxcloth.guestbridge.0",
             "-qmp", $"unix:{Escape(configuration.QmpSocketPath)},server=on,wait=off",
             "-monitor", "none",
             "-serial", "none",
+            "-parallel", "none",
             "-audiodev", "none,id=audio0",
             "-sandbox", "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny",
         };
@@ -81,7 +87,11 @@ public static class QemuCommandBuilder
                 arguments.Add("none");
                 arguments.Add("-spice");
                 arguments.Add(
-                    $"unix=on,addr={Escape(configuration.SpiceSocketPath)},disable-ticketing=on,disable-agent-file-xfer=on,disable-copy-paste={(configuration.Request.ClipboardEnabled ? "off" : "on")}");
+                    $"unix=on,addr={Escape(configuration.SpiceSocketPath)},disable-ticketing=on,disable-agent-file-xfer=on,disable-copy-paste={(configuration.Request.ClipboardEnabled ? "off" : "on")},gl=off");
+                arguments.Add("-chardev");
+                arguments.Add("spicevmc,id=vdagent,name=vdagent");
+                arguments.Add("-device");
+                arguments.Add("virtserialport,bus=virtio-serial0.0,nr=2,chardev=vdagent,name=com.redhat.spice.0");
                 arguments.Add("-device");
                 arguments.Add("qxl-vga,vgamem_mb=64");
                 break;
@@ -110,6 +120,7 @@ public static class QemuCommandBuilder
             configuration.SwtpmSocketPath,
             configuration.QmpSocketPath,
             configuration.SpiceSocketPath,
+            configuration.GuestBridgeSocketPath,
             configuration.ConfigDirectory,
         };
 
@@ -129,6 +140,7 @@ public static class QemuCommandBuilder
                      configuration.SwtpmSocketPath,
                      configuration.QmpSocketPath,
                      configuration.SpiceSocketPath,
+                     configuration.GuestBridgeSocketPath,
                      configuration.PasstSocketPath,
                  }.Where(static path => path is not null))
         {

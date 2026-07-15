@@ -11,10 +11,9 @@ public static class SidecarCommandBuilder
             [
                 "socket",
                 "--tpm2",
-                "--tpmstate", $"dir={paths.SwtpmStateDirectory}",
-                "--ctrl", $"type=unixio,path={paths.SwtpmSocketPath}",
-                "--flags", "not-need-init,startup-clear",
-                "--terminate",
+                "--tpmstate", "dir=swtpm,mode=0600,lock",
+                "--ctrl", "type=unixio,path=tpm.sock,mode=0600,terminate",
+                "--log", "file=-",
             ],
             paths.SessionDirectory,
             new Dictionary<string, string?> { ["LC_ALL"] = "C" });
@@ -24,8 +23,10 @@ public static class SidecarCommandBuilder
             toolchain.Passt,
             [
                 "--foreground",
+                "--one-off",
                 "--socket", paths.PasstSocketPath,
                 "--no-map-gw",
+                "--no-dhcp-search",
                 "--tcp-ports", "none",
                 "--udp-ports", "none",
                 "--quiet",

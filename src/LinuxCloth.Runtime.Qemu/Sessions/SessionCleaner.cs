@@ -6,7 +6,21 @@ public static class SessionCleaner
     {
         ArgumentNullException.ThrowIfNull(paths);
 
-        if (!Directory.Exists(paths.SessionDirectory))
+        var runtimeRootInfo = new DirectoryInfo(paths.RuntimeRoot);
+        var sessionsRootInfo = new DirectoryInfo(Path.Combine(paths.RuntimeRoot, "sessions"));
+        if (runtimeRootInfo.LinkTarget is not null || sessionsRootInfo.LinkTarget is not null)
+        {
+            throw new InvalidOperationException("Refusing to clean sessions through a symbolic-link runtime root.");
+        }
+
+        var sessionInfo = new DirectoryInfo(paths.SessionDirectory);
+        if (sessionInfo.LinkTarget is not null)
+        {
+            sessionInfo.Delete();
+            return;
+        }
+
+        if (!sessionInfo.Exists)
         {
             return;
         }
@@ -19,7 +33,7 @@ public static class SessionCleaner
             throw new InvalidOperationException("Refusing to delete a directory outside the linuxcloth sessions root.");
         }
 
-        DeleteTreeWithoutFollowingLinks(new DirectoryInfo(sessionDirectory));
+        DeleteTreeWithoutFollowingLinks(sessionInfo);
     }
 
     private static void DeleteTreeWithoutFollowingLinks(DirectoryInfo directory)
@@ -46,4 +60,3 @@ public static class SessionCleaner
         directory.Delete();
     }
 }
-

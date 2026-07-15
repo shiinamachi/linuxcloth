@@ -54,6 +54,28 @@ public sealed class SessionPathsTests : IDisposable
         Assert.False(Directory.Exists(paths.SessionDirectory));
     }
 
+    [Fact]
+    public void CleanerDoesNotFollowReplacedSessionDirectorySymlink()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var paths = SessionPaths.Create(_root, Guid.NewGuid());
+        Directory.CreateDirectory(Path.Combine(_root, "sessions"));
+        var outside = Path.Combine(_root, "outside");
+        Directory.CreateDirectory(outside);
+        var sentinel = Path.Combine(outside, "keep.txt");
+        File.WriteAllText(sentinel, "keep");
+        Directory.CreateSymbolicLink(paths.SessionDirectory, outside);
+
+        SessionCleaner.Delete(paths);
+
+        Assert.True(File.Exists(sentinel));
+        Assert.Null(new DirectoryInfo(paths.SessionDirectory).LinkTarget);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
