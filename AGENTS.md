@@ -17,6 +17,8 @@ These instructions apply to every agent and every file in this repository.
 - Manage development runtimes with mise and pin every runtime to an exact version in the repository `mise.toml`; never use floating aliases such as `latest` or `lts`, or partial versions and ranges.
 - Run `mise install` after checkout and prefer `mise exec -- <command>` for repository commands so the pinned runtimes are used.
 - When changing the .NET SDK version, update `mise.toml`, `global.json`, and CI configuration together so every environment selects the same exact version.
+- Declare direct NuGet dependencies centrally in `Directory.Packages.props` with closed exact-version syntax such as `[1.2.3]`; never use open ranges, wildcards, floating versions, or per-project version overrides.
+- When changing a library version, regenerate every affected `packages.lock.json` with the mise-managed SDK and verify restore in locked mode. Commit the central declaration and refreshed lock files together.
 
 ## Project direction
 

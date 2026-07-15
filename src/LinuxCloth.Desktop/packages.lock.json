@@ -4,7 +4,7 @@
     "net10.0": {
       "Avalonia": {
         "type": "Direct",
-        "requested": "[12.1.0, )",
+        "requested": "[12.1.0, 12.1.0]",
         "resolved": "12.1.0",
         "contentHash": "an4ugAy2q6GTdaFl635V8W/LKrWNL+mnSFUprbgyf8m1Zzf9WgoGaF5ajGv5i4gXefMZrzsUPV1QU+kKrgwCWg==",
         "dependencies": {
@@ -15,7 +15,7 @@
       },
       "Avalonia.Desktop": {
         "type": "Direct",
-        "requested": "[12.1.0, )",
+        "requested": "[12.1.0, 12.1.0]",
         "resolved": "12.1.0",
         "contentHash": "mxhz50At61IBQbB/bCo5JGp53rPi3GerGO9mFo/v93uBHa4J3cz3NSSqnVWSyQXKbPCwQhrogfEFWbKBgecy1w==",
         "dependencies": {
@@ -29,7 +29,7 @@
       },
       "Avalonia.Fonts.Inter": {
         "type": "Direct",
-        "requested": "[12.1.0, )",
+        "requested": "[12.1.0, 12.1.0]",
         "resolved": "12.1.0",
         "contentHash": "2mK5Rv6aMWgXfQ2JZOq1Wo2bTNAfiidg2GO4b3MgLRN89ezfvfsSfp4P5Pl4ssRcWWwdV0jGzIw8n0xc9B26VA==",
         "dependencies": {
@@ -38,7 +38,7 @@
       },
       "Avalonia.Themes.Fluent": {
         "type": "Direct",
-        "requested": "[12.1.0, )",
+        "requested": "[12.1.0, 12.1.0]",
         "resolved": "12.1.0",
         "contentHash": "MVi5L9HymnNm+gP2aNXNcyrP2iKGJWFubQ5Bv8/Przflxca1aIT9QBpTUV6c3olA9rLYFY7MJRR/C/BZaUhemQ==",
         "dependencies": {
