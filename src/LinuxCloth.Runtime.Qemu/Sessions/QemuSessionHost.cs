@@ -442,6 +442,9 @@ public sealed class QemuRunningSession : IAsyncDisposable
     public Task<int> WaitForExitAsync(CancellationToken cancellationToken = default) =>
         _qemu.WaitForExitAsync(cancellationToken);
 
+    public Task<int> WaitForDisplayExitAsync(CancellationToken cancellationToken = default) =>
+        (_viewer ?? _qemu).WaitForExitAsync(cancellationToken);
+
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;

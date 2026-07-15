@@ -71,6 +71,22 @@ public sealed class QemuSessionHostTests : IDisposable
     }
 
     [Fact]
+    public async Task ExposesTheViewerLifetimeToTheApplicationLayer()
+    {
+        var paths = CreatePaths();
+        var launcher = new FakeProcessLauncher();
+        var connector = new FakeQmpConnector(launcher);
+        var host = CreateHost(launcher, connector);
+        await using var session = await host.StartAsync(CreateRequest(paths));
+        var viewer = launcher.Processes.Single(process => process.Name == "remote-viewer");
+
+        viewer.Exit(17);
+
+        Assert.Equal(17, await session.WaitForDisplayExitAsync());
+        Assert.False(launcher.Processes.Single(process => process.Name == "qemu-system-x86_64").HasExited);
+    }
+
+    [Fact]
     public async Task FailedQmpConnectionCleansEveryStartedProcess()
     {
         var paths = CreatePaths();
