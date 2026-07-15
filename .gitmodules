@@ -1,0 +1,3 @@
+[submodule "vendor/TableClothCatalog"]
+	path = vendor/TableClothCatalog
+	url = https://github.com/yourtablecloth/TableClothCatalog.git
