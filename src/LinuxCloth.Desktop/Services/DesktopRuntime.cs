@@ -22,7 +22,7 @@ public sealed record DesktopStartupSnapshot(
     IReadOnlyList<ResumableImageBuild> ResumableBuilds,
     IReadOnlyList<ImageBuildRecoveryIssue> ImageBuildRecoveryIssues);
 
-public sealed class DesktopRuntime : IDesktopImageBuildService, IDesktopMediaValidationService, IAsyncDisposable
+public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
 {
     private readonly CatalogWorkspace _catalog;
     private readonly QemuDoctor _doctor;

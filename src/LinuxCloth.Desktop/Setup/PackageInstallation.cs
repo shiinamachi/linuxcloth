@@ -23,7 +23,7 @@ public sealed record PackageChange(
 
 public sealed class PackageInstallPreview
 {
-    internal PackageInstallPreview(
+    public PackageInstallPreview(
         PackagePlan plan,
         bool isPackageKitAvailable,
         IReadOnlyList<PackageChange> changes,

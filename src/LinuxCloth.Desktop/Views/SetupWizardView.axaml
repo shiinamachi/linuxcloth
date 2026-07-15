@@ -1,0 +1,233 @@
+<UserControl
+    x:Class="LinuxCloth.Desktop.Views.SetupWizardView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid RowDefinitions="Auto,*,Auto" Background="#0B1020">
+    <Border Grid.Row="0" Padding="28,18" Background="#10172A" BorderBrush="#29324F" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <StackPanel Spacing="2">
+          <TextBlock Text="linuxcloth 초기 설정" FontSize="23" FontWeight="Bold" />
+          <TextBlock Text="일회용 Windows 11 환경을 안전하게 준비합니다" Classes="muted" FontSize="12" />
+        </StackPanel>
+        <Border Grid.Column="1" Background="#4A321C" BorderBrush="#8D6330" BorderThickness="1" CornerRadius="9" Padding="10,5">
+          <TextBlock Text="기술 미리보기" FontSize="11" FontWeight="SemiBold" />
+        </Border>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="230,*">
+      <Border Grid.Column="0" Padding="22,26" Background="#0E1527" BorderBrush="#29324F" BorderThickness="0,0,1,0">
+        <StackPanel Spacing="10">
+          <ItemsControl ItemsSource="{Binding Steps}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Classes="card" Padding="12,10" Margin="0,0,0,8">
+                  <Grid ColumnDefinitions="32,*">
+                    <Border Width="26" Height="26" CornerRadius="13" Background="#29324F">
+                      <TextBlock Text="{Binding Marker}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="11" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" Margin="9,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <Border Background="#332D1D" BorderBrush="#695C2A" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,10,0,0">
+            <TextBlock Text="게스트의 사설망 접근 차단과 remote-viewer 추가 격리가 아직 완성되지 않았습니다. 실제 금융 업무에 사용하지 마세요." TextWrapping="Wrap" FontSize="11" />
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="30,24">
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,18">
+          <TextBlock Text="{Binding CurrentTitle}" FontSize="25" FontWeight="Bold" />
+          <TextBlock Text="{Binding CurrentDescription}" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+          <Grid>
+            <StackPanel IsVisible="{Binding IsHostInspectionStep}" Spacing="14">
+              <Border Classes="card" Padding="16">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                  <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                    <TextBlock Text="자동 검사 결과" FontSize="17" FontWeight="Bold" />
+                    <TextBlock Text="패키지 이름이 아니라 실제 실행·접근 능력을 확인합니다." Classes="muted" FontSize="11" />
+                  </StackPanel>
+                  <Button Grid.Row="0" Grid.Column="1" Classes="secondary" Content="다시 검사" Command="{Binding ReinspectCommand}" AutomationProperties.Name="호스트 다시 검사" />
+                  <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding HostChecks}" Margin="0,14,0,0">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border BorderBrush="#29324F" BorderThickness="0,1,0,0" Padding="5,10">
+                          <Grid ColumnDefinitions="28,170,*">
+                            <TextBlock Text="{Binding Status}" FontWeight="Bold" />
+                            <TextBlock Grid.Column="1" Text="{Binding Label}" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Grid>
+              </Border>
+              <Border Background="#192943" BorderBrush="#31517E" BorderThickness="1" CornerRadius="10" Padding="14">
+                <TextBlock Text="KVM 접근이 없으면 앱을 root로 실행하지 마세요. BIOS/UEFI 가상화와 현재 사용자의 /dev/kvm 권한을 수정한 뒤 로그아웃·로그인하고 다시 검사하세요." TextWrapping="Wrap" />
+              </Border>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding IsComponentsStep}" Spacing="14">
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="10">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="3">
+                      <TextBlock Text="배포판 패키지 계획" FontSize="17" FontWeight="Bold" />
+                      <TextBlock Text="{Binding DistributionLabel}" Classes="muted" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="secondary" Content="다시 검사" Command="{Binding ReinspectCommand}" />
+                  </Grid>
+                  <TextBlock Text="{Binding PackageStatus}" TextWrapping="Wrap" />
+                  <ItemsControl ItemsSource="{Binding PackageChanges}" MaxHeight="210">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="170,120,*,Auto" Margin="0,5">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                          <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="muted" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="2" Text="{Binding Repository}" Classes="muted" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="3" Text="{Binding Kind}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
+                    <TextBlock Text="{Binding PackageRepositories, StringFormat=저장소: {0}}" Classes="muted" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{Binding PackageDownloadSize, StringFormat=다운로드: {0}}" Classes="muted" />
+                    <Button Grid.Column="2" Classes="primary" Content="필수 구성 요소 설치" Command="{Binding InstallPackagesCommand}" IsEnabled="{Binding CanInstallPackages}" AutomationProperties.HelpText="PackageKit과 polkit을 통해 관리자 인증 후 설치합니다." />
+                  </Grid>
+                  <TextBlock IsVisible="{Binding HasUnresolvedPackages}" Text="{Binding UnresolvedPackages, StringFormat=해결되지 않음: {0}}" Foreground="#FF9E9E" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+              <Border IsVisible="{Binding ShowManualCommand}" Classes="card" Padding="16">
+                <StackPanel Spacing="9">
+                  <TextBlock Text="수동 설치" FontSize="16" FontWeight="Bold" />
+                  <TextBlock Text="앱은 sudo나 배포판 패키지 관리자를 직접 실행하지 않습니다. 아래 명령을 터미널에서 실행한 뒤 다시 검사하세요." Classes="muted" TextWrapping="Wrap" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <TextBox Text="{Binding ManualInstallCommand}" IsReadOnly="True" AutomationProperties.Name="수동 패키지 설치 명령" />
+                    <Button Grid.Column="1" Classes="secondary" Content="명령 복사" Click="OnCopyManualCommand" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Border Classes="card" Padding="13"><TextBlock Text="{Binding GuestBridgeStatus, StringFormat=GuestBridge: {0}}" TextWrapping="Wrap" /></Border>
+                <Border Grid.Column="1" Classes="card" Padding="13"><TextBlock Text="{Binding FirmwareStatus, StringFormat=OVMF: {0}}" TextWrapping="Wrap" /></Border>
+              </Grid>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding IsWindowsMediaStep}" Spacing="14">
+              <Border Classes="card" Padding="18">
+                <StackPanel Spacing="13">
+                  <TextBlock Text="Windows 11 x64 설치 미디어" FontSize="17" FontWeight="Bold" />
+                  <TextBlock Text="Microsoft가 제공하는 x64 ISO를 사용하세요. 파일은 외부로 업로드되지 않습니다." Classes="muted" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Classes="secondary" Content="Microsoft 공식 다운로드 페이지" Click="OnOpenWindowsDownload" />
+                    <Button Classes="primary" Content="이미 다운로드한 ISO 선택" Click="OnBrowseWindowsIso" AutomationProperties.Name="Windows 11 ISO 선택" />
+                  </StackPanel>
+                  <Border Background="#0E1527" CornerRadius="10" Padding="13">
+                    <StackPanel Spacing="5">
+                      <TextBlock Text="{Binding WindowsMediaName}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding WindowsMediaStatus}" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding WindowsMediaHash, StringFormat=SHA-256  {0}}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                  <CheckBox IsChecked="{Binding IsLicenseConfirmed}" Content="선택한 설치 미디어를 사용할 적절한 Windows 라이선스가 있습니다" AutomationProperties.HelpText="Windows 사용 권한 확인" />
+                  <CheckBox IsChecked="{Binding RememberMediaPaths}" Content="다음 실행을 위해 이 로컬 경로 기억" />
+                  <Expander Header="기술 세부정보">
+                    <TextBlock Text="{Binding WindowsMediaPath}" TextWrapping="Wrap" FontFamily="monospace" FontSize="10" Margin="0,8,0,0" />
+                  </Expander>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding IsVirtioMediaStep}" Spacing="14">
+              <Border Classes="card" Padding="18">
+                <StackPanel Spacing="13">
+                  <TextBlock Text="Windows용 virtio 드라이버" FontSize="17" FontWeight="Bold" />
+                  <Border Background="#332D1D" BorderBrush="#695C2A" BorderThickness="1" CornerRadius="9" Padding="12">
+                    <TextBlock Text="이 빌드에는 검토된 고정 버전·SHA-256 매니페스트가 없으므로 자동 다운로드가 비활성화되어 있습니다. 공식 배포 페이지에서 stable ISO를 받은 뒤 선택하세요." TextWrapping="Wrap" />
+                  </Border>
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Classes="secondary" Content="virtio-win 공식 페이지" Click="OnOpenVirtioDownload" />
+                    <Button Classes="primary" Content="virtio-win ISO 선택" Click="OnBrowseVirtioIso" AutomationProperties.Name="virtio-win ISO 선택" />
+                  </StackPanel>
+                  <Border Background="#0E1527" CornerRadius="10" Padding="13">
+                    <StackPanel Spacing="5">
+                      <TextBlock Text="{Binding VirtioMediaName}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding VirtioMediaStatus}" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding VirtioMediaHash, StringFormat=SHA-256  {0}}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                  <TextBlock Text="검사 항목: Windows 11 amd64 vioscsi 저장소 드라이버 · NetKVM 네트워크 드라이버" Classes="muted" TextWrapping="Wrap" />
+                  <Expander Header="기술 세부정보">
+                    <TextBlock Text="{Binding VirtioMediaPath}" TextWrapping="Wrap" FontFamily="monospace" FontSize="10" Margin="0,8,0,0" />
+                  </Expander>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding IsImageBuildStep}" Spacing="14">
+              <Border Classes="card" Padding="17">
+                <StackPanel Spacing="9">
+                  <TextBlock Text="실행 전 확인" FontSize="17" FontWeight="Bold" />
+                  <Grid ColumnDefinitions="190,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                    <TextBlock Text="Windows 미디어" Classes="muted" /><TextBlock Grid.Column="1" Text="{Binding WindowsMediaName}" />
+                    <TextBlock Grid.Row="1" Text="virtio-win 미디어" Classes="muted" /><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding VirtioMediaName}" />
+                    <TextBlock Grid.Row="2" Text="GuestBridge" Classes="muted" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GuestBridgeStatus}" />
+                    <TextBlock Grid.Row="3" Text="Secure Boot OVMF" Classes="muted" /><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding FirmwareStatus}" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+              <Border Classes="card" Padding="17">
+                <StackPanel Spacing="12">
+                  <TextBlock Text="기준 이미지 설정" FontSize="17" FontWeight="Bold" />
+                  <TextBlock Text="이미지 ID" Classes="muted" />
+                  <TextBox Text="{Binding Build.ImageIdText}" IsReadOnly="{Binding Build.IsBuilding}" AutomationProperties.Name="기준 이미지 ID" />
+                  <Expander Header="고급 가상 머신 리소스">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12" Margin="0,10,0,0">
+                      <StackPanel><TextBlock Text="디스크 (GiB)" Classes="muted"/><NumericUpDown Value="{Binding Build.DiskSizeGiB}" Minimum="64" Maximum="1024" Increment="8" /></StackPanel>
+                      <StackPanel Grid.Column="1"><TextBlock Text="가상 CPU" Classes="muted"/><NumericUpDown Value="{Binding Build.CpuCount}" Minimum="2" Maximum="32" /></StackPanel>
+                      <StackPanel Grid.Column="2"><TextBlock Text="메모리 (MiB)" Classes="muted"/><NumericUpDown Value="{Binding Build.MemoryMiB}" Minimum="4096" Maximum="131072" Increment="1024" /></StackPanel>
+                    </Grid>
+                  </Expander>
+                </StackPanel>
+              </Border>
+              <Border Background="#192943" BorderBrush="#31517E" BorderThickness="1" CornerRadius="10" Padding="14">
+                <TextBlock Text="별도의 Windows 설치 창이 열립니다. 보유 라이선스와 일치하는 에디션을 선택하고, 디스크가 보이지 않으면 virtio ISO의 w11/amd64/vioscsi 드라이버를 불러오세요. 설치 후 미디어 없는 검증 부팅이 자동으로 수행됩니다." TextWrapping="Wrap" />
+              </Border>
+              <Border Classes="card" Padding="17">
+                <StackPanel Spacing="10">
+                  <ProgressBar IsIndeterminate="True" IsVisible="{Binding Build.IsBuilding}" />
+                  <TextBlock Text="{Binding Build.BuildStatus}" TextWrapping="Wrap" AutomationProperties.Name="이미지 생성 진행 상태" />
+                  <TextBlock Text="{Binding Build.ErrorMessage}" IsVisible="{Binding Build.HasError}" Foreground="#FF9E9E" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Build.StagingDirectory}" IsVisible="{Binding Build.HasStagingDirectory}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                    <Button Classes="secondary" Content="이전 설정 계속하기" Command="{Binding Build.ResumeBuildCommand}" IsEnabled="{Binding Build.CanResumeBuild}" IsVisible="{Binding Build.HasStagingDirectory}" />
+                    <Button Classes="primary" Content="Windows 기준 이미지 만들기" Command="{Binding Build.StartBuildCommand}" IsEnabled="{Binding Build.CanStartBuild}" IsVisible="{Binding !Build.IsBuilding}" />
+                    <Button Classes="secondary" Content="안전하게 중단" Command="{Binding Build.CancelBuildCommand}" IsVisible="{Binding Build.IsBuilding}" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Grid>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+
+    <Border Grid.Row="2" Padding="22,14" Background="#10172A" BorderBrush="#29324F" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+        <Button Grid.Column="0" Classes="secondary" Content="나중에 계속" Command="{Binding LaterCommand}" />
+        <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Foreground="#FF9E9E" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="12,0" />
+        <Button Grid.Column="2" Classes="secondary" Content="뒤로" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" />
+        <Button Grid.Column="3" Classes="primary" Content="{Binding ContinueLabel}" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" IsVisible="{Binding !IsImageBuildStep}" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

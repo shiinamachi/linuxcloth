@@ -103,6 +103,21 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ReportsMissingWindowsInstallationImageSeparately()
+    {
+        var windowsIso = CreateFile("windows.iso", "windows");
+        var xorriso = CreateExecutable("xorriso");
+        var bubblewrap = CreateExecutable("bwrap");
+        var runner = new MediaProbeRunner(["/efi/boot/bootx64.efi"]);
+        var validator = new XorrisoInstallationMediaValidator(runner);
+
+        var exception = await Assert.ThrowsAsync<WindowsImageBuildException>(() =>
+            validator.ValidateWindowsAsync(windowsIso, xorriso, bubblewrap));
+
+        Assert.Contains("install.wim", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RejectsVirtioMediaThatHasViostorButNotTheRequiredVioscsiDriver()
     {
         var windowsIso = CreateFile("windows.iso", "windows");

@@ -220,14 +220,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
             var defaults = await _imageBuildService
                 .GetImageBuildDefaultsAsync(_applicationShutdown)
                 .ConfigureAwait(true);
-            GuestBridgeExecutablePath = defaults.GuestBridgeExecutablePath;
-            OvmfCodePath = defaults.OvmfCodePath ?? string.Empty;
-            OvmfVariablesTemplatePath = defaults.OvmfVariablesTemplatePath ?? string.Empty;
-            BuildStatus = !defaults.IsGuestBridgeAvailable
-                ? "앱과 함께 설치된 GuestBridge를 찾지 못했습니다. GuestBridge 실행 파일을 직접 선택하세요."
-                : defaults.OvmfCodePath is null || defaults.OvmfVariablesTemplatePath is null
-                    ? "검증된 Secure Boot OVMF 디스크립터를 찾지 못했습니다. 배포판의 QEMU 펌웨어 패키지를 설치하세요."
-                    : "감지된 OVMF 경로를 확인하고 Windows 설치 미디어를 선택하세요.";
+            ApplyDefaults(defaults);
         }
         catch (OperationCanceledException) when (_applicationShutdown.IsCancellationRequested)
         {
@@ -240,6 +233,19 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
     }
 
     public void ReportPickerError(Exception exception) => ShowError(exception);
+
+    public void ApplyDefaults(DesktopImageBuildDefaults defaults)
+    {
+        ArgumentNullException.ThrowIfNull(defaults);
+        GuestBridgeExecutablePath = defaults.GuestBridgeExecutablePath;
+        OvmfCodePath = defaults.OvmfCodePath ?? string.Empty;
+        OvmfVariablesTemplatePath = defaults.OvmfVariablesTemplatePath ?? string.Empty;
+        BuildStatus = !defaults.IsGuestBridgeAvailable
+            ? "앱에 포함된 GuestBridge가 없습니다. linuxcloth 패키지를 다시 설치하세요."
+            : defaults.OvmfCodePath is null || defaults.OvmfVariablesTemplatePath is null
+                ? "검증된 Secure Boot OVMF 디스크립터를 찾지 못했습니다. 배포판의 QEMU 펌웨어 패키지를 설치하세요."
+                : "GuestBridge와 Secure Boot OVMF를 자동으로 확인했습니다.";
+    }
 
     public async Task CancelAndWaitAsync()
     {

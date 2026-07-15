@@ -11,6 +11,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
     private readonly DesktopRuntime _runtime;
     private bool _shutdownComplete;
     private MainWindowViewModel? _mainViewModel;
+    private SetupWizardViewModel? _setupViewModel;
 
     public ShellWindow()
     {
@@ -43,7 +44,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
 
             if (firstRun.Readiness.Route is SetupRoute.FirstRun or SetupRoute.EnvironmentRepair)
             {
-                ShowSetup(firstRun);
+                await ShowSetupAsync(firstRun);
                 return;
             }
 
@@ -90,26 +91,37 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         return button;
     }
 
-    private void ShowSetup(FirstRunSnapshot firstRun)
+    private async Task ShowSetupAsync(FirstRunSnapshot firstRun)
     {
-        var placeholder = new StackPanel
+        if (_mainViewModel is not null)
         {
-            MaxWidth = 720,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock { Text = "linuxcloth 초기 설정", FontSize = 26, FontWeight = Avalonia.Media.FontWeight.Bold },
-                new TextBlock { Text = firstRun.Readiness.HasVerifiedImage ? "환경 복구가 필요합니다." : "첫 실행 설정이 필요합니다." },
-            },
-        };
-        ShellContent.Content = placeholder;
+            _mainViewModel.SetupRequested -= OnSetupRequested;
+            await _mainViewModel.DisposeAsync();
+            _mainViewModel = null;
+        }
+
+        if (_setupViewModel is not null)
+        {
+            await DisposeSetupAsync();
+        }
+
+        _setupViewModel = new SetupWizardViewModel(
+            _runtime,
+            firstRun,
+            new SetupStateStore(_runtime.Paths),
+            new DistributionInfoReader(),
+            new PackagePlanResolver(),
+            new PackageKitPackageInstaller(new PackageKitDbusClient()));
+        _setupViewModel.Completed += OnSetupCompleted;
+        _setupViewModel.LaterRequested += OnLaterRequested;
+        ShellContent.Content = new SetupWizardView(_setupViewModel);
         StartupPanel.IsVisible = false;
+        await _setupViewModel.InitializeAsync();
     }
 
     private async Task ShowMainAsync(DesktopStartupSnapshot startup)
     {
+        await DisposeSetupAsync();
         if (_mainViewModel is not null)
         {
             await _mainViewModel.DisposeAsync();
@@ -126,7 +138,46 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
     {
         _ = sender;
         _ = eventArgs;
+        StartupPanel.IsVisible = true;
+        try
+        {
+            var firstRun = await _coordinator.InitializeAsync();
+            if (firstRun.Readiness.Route == SetupRoute.RecoveryRequired)
+            {
+                ShowRecovery(firstRun.Startup);
+            }
+            else
+            {
+                await ShowSetupAsync(firstRun);
+            }
+        }
+        catch (Exception exception)
+        {
+            StartupStatus.Text = $"초기 설정을 열지 못했습니다. {exception.Message}";
+        }
+    }
+
+    private async void OnSetupCompleted(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
         await RouteFromCurrentStateAsync();
+    }
+
+    private async void OnLaterRequested(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        StartupPanel.IsVisible = true;
+        try
+        {
+            var firstRun = await _coordinator.InitializeAsync();
+            await ShowMainAsync(firstRun.Startup);
+        }
+        catch (Exception exception)
+        {
+            StartupStatus.Text = $"카탈로그 화면을 열지 못했습니다. {exception.Message}";
+        }
     }
 
     private async void OnClosing(object? sender, WindowClosingEventArgs eventArgs)
@@ -163,7 +214,22 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
             _mainViewModel = null;
         }
 
+        await DisposeSetupAsync();
+
         await _runtime.DisposeAsync();
         GC.SuppressFinalize(this);
+    }
+
+    private async Task DisposeSetupAsync()
+    {
+        if (_setupViewModel is null)
+        {
+            return;
+        }
+
+        _setupViewModel.Completed -= OnSetupCompleted;
+        _setupViewModel.LaterRequested -= OnLaterRequested;
+        await _setupViewModel.DisposeAsync();
+        _setupViewModel = null;
     }
 }

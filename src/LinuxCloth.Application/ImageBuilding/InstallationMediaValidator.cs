@@ -29,15 +29,19 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
     public const long MaximumWindowsIsoBytes = 32L * 1024 * 1024 * 1024;
     public const long MaximumVirtioWinIsoBytes = 8L * 1024 * 1024 * 1024;
 
-    private static readonly string[][] WindowsRequirements =
+    private static readonly (string[] Alternatives, string ErrorMessage)[] WindowsRequirements =
     [
-        ["/efi/boot/bootx64.efi", "/EFI/BOOT/BOOTX64.EFI"],
-        [
-            "/sources/install.wim",
-            "/sources/install.esd",
-            "/SOURCES/INSTALL.WIM",
-            "/SOURCES/INSTALL.ESD",
-        ],
+        (
+            ["/efi/boot/bootx64.efi", "/EFI/BOOT/BOOTX64.EFI"],
+            "The Windows ISO does not contain a Windows x64 UEFI boot image."),
+        (
+            [
+                "/sources/install.wim",
+                "/sources/install.esd",
+                "/SOURCES/INSTALL.WIM",
+                "/SOURCES/INSTALL.ESD",
+            ],
+            "The Windows ISO does not contain sources/install.wim or sources/install.esd."),
     ];
 
     private static readonly string[][] VirtioWinRequirements =
@@ -95,14 +99,14 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
             MaximumWindowsIsoBytes);
         var (xorriso, bubblewrap) = ValidateTools(xorrisoPath, bubblewrapPath);
 
-        foreach (var alternatives in WindowsRequirements)
+        foreach (var requirement in WindowsRequirements)
         {
             await RequireAnyIsoEntryAsync(
                     xorriso,
                     bubblewrap,
                     windowsIso,
-                    alternatives,
-                    "The Windows ISO is not a Windows x64 installation image.",
+                    requirement.Alternatives,
+                    requirement.ErrorMessage,
                     cancellationToken)
                 .ConfigureAwait(false);
         }

@@ -90,4 +90,7 @@ public sealed record CategoryFilterViewModel(string Label, CatalogCategory? Valu
 
 public sealed record ImageChoiceViewModel(ImageId Id, string Label);
 
-public sealed record DoctorCheckViewModel(string Label, bool IsAvailable, bool IsRequired, string Detail);
+public sealed record DoctorCheckViewModel(string Label, bool IsAvailable, bool IsRequired, string Detail)
+{
+    public string Status => IsAvailable ? "✓" : "!";
+}
