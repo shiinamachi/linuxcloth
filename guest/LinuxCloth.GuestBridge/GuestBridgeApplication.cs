@@ -7,6 +7,7 @@ internal sealed class GuestBridgeApplication
     private readonly GuestConfigResolver _configResolver;
     private readonly IBootstrapLauncher _bootstrapLauncher;
     private readonly IDiagnosticLog _diagnosticLog;
+    private readonly IGuestReadyReporter _guestReadyReporter;
     private readonly IProvisioningProbeProcessor _provisioningProbeProcessor;
     private readonly IShutdownRequester _shutdownRequester;
 
@@ -19,7 +20,8 @@ internal sealed class GuestBridgeApplication
             bootstrapLauncher,
             diagnosticLog,
             NullProvisioningProbeProcessor.Instance,
-            NullShutdownRequester.Instance)
+            NullShutdownRequester.Instance,
+            NullGuestReadyReporter.Instance)
     {
     }
 
@@ -29,6 +31,23 @@ internal sealed class GuestBridgeApplication
         IDiagnosticLog diagnosticLog,
         IProvisioningProbeProcessor provisioningProbeProcessor,
         IShutdownRequester shutdownRequester)
+        : this(
+            configResolver,
+            bootstrapLauncher,
+            diagnosticLog,
+            provisioningProbeProcessor,
+            shutdownRequester,
+            NullGuestReadyReporter.Instance)
+    {
+    }
+
+    public GuestBridgeApplication(
+        GuestConfigResolver configResolver,
+        IBootstrapLauncher bootstrapLauncher,
+        IDiagnosticLog diagnosticLog,
+        IProvisioningProbeProcessor provisioningProbeProcessor,
+        IShutdownRequester shutdownRequester,
+        IGuestReadyReporter guestReadyReporter)
     {
         _configResolver = configResolver ?? throw new ArgumentNullException(nameof(configResolver));
         _bootstrapLauncher = bootstrapLauncher ?? throw new ArgumentNullException(nameof(bootstrapLauncher));
@@ -36,6 +55,7 @@ internal sealed class GuestBridgeApplication
         _provisioningProbeProcessor = provisioningProbeProcessor ??
                                       throw new ArgumentNullException(nameof(provisioningProbeProcessor));
         _shutdownRequester = shutdownRequester ?? throw new ArgumentNullException(nameof(shutdownRequester));
+        _guestReadyReporter = guestReadyReporter ?? throw new ArgumentNullException(nameof(guestReadyReporter));
     }
 
     public async Task<GuestBridgeExitCode> RunAsync(CancellationToken cancellationToken)
@@ -82,6 +102,28 @@ internal sealed class GuestBridgeApplication
 
         var manifest = resolution.Manifest
             ?? throw new InvalidOperationException("A successful resolution must contain a manifest.");
+
+        try
+        {
+            await _guestReadyReporter
+                .ReportAsync(manifest.SessionId, cancellationToken)
+                .ConfigureAwait(false);
+            _diagnosticLog.Write(DiagnosticEvent.GuestReadyReported);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _diagnosticLog.Write(DiagnosticEvent.Cancelled);
+            return GuestBridgeExitCode.Cancelled;
+        }
+        catch (Exception exception) when (
+            exception is IOException or
+            UnauthorizedAccessException or
+            InvalidOperationException or
+            PlatformNotSupportedException)
+        {
+            _diagnosticLog.Write(DiagnosticEvent.GuestReadyFailed);
+            return GuestBridgeExitCode.GuestReadyFailed;
+        }
 
         try
         {

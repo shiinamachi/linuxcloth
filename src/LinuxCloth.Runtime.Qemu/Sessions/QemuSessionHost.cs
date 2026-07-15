@@ -21,6 +21,8 @@ public sealed record QemuShutdownPolicy(
     TimeSpan TerminateTimeout,
     TimeSpan AuxiliaryTerminateTimeout)
 {
+    public TimeSpan GuestReadyTimeout { get; init; } = TimeSpan.FromMinutes(3);
+
     public static QemuShutdownPolicy Default { get; } = new(
         TimeSpan.FromSeconds(45),
         TimeSpan.FromSeconds(5),
@@ -35,19 +37,22 @@ public sealed class QemuSessionHost
     private readonly QemuShutdownPolicy _shutdownPolicy;
     private readonly SessionRecordStore _recordStore;
     private readonly IBootIdProvider _bootIdProvider;
+    private readonly IGuestReadyWaiter _guestReadyWaiter;
 
     public QemuSessionHost(
         IProcessLauncher processLauncher,
         IQmpConnector qmpConnector,
         QemuShutdownPolicy? shutdownPolicy = null,
         SessionRecordStore? recordStore = null,
-        IBootIdProvider? bootIdProvider = null)
+        IBootIdProvider? bootIdProvider = null,
+        IGuestReadyWaiter? guestReadyWaiter = null)
     {
         _processLauncher = processLauncher ?? throw new ArgumentNullException(nameof(processLauncher));
         _qmpConnector = qmpConnector ?? throw new ArgumentNullException(nameof(qmpConnector));
         _shutdownPolicy = shutdownPolicy ?? QemuShutdownPolicy.Default;
         _recordStore = recordStore ?? new SessionRecordStore();
         _bootIdProvider = bootIdProvider ?? new LinuxBootIdProvider();
+        _guestReadyWaiter = guestReadyWaiter ?? new UnixGuestReadyWaiter();
     }
 
     public async Task<QemuRunningSession> StartAsync(
@@ -175,6 +180,12 @@ public sealed class QemuSessionHost
                     cancellationToken).ConfigureAwait(false);
             }
 
+            await _guestReadyWaiter.WaitAsync(
+                    request.Paths.GuestBridgeSocketPath,
+                    request.Paths.SessionId,
+                    _shutdownPolicy.GuestReadyTimeout,
+                    cancellationToken)
+                .ConfigureAwait(false);
             await journal.TransitionAsync(SessionState.Running, cancellationToken).ConfigureAwait(false);
             request.Progress?.Report(SessionState.Running);
             return new QemuRunningSession(

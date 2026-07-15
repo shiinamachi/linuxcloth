@@ -31,6 +31,7 @@ internal static class Program
                 new WindowsAuthenticodeVerifier(),
                 processRunner,
                 PrivateTemporaryDirectoryFactory.Instance);
+            var guestReadyReporter = new VirtioSerialGuestReadyReporter();
             var provisioningProbeProcessor = new ProvisioningProbeProcessor(
                 driveProvider,
                 new SystemGuestBridgeExecutableProvider(),
@@ -41,7 +42,8 @@ internal static class Program
                 bootstrapLauncher,
                 diagnosticLog,
                 provisioningProbeProcessor,
-                shutdownRequester);
+                shutdownRequester,
+                guestReadyReporter);
             var exitCode = await application.RunAsync(CancellationToken.None).ConfigureAwait(false);
             return (int)exitCode;
         }

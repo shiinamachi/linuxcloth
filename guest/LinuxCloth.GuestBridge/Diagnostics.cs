@@ -18,6 +18,8 @@ internal enum DiagnosticEvent
     ProvisioningVerified,
     ProvisioningShutdownRequested,
     ProvisioningShutdownFailed,
+    GuestReadyReported,
+    GuestReadyFailed,
     BootstrapStarted,
     BootstrapCompleted,
     BootstrapFailed,

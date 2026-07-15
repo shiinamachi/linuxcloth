@@ -170,6 +170,21 @@ internal sealed class FakeExecutableSignatureVerifier(
     }
 }
 
+internal sealed class FakeGuestReadyReporter(Exception? failure = null) : IGuestReadyReporter
+{
+    public int ReportCount { get; private set; }
+
+    public Guid SessionId { get; private set; }
+
+    public Task ReportAsync(Guid sessionId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ReportCount++;
+        SessionId = sessionId;
+        return failure is null ? Task.CompletedTask : Task.FromException(failure);
+    }
+}
+
 internal sealed class StubHttpMessageHandler(
     Func<HttpRequestMessage, HttpResponseMessage> responseFactory) : HttpMessageHandler
 {

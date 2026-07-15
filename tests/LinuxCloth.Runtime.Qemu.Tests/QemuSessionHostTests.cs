@@ -44,6 +44,8 @@ public sealed class QemuSessionHostTests : IDisposable
         Assert.Contains("--unshare-all", confinedQemu.Arguments);
         Assert.DoesNotContain("--share-net", confinedQemu.Arguments);
         Assert.Contains(SessionState.Running, progress.States);
+        Assert.Equal(1, host.GuestReadyWaiter.WaitCount);
+        Assert.Equal(paths.SessionId, host.GuestReadyWaiter.SessionId);
         var persisted = await recordStore.ReadAsync(paths);
         Assert.Equal(SessionState.Running, persisted.State);
         Assert.Equal("test-image", persisted.ImageId);
@@ -123,6 +125,23 @@ public sealed class QemuSessionHostTests : IDisposable
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => host.StartAsync(CreateRequest(paths)));
 
+        Assert.All(launcher.Processes, process => Assert.True(process.Disposed));
+        Assert.False(Directory.Exists(paths.SessionDirectory));
+    }
+
+    [Fact]
+    public async Task GuestReadyFailureNeverTransitionsToRunningAndCleansTheSession()
+    {
+        var paths = CreatePaths();
+        var launcher = new FakeProcessLauncher();
+        var connector = new FakeQmpConnector(launcher);
+        var progress = new SynchronousProgress();
+        var host = CreateHost(launcher, connector);
+        host.GuestReadyWaiter.Failure = new TimeoutException("guest did not report ready");
+
+        await Assert.ThrowsAsync<TimeoutException>(() => host.StartAsync(CreateRequest(paths, progress)));
+
+        Assert.DoesNotContain(SessionState.Running, progress.States);
         Assert.All(launcher.Processes, process => Assert.True(process.Disposed));
         Assert.False(Directory.Exists(paths.SessionDirectory));
     }
@@ -240,16 +259,22 @@ public sealed class QemuSessionHostTests : IDisposable
         return path;
     }
 
-    private static QemuSessionHost CreateHost(
+    private static TestSessionHost CreateHost(
         FakeProcessLauncher launcher,
         FakeQmpConnector connector,
-        SessionRecordStore? recordStore = null) =>
-        new(
-            launcher,
-            connector,
-            FastPolicy(),
-            recordStore,
-            new FixedBootIdProvider());
+        SessionRecordStore? recordStore = null)
+    {
+        var guestReadyWaiter = new FakeGuestReadyWaiter();
+        return new TestSessionHost(
+            new QemuSessionHost(
+                launcher,
+                connector,
+                FastPolicy(),
+                recordStore,
+                new FixedBootIdProvider(),
+                guestReadyWaiter),
+            guestReadyWaiter);
+    }
 
     private static QemuShutdownPolicy FastPolicy() =>
         new(
@@ -432,5 +457,40 @@ public sealed class QemuSessionHostTests : IDisposable
     private sealed class FixedBootIdProvider : IBootIdProvider
     {
         public string GetBootId() => BootId;
+    }
+
+    private sealed class FakeGuestReadyWaiter : IGuestReadyWaiter
+    {
+        public Exception? Failure { get; set; }
+
+        public int WaitCount { get; private set; }
+
+        public Guid SessionId { get; private set; }
+
+        public Task WaitAsync(
+            string socketPath,
+            Guid expectedSessionId,
+            TimeSpan timeout,
+            CancellationToken cancellationToken = default)
+        {
+            Assert.EndsWith("guest.sock", socketPath, StringComparison.Ordinal);
+            Assert.True(timeout > TimeSpan.Zero);
+            cancellationToken.ThrowIfCancellationRequested();
+            WaitCount++;
+            SessionId = expectedSessionId;
+            return Failure is null ? Task.CompletedTask : Task.FromException(Failure);
+        }
+    }
+
+    private sealed class TestSessionHost(
+        QemuSessionHost inner,
+        FakeGuestReadyWaiter guestReadyWaiter)
+    {
+        public FakeGuestReadyWaiter GuestReadyWaiter { get; } = guestReadyWaiter;
+
+        public Task<QemuRunningSession> StartAsync(
+            QemuSessionStartRequest request,
+            CancellationToken cancellationToken = default) =>
+            inner.StartAsync(request, cancellationToken);
     }
 }

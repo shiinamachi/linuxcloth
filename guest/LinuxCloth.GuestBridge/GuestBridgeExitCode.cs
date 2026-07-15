@@ -9,6 +9,7 @@ internal enum GuestBridgeExitCode
     ConfigurationNotFound = 10,
     ConfigurationInvalid = 11,
     ConfigurationAmbiguous = 12,
+    GuestReadyFailed = 13,
     BootstrapLaunchFailed = 20,
     BootstrapFailed = 21,
     ProvisioningShutdownFailed = 30,

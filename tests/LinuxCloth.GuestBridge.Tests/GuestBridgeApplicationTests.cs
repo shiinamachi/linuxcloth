@@ -66,6 +66,51 @@ public sealed class GuestBridgeApplicationTests
     }
 
     [Fact]
+    public async Task ReportsTheValidatedSessionBeforeLaunchingBootstrap()
+    {
+        using var directory = new TemporaryDirectory();
+        var manifest = ConfigFixture.WriteValid(directory.Path);
+        var launcher = new FakeBootstrapLauncher();
+        var reporter = new FakeGuestReadyReporter();
+        var driveProvider = new FakeDriveProvider(directory.Path);
+        var application = new GuestBridgeApplication(
+            new GuestConfigResolver(driveProvider, NullDiagnosticLog.Instance),
+            launcher,
+            NullDiagnosticLog.Instance,
+            NullProvisioningProbeProcessor.Instance,
+            NullShutdownRequester.Instance,
+            reporter);
+
+        var exitCode = await application.RunAsync(CancellationToken.None);
+
+        Assert.Equal(GuestBridgeExitCode.Success, exitCode);
+        Assert.Equal(manifest.SessionId, reporter.SessionId);
+        Assert.Equal(1, reporter.ReportCount);
+        Assert.Equal(1, launcher.LaunchCount);
+    }
+
+    [Fact]
+    public async Task DoesNotLaunchBootstrapWhenGuestReadyCannotBeReported()
+    {
+        using var directory = new TemporaryDirectory();
+        ConfigFixture.WriteValid(directory.Path);
+        var launcher = new FakeBootstrapLauncher();
+        var driveProvider = new FakeDriveProvider(directory.Path);
+        var application = new GuestBridgeApplication(
+            new GuestConfigResolver(driveProvider, NullDiagnosticLog.Instance),
+            launcher,
+            NullDiagnosticLog.Instance,
+            NullProvisioningProbeProcessor.Instance,
+            NullShutdownRequester.Instance,
+            new FakeGuestReadyReporter(new IOException("virtio port unavailable")));
+
+        var exitCode = await application.RunAsync(CancellationToken.None);
+
+        Assert.Equal(GuestBridgeExitCode.GuestReadyFailed, exitCode);
+        Assert.Equal(0, launcher.LaunchCount);
+    }
+
+    [Fact]
     public async Task ValidProvisioningProbeWritesResultAndBypassesBootstrap()
     {
         using var directory = new TemporaryDirectory();
