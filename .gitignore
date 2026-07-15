@@ -1,0 +1,33 @@
+# .NET
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+
+# IDEs
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Local development state
+.env
+.dotnet/
+.packages/
+
+# linuxcloth runtime data and downloaded proprietary assets
+runtime/
+downloads/
+*.qcow2
+*.img
+*.iso
+*.fd
+*.wim
+*.vhd
+*.vhdx
+*.sock
+
+# OS files
+.DS_Store
+Thumbs.db
+
