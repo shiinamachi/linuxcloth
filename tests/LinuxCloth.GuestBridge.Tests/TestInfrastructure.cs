@@ -62,6 +62,30 @@ internal sealed class FakeBootstrapLauncher : IBootstrapLauncher
     }
 }
 
+internal sealed class FakeExecutableProvider(string executablePath) : IGuestBridgeExecutableProvider
+{
+    public string? GetExecutablePath() => executablePath;
+}
+
+internal sealed class FakeShutdownRequester(int exitCode = 0) : IShutdownRequester
+{
+    public int RequestCount { get; private set; }
+
+    public Task<int> RequestShutdownAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        RequestCount++;
+        return Task.FromResult(exitCode);
+    }
+}
+
+internal sealed class RecordingDiagnosticLog : IDiagnosticLog
+{
+    public List<DiagnosticEvent> Events { get; } = [];
+
+    public void Write(DiagnosticEvent diagnosticEvent) => Events.Add(diagnosticEvent);
+}
+
 internal sealed class CapturingProcessRunner : IProcessRunner
 {
     public ProcessStartInfo? StartInfo { get; private set; }

@@ -11,5 +11,6 @@ internal enum GuestBridgeExitCode
     ConfigurationAmbiguous = 12,
     BootstrapLaunchFailed = 20,
     BootstrapFailed = 21,
+    ProvisioningShutdownFailed = 30,
     Cancelled = 130,
 }

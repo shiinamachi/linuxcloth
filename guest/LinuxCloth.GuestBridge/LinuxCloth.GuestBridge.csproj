@@ -5,6 +5,12 @@
     <AssemblyName>linuxcloth-guest-bridge</AssemblyName>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+    <!-- A non-empty sentinel prevents the SDK from restoring its default .pdb related-file list. -->
+    <AllowedReferenceRelatedFileExtensions>.linuxcloth-no-related-files</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/LinuxCloth.Core/LinuxCloth.Core.csproj" />

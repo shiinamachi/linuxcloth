@@ -22,14 +22,20 @@ internal static class Program
 
         try
         {
-            var configResolver = new GuestConfigResolver(
-                new SystemConfigDriveProvider(),
-                diagnosticLog);
-            var bootstrapLauncher = new PowerShellBootstrapLauncher(new SystemProcessRunner());
+            var driveProvider = new SystemConfigDriveProvider();
+            var processRunner = new SystemProcessRunner();
+            var configResolver = new GuestConfigResolver(driveProvider, diagnosticLog);
+            var bootstrapLauncher = new PowerShellBootstrapLauncher(processRunner);
+            var provisioningProbeProcessor = new ProvisioningProbeProcessor(
+                driveProvider,
+                new SystemGuestBridgeExecutableProvider());
+            var shutdownRequester = new WindowsShutdownRequester(processRunner);
             var application = new GuestBridgeApplication(
                 configResolver,
                 bootstrapLauncher,
-                diagnosticLog);
+                diagnosticLog,
+                provisioningProbeProcessor,
+                shutdownRequester);
             var exitCode = await application.RunAsync(CancellationToken.None).ConfigureAwait(false);
             return (int)exitCode;
         }
