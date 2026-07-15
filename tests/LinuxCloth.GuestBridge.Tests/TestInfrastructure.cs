@@ -67,6 +67,23 @@ internal sealed class FakeExecutableProvider(string executablePath) : IGuestBrid
     public string? GetExecutablePath() => executablePath;
 }
 
+internal sealed class FakeGuestEnvironmentProvider(
+    GuestEnvironmentProvenance? provenance = null,
+    Exception? failure = null) : IGuestEnvironmentProvider
+{
+    public static GuestEnvironmentProvenance ValidProvenance { get; } = new(
+        "1.0.0-test",
+        "X64",
+        26100,
+        "Professional",
+        "24H2");
+
+    public GuestEnvironmentProvenance GetProvenance() =>
+        failure is null
+            ? provenance ?? ValidProvenance
+            : throw failure;
+}
+
 internal sealed class FakeShutdownRequester(int exitCode = 0) : IShutdownRequester
 {
     public int RequestCount { get; private set; }

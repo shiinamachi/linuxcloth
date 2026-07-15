@@ -28,7 +28,8 @@ internal static class Program
             var bootstrapLauncher = new PowerShellBootstrapLauncher(processRunner);
             var provisioningProbeProcessor = new ProvisioningProbeProcessor(
                 driveProvider,
-                new SystemGuestBridgeExecutableProvider());
+                new SystemGuestBridgeExecutableProvider(),
+                new SystemGuestEnvironmentProvider());
             var shutdownRequester = new WindowsShutdownRequester(processRunner);
             var application = new GuestBridgeApplication(
                 configResolver,

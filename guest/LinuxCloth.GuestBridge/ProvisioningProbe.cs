@@ -1,3 +1,4 @@
+using System.Security;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -61,13 +62,16 @@ internal sealed class ProvisioningProbeProcessor : IProvisioningProbeProcessor
 
     private readonly IConfigDriveProvider _driveProvider;
     private readonly IGuestBridgeExecutableProvider _executableProvider;
+    private readonly IGuestEnvironmentProvider _environmentProvider;
 
     public ProvisioningProbeProcessor(
         IConfigDriveProvider driveProvider,
-        IGuestBridgeExecutableProvider executableProvider)
+        IGuestBridgeExecutableProvider executableProvider,
+        IGuestEnvironmentProvider environmentProvider)
     {
         _driveProvider = driveProvider ?? throw new ArgumentNullException(nameof(driveProvider));
         _executableProvider = executableProvider ?? throw new ArgumentNullException(nameof(executableProvider));
+        _environmentProvider = environmentProvider ?? throw new ArgumentNullException(nameof(environmentProvider));
     }
 
     public async Task<ProvisioningProbeOutcome> ProcessAsync(CancellationToken cancellationToken)
@@ -125,9 +129,29 @@ internal sealed class ProvisioningProbeProcessor : IProvisioningProbeProcessor
             return new ProvisioningProbeOutcome(ProvisioningProbeStatus.GuestBridgeHashMismatch);
         }
 
+        GuestEnvironmentProvenance provenance;
         try
         {
-            WriteResultAtomically(candidate.DriveRoot, probe.Nonce, executableHash);
+            provenance = _environmentProvider.GetProvenance();
+            ValidateProvenance(provenance);
+        }
+        catch (Exception exception) when (
+            exception is IOException or
+            UnauthorizedAccessException or
+            InvalidDataException or
+            PlatformNotSupportedException or
+            SecurityException)
+        {
+            return new ProvisioningProbeOutcome(ProvisioningProbeStatus.Invalid);
+        }
+
+        try
+        {
+            WriteResultAtomically(
+                candidate.DriveRoot,
+                probe.Nonce,
+                executableHash,
+                provenance);
             return new ProvisioningProbeOutcome(ProvisioningProbeStatus.Success);
         }
         catch (Exception exception) when (
@@ -251,7 +275,8 @@ internal sealed class ProvisioningProbeProcessor : IProvisioningProbeProcessor
     private static void WriteResultAtomically(
         string driveRoot,
         string nonce,
-        string guestBridgeHash)
+        string guestBridgeHash,
+        GuestEnvironmentProvenance provenance)
     {
         var resultPath = Path.Combine(driveRoot, ResultFileName);
         if (File.Exists(resultPath))
@@ -281,6 +306,11 @@ internal sealed class ProvisioningProbeProcessor : IProvisioningProbeProcessor
                 writer.WriteNumber("schemaVersion", SchemaVersion);
                 writer.WriteString("nonce", nonce);
                 writer.WriteString("guestBridgeSha256", guestBridgeHash);
+                writer.WriteString("guestBridgeVersion", provenance.GuestBridgeVersion);
+                writer.WriteString("windowsArchitecture", provenance.WindowsArchitecture);
+                writer.WriteNumber("windowsBuild", provenance.WindowsBuild);
+                writer.WriteString("windowsEditionId", provenance.WindowsEditionId);
+                writer.WriteString("windowsDisplayVersion", provenance.WindowsDisplayVersion);
                 writer.WriteEndObject();
                 writer.Flush();
                 stream.Flush(flushToDisk: true);
@@ -341,6 +371,24 @@ internal sealed class ProvisioningProbeProcessor : IProvisioningProbeProcessor
     private static bool IsCanonicalLowerHex(string value, int expectedLength) =>
         value.Length == expectedLength &&
         value.All(static character => character is >= '0' and <= '9' or >= 'a' and <= 'f');
+
+    private static void ValidateProvenance(GuestEnvironmentProvenance provenance)
+    {
+        ArgumentNullException.ThrowIfNull(provenance);
+        if (!IsBoundedControlFree(provenance.GuestBridgeVersion, 128) ||
+            !string.Equals(provenance.WindowsArchitecture, "X64", StringComparison.Ordinal) ||
+            provenance.WindowsBuild < 22000 ||
+            !IsBoundedControlFree(provenance.WindowsEditionId, 128) ||
+            !IsBoundedControlFree(provenance.WindowsDisplayVersion, 64))
+        {
+            throw new InvalidDataException("The Windows guest provenance is invalid.");
+        }
+    }
+
+    private static bool IsBoundedControlFree(string value, int maximumLength) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        value.Length <= maximumLength &&
+        !value.Any(char.IsControl);
 
     private sealed record ProvisioningCandidate(string DriveRoot, string ProbePath);
 

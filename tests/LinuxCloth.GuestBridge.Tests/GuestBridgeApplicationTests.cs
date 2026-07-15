@@ -86,7 +86,8 @@ public sealed class GuestBridgeApplicationTests
             NullDiagnosticLog.Instance,
             new ProvisioningProbeProcessor(
                 driveProvider,
-                new FakeExecutableProvider(executablePath)),
+                new FakeExecutableProvider(executablePath),
+                new FakeGuestEnvironmentProvider()),
             shutdownRequester);
 
         var exitCode = await application.RunAsync(CancellationToken.None);
@@ -117,7 +118,8 @@ public sealed class GuestBridgeApplicationTests
             NullDiagnosticLog.Instance,
             new ProvisioningProbeProcessor(
                 driveProvider,
-                new FakeExecutableProvider(executablePath)),
+                new FakeExecutableProvider(executablePath),
+                new FakeGuestEnvironmentProvider()),
             shutdownRequester);
 
         var exitCode = await application.RunAsync(CancellationToken.None);
@@ -154,7 +156,8 @@ public sealed class GuestBridgeApplicationTests
             diagnosticLog,
             new ProvisioningProbeProcessor(
                 driveProvider,
-                new FakeExecutableProvider(executablePath)),
+                new FakeExecutableProvider(executablePath),
+                new FakeGuestEnvironmentProvider()),
             new FakeShutdownRequester());
 
         var exitCode = await application.RunAsync(CancellationToken.None);
@@ -184,7 +187,8 @@ public sealed class GuestBridgeApplicationTests
             NullDiagnosticLog.Instance,
             new ProvisioningProbeProcessor(
                 driveProvider,
-                new FakeExecutableProvider(executablePath)),
+                new FakeExecutableProvider(executablePath),
+                new FakeGuestEnvironmentProvider()),
             new FakeShutdownRequester(exitCode: 5));
 
         var exitCode = await application.RunAsync(CancellationToken.None);
