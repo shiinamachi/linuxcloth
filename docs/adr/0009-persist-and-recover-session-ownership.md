@@ -21,3 +21,12 @@ preserved for operator inspection instead of being guessed away.
 - Crash recovery is intentionally conservative and can leave storage behind.
 - Recovery must be integrated at every application startup and exposed through
   an operator command before it is an end-user guarantee.
+
+Desktop startup and CLI `run` now perform this recovery gate before allowing a
+new session, and `linuxcloth cleanup` exposes the same process as a manual
+diagnostic and retry path.
+
+A crash between starting a process and durably recording its identity can still
+leave an ambiguous `StartingNetwork` journal. Recovery intentionally preserves
+that session and blocks a new launch; a supervisor/cgroup or pre-start process
+lease is required to make this window automatically recoverable.

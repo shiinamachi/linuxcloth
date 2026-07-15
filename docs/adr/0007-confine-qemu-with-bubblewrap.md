@@ -1,6 +1,6 @@
 # ADR-0007: Confine QEMU with Bubblewrap
 
-- Status: Accepted
+- Status: Superseded in part by [ADR-0012](0012-confine-session-helpers.md)
 - Date: 2026-07-15
 
 ## Decision
@@ -25,4 +25,8 @@ management or display listener is created.
   host processes and are not yet placed in equivalent sandboxes.
 - `passt --no-map-gw` and disabled port forwarding do not prevent guest egress to
   private, link-local, or metadata addresses. A policy-enforcing egress broker is
-required before linuxcloth can claim LAN isolation.
+  required before linuxcloth can claim LAN isolation.
+
+ADR-0012 supersedes the first statement for normal-session `swtpm`, `passt`, and
+overlay-only `qemu-img`. `remote-viewer` remains outside Bubblewrap, and the LAN
+egress limitation remains unchanged.

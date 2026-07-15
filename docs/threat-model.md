@@ -29,49 +29,61 @@ VM-detection evasion and Windows licensing bypasses are explicitly out of scope.
 | Area | Current control |
 |---|---|
 | QEMU filesystem | Bubblewrap exposes only system runtime, `/dev/kvm`, exact read-only base/OVMF files, and the writable session directory; the environment and home directory are hidden. |
-| QEMU networking | QEMU has a private network namespace and reaches a host-side `passt` socket. Guest-facing TCP/UDP forwards and gateway remapping are disabled. |
+| QEMU networking | QEMU has a private network namespace and reaches a host-side `passt` socket. The generated `passt` command disables guest-facing TCP/UDP forwards and gateway remapping. Network-disabled sessions do not require or start `passt`. |
 | VM storage | Normal sessions use a qcow2 backing overlay plus copied OVMF variables and swtpm state. Registered base assets are hashed, bounded, symlink-rejected, and sealed read-only. |
 | Display/control | SPICE and QMP use Unix sockets inside the private session directory. SPICE file transfer is disabled and clipboard is disabled by default. RDP is not implemented. |
 | Host integration | Generated normal WSB rejects mapped folders; QEMU exposes only the generated read-only config disk. Audio, host folder, USB redirection, microphone, camera, and printer integration are not configured. |
-| Catalog parsing | XML DTDs and external resolution are disabled; size, identifier, category, and URL fields are bounded and validated. Snapshots retain original bytes and content hashes. |
+| Catalog parsing | XML DTDs and external resolution are disabled; size, identifier, category, and URL fields are bounded and validated. The bundled `Catalog.xml` and PNG tree are bound to a pinned upstream commit and compiled SHA-256 values. Snapshots retain original XML bytes and last-known-good pointers. |
 | Guest request | Normal WSB accepts only the fixed Express command and validated service IDs. GuestBridge requires exactly one valid bounded manifest and checks its catalog digest when a catalog is present. |
-| Process execution | Host and guest process arguments are passed as arrays. User data is not concatenated into a host shell command. |
-| Crash recovery | A durable journal records boot-aware process identities. Recovery validates identity before QMP or signals and preserves ambiguous sessions. |
+| Bootstrap supply chain | Spork `v1.20.5` Bootstrap URL, size, SHA-256, Authenticode signer certificate fingerprint, portable zip URL template, and per-architecture zip hashes are pinned. GuestBridge applies a strict HTTPS redirect allowlist, byte/hash checks, `WinVerifyTrust`, signer matching, and a read lock before direct execution. |
+| Guest readiness | After config validation, GuestBridge writes a bounded fixed-format message containing the current session UUID over virtio-serial. The host requires the exact UUID before entering `Running`; timeout or mismatch enters conservative failed-start cleanup and preserves artifacts if cleanup cannot be proven. |
+| Helper confinement | Normal-session `swtpm`, `passt`, and overlay-only `qemu-img` commands run through strict Bubblewrap wrappers. `swtpm` and `qemu-img` have private network namespaces; `passt` shares the host network only to provide egress. Session endpoints are restricted to mode 0600. |
+| Process execution | Generated external process arguments are passed as arrays, and normal-session wrappers compare complete expected helper commands. User data is not concatenated into a host shell command. |
+| Pre-launch enforcement | Desktop and CLI launch paths run conservative stale-session recovery and block launch on unresolved records, resolve validated service IDs, run host prerequisites, verify the registered image immediately before use, prepare the confined overlay/config, and then start the session host. |
+| Crash recovery | A durable journal records boot-aware process identities. Desktop initialization and CLI `run` recover before launch, validate identity before QMP or signals, and preserve ambiguous sessions. `linuxcloth cleanup` is the manual diagnostic/retry path. |
 
 ## Important limitations and required controls
 
-1. **Bootstrap authenticity:** GuestBridge currently downloads the release
-   `latest` PowerShell script from a fixed HTTPS URL and executes it. There is no
-   pinned version, content digest, or publisher-signature verification. The
-   manifest hash is an integrity check for files on one config disk, not an
-   authenticity signature. A pinned and verified SporkBootstrap artifact is a
-   release blocker.
-2. **Catalog authenticity:** snapshots record SHA-256 and upstream metadata, but
-   they are not signed. The lower-level updater accepts HTTP as well as HTTPS.
-   Product integration must use HTTPS, constrain the official origin, verify an
-   expected commit or signed manifest, and retain a last-known-good snapshot.
-3. **LAN egress:** the current `passt` options prevent inbound forwarding but do
+1. **Package and catalog provenance:** compiled digest pins detect a modified
+   bundled catalog and image tree, and the runtime network updater is not wired
+   into the product path. The digest is not an upstream signature, however, and
+   release packages are not yet covered by an operator-managed package signing
+   key. Network catalog updates must remain disabled until an HTTPS origin and
+   signed-manifest policy covers XML, images, and notices atomically.
+2. **LAN egress:** the current `passt` options prevent inbound forwarding but do
    not deny guest access to private ranges, host interface addresses, link-local
    services, or cloud metadata. A policy-enforcing egress broker and tests are
    required before claiming local-network isolation.
-4. **Sidecar confinement:** `swtpm`, `passt`, `remote-viewer`, and `qemu-img` run
-   as the desktop user outside QEMU's Bubblewrap namespace. They receive a small
-   environment and argument list, but still have ambient filesystem access.
-5. **Pre-launch enforcement:** image verification, catalog trust checks, session
-   recovery, config staging, and confined QEMU startup exist as components. The
-   application must call all of them in the required order and fail closed.
-6. **Guest readiness:** the QEMU virtio-serial channel is created, but the current
-   GuestBridge does not publish authenticated readiness/status messages to the
-   host. QMP running state only proves that QEMU is running.
+3. **Recovery ownership window:** a crash can occur after a process starts but
+   before its identity is durably journaled. An ambiguous `StartingNetwork`
+   record is intentionally preserved and blocks later desktop/CLI launches; the
+   same evidence prevents `cleanup` from resolving it. A supervisor/cgroup or
+   pre-start process lease is needed for automatic crash cleanup across this
+   window.
+4. **Viewer confinement:** normal-session and image-builder `remote-viewer`
+   processes still run as the desktop user with the desktop environment needed
+   to reach X11/XWayland or Wayland. `swtpm`, `passt`, and generated `qemu-img`
+   commands are now confined, but the viewer retains ambient user access.
+5. **Catalog execution binding:** the host stages its verified `Catalog.xml` and
+   GuestBridge checks the manifest digest, but Bootstrap receives only service
+   IDs and pinned Spork artifact information. There is no verified catalog
+   path/hash argument, so the host UI and Spork cannot be proven to use identical
+   catalog bytes.
+6. **Readiness semantics:** the session-bound GuestReady message has no secret or
+   digital signature. It proves only that the guest process resolved the config
+   and reached the point immediately before Bootstrap launch; it does not prove
+   Bootstrap/Spork success, site launch, or an uncompromised guest.
 7. **Diagnostics:** per-process stdout/stderr logs live in the session directory.
    A bounded retention and redaction policy is required before diagnostic export.
 8. **Mandatory access control:** no supported AppArmor or SELinux profile is
    shipped yet. Bubblewrap reduces QEMU exposure but is not a replacement for a
    reviewed distribution policy covering every host-side process.
-9. **End-to-end evidence:** unit tests exercise parsers, command construction,
-   image registration, lifecycle, and recovery. A real Windows 11/KVM test of
-   installation, GuestBridge startup, Spork launch, shutdown, and artifact
-  deletion remains required.
+9. **End-to-end evidence:** automated tests exercise parsers, command
+   construction, downloader/signature decisions, image registration, lifecycle,
+   readiness, and recovery. A real Windows 11/KVM test of installation,
+   GuestBridge startup, the pinned Bootstrap and Spork launch, shutdown, and
+   artifact deletion has not been recorded and remains a release blocker.
+
 ## Security release checks
 
 - Verify the selected image immediately before launch and refuse any mismatch.
@@ -81,6 +93,14 @@ VM-detection evasion and Windows licensing bypasses are explicitly out of scope.
   runtime directory.
 - Test network-disabled sessions and reject a missing `passt` socket when network
   is requested.
+- Reject a Bootstrap with the wrong URL/redirect host, size, digest, Authenticode
+  chain, or signer certificate, and review all pins together on version updates.
+- Require the exact session-bound GuestReady message and verify that mismatch,
+  timeout, and early guest exit trigger conservative failed-start cleanup.
+- Bind the verified host catalog file and digest to Spork execution before
+  claiming host/guest catalog identity.
+- Crash after each process start but before identity persistence and prove that a
+  supervisor/lease can still identify or safely reap the exact process.
 - Demonstrate blocked access to host, RFC1918, link-local, and metadata addresses
   after the egress broker is implemented.
 - Kill the UI, QEMU, viewer, passt, and swtpm at each startup state and verify that

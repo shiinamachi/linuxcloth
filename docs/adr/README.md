@@ -11,3 +11,6 @@ ADRs are immutable once accepted. A later decision supersedes an earlier ADR ins
 7. [Confine QEMU with Bubblewrap](0007-confine-qemu-with-bubblewrap.md)
 8. [Register sealed Windows base images](0008-register-sealed-base-images.md)
 9. [Persist and recover session ownership](0009-persist-and-recover-session-ownership.md)
+10. [Pin and verify the Spork release](0010-pin-and-verify-spork-release.md)
+11. [Gate running state on session-bound guest readiness](0011-require-session-bound-guest-readiness.md)
+12. [Confine generated session helpers](0012-confine-session-helpers.md)
