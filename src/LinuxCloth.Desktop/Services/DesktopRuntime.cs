@@ -149,9 +149,5 @@ public sealed class DesktopRuntime : IAsyncDisposable
     }
 
     private static OfficialCatalogBundle CreateBundleFromDocsDirectory(string directory) =>
-        new(
-            Path.Combine(directory, "Catalog.xml"),
-            Path.Combine(directory, "images"),
-            OfficialCatalogBundle.OfficialRepository,
-            OfficialCatalogBundle.PinnedCommit);
+        OfficialCatalogBundle.FromPinnedDocsDirectory(directory);
 }
