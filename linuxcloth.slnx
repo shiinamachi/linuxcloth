@@ -2,9 +2,11 @@
   <Folder Name="/src/">
     <Project Path="src/LinuxCloth.Catalog/LinuxCloth.Catalog.csproj" />
     <Project Path="src/LinuxCloth.Core/LinuxCloth.Core.csproj" />
+    <Project Path="src/LinuxCloth.Wsb/LinuxCloth.Wsb.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/LinuxCloth.Catalog.Tests/LinuxCloth.Catalog.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Core.Tests/LinuxCloth.Core.Tests.csproj" />
+    <Project Path="tests/LinuxCloth.Wsb.Tests/LinuxCloth.Wsb.Tests.csproj" />
   </Folder>
 </Solution>
