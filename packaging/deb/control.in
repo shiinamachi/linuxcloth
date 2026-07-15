@@ -1,0 +1,15 @@
+Package: linuxcloth
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Shiinamachi <shiinamachi@users.noreply.github.com>
+Installed-Size: @INSTALLED_SIZE@
+Homepage: https://github.com/shiinamachi/linuxcloth
+Depends: bubblewrap, ca-certificates, hicolor-icon-theme, libc6, libfontconfig1, libfreetype6, libgcc-s1, libgssapi-krb5-2, libice6, libicu | libicu72 | libicu74 | libicu75 | libicu76 | libicu77 | libicu78, libsm6, libssl3 | libssl3t64, libstdc++6, libx11-6, libxcb1, libxext6, libxfixes3, libxi6, libxrandr2, ovmf, passt, qemu-system-gui, qemu-system-x86, qemu-utils, swtpm, swtpm-tools, tzdata, virt-viewer, zlib1g
+Recommends: wimtools, xdg-desktop-portal, xorriso
+Description: Disposable Windows catalog launcher for Linux
+ linuxcloth provides a Linux-native catalog UI and command-line interface that
+ launch user-provided Windows installations in disposable QEMU/KVM sessions.
+ It does not include Windows media, product keys, or generated virtual-machine
+ images.

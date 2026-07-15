@@ -49,6 +49,10 @@ eng/package-deb.sh --stage artifacts/stage --output artifacts/packages
 eng/package-rpm.sh --stage artifacts/stage --output artifacts/packages
 ```
 
+On a cross-distribution build host, replace the last two commands with
+`eng/package-in-containers.sh --stage artifacts/stage --output artifacts/packages`;
+it uses the digest-pinned Debian 12 and Fedora 44 builders used by CI.
+
 The installed host payload lives below `/usr/lib/linuxcloth`; `/usr/bin/linuxcloth`
 and `/usr/bin/linuxcloth-desktop` are relative symbolic links to the two apphosts.
 GuestBridge is installed at
@@ -57,17 +61,19 @@ and icon use ID `io.github.shiinamachi.linuxcloth`; the desktop launcher ID is
 `io.github.shiinamachi.linuxcloth.desktop`.
 
 Package-tree validation rejects Windows media, generated disk images, keys,
-OVMF variable/TPM state, unexpected Windows executables, writable payloads, and
-escaping symbolic links. It verifies a complete SHA-256 file manifest and can
+OVMF variable/TPM state, unexpected Windows executables, non-normalized or
+special file modes, and escaping symbolic links. It verifies a SHA-256 manifest
+covering every regular payload file except the manifest itself and can
 also run `file`, `desktop-file-validate`, and `appstreamcli` in strict mode. DEB
 and RPM packaging has no installation script and performs no download, VM
 creation, group modification, or privilege grant.
 
 Build each release-family package in its oldest supported distribution because
 self-contained .NET does not remove glibc and native desktop ABI dependencies.
-CI generates an SPDX SBOM and attests package provenance and that SBOM. These
-attestations do not replace an operator-managed DEB/RPM repository or package
-signing key.
+CI installs and smoke-tests the finished packages in digest-pinned Debian 12 and
+Fedora 44 containers, generates SPDX and CycloneDX SBOMs, and moves OIDC signing
+authority into a separate non-PR attestation job. These attestations do not
+replace an operator-managed DEB/RPM repository or package signing key.
 
 ## Managed data
 

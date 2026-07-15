@@ -1,10 +1,31 @@
 # Fedora-family package-name candidates for the runtime feature set.
 # Verify availability and minimum behavior on each supported distribution release.
-qemu-system-x86
-qemu-img
+bubblewrap
+ca-certificates
+dbus-libs
 edk2-ovmf
+fontconfig
+freetype
+glibc
+hicolor-icon-theme
+krb5-libs
+libgcc
+libICE
+libicu
+libSM
+libstdc++
+libX11
+libxcb
+libXext
+libXfixes
+libXi
+libXrandr
+openssl-libs
+passt
+qemu-img
+qemu-system-x86
 swtpm
 swtpm-tools
+tzdata
 virt-viewer
-passt
-bubblewrap
+zlib

@@ -1,9 +1,10 @@
 # Debian-family packaging notes
 
+`control.in` is the binary-package recipe consumed by `eng/package-deb.sh`.
 `runtime-dependencies.txt` maps the executables and firmware needed by the current
-runtime feature set. `image-build-dependencies.txt` is needed only by the image builder.
-Treat these as an input to a future `debian/control`, not as a claim that every
-listed Debian/Ubuntu release ships the same package contents.
+runtime feature set; `image-build-dependencies.txt` covers tools used only while
+building a base image. Build separately on every supported Debian/Ubuntu suite so
+the declared native ABI floor matches that suite.
 
 `qemu-system-gui` is explicit because Debian makes graphical display modules a
 separate/recommended package. SPICE remains the normal display, while the current
@@ -23,6 +24,17 @@ The runtime must verify capabilities after installation:
 - Bubblewrap can create the required user, mount, PID, IPC, UTS, and network
   namespaces without running linuxcloth as root;
 - remote-viewer accepts a SPICE Unix-socket URI.
+
+The recipe intentionally has no maintainer scripts. It does not grant KVM access,
+download media, create images, or alter user groups during installation. The
+package builder normalizes file timestamps and ownership, emits md5sums in
+addition to linuxcloth's SHA-256 manifest, extracts the resulting archive, and
+revalidates the complete payload.
+
+The payload includes `/usr/share/doc/linuxcloth/copyright` and the complete
+upstream notices below `/usr/share/licenses/linuxcloth`. CI installs the final
+archive in the digest-pinned Debian 12 container, verifies every packaged ELF
+dependency, runs CLI/catalog smoke tests, and removes the package again.
 
 Debian-family archives do not provide one portable package name for every Windows
 virtio/SPICE guest-media release. Fetching those artifacts must be a separate,

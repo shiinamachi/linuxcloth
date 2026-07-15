@@ -1,0 +1,76 @@
+%global debug_package %{nil}
+%global __strip /bin/true
+
+Name:           linuxcloth
+Version:        @VERSION@
+Release:        1%{?dist}
+Summary:        Disposable Windows catalog launcher for Linux
+License:        AGPL-3.0-or-later AND Apache-2.0 AND MIT AND BSD-3-Clause AND MS-PL AND OFL-1.1
+URL:            https://github.com/shiinamachi/linuxcloth
+Source0:        @SOURCE_DIRECTORY@.tar.gz
+ExclusiveArch:  x86_64
+AutoReqProv:    no
+
+Requires:       bubblewrap
+Requires:       ca-certificates
+Requires:       dbus-libs
+Requires:       edk2-ovmf
+Requires:       fontconfig
+Requires:       freetype
+Requires:       glibc
+Requires:       hicolor-icon-theme
+Requires:       krb5-libs
+Requires:       libgcc
+Requires:       libicu
+Requires:       libICE
+Requires:       libSM
+Requires:       libstdc++
+Requires:       libX11
+Requires:       libxcb
+Requires:       libXext
+Requires:       libXfixes
+Requires:       libXi
+Requires:       libXrandr
+Requires:       openssl-libs
+Requires:       passt
+Requires:       qemu-img
+Requires:       qemu-system-x86
+Requires:       swtpm
+Requires:       swtpm-tools
+Requires:       tzdata
+Requires:       virt-viewer
+Requires:       zlib
+Recommends:     wimlib-utils
+Recommends:     xdg-desktop-portal
+Recommends:     xorriso
+
+%description
+linuxcloth provides a Linux-native catalog UI and command-line interface that
+launch user-provided Windows installations in disposable QEMU/KVM sessions.
+It does not include Windows media, product keys, or generated virtual-machine
+images.
+
+%prep
+%setup -q -n @SOURCE_DIRECTORY@
+
+%build
+
+%install
+rm -rf %{buildroot}
+mkdir -p %{buildroot}
+cp -a . %{buildroot}/
+
+%files
+%license /usr/share/licenses/linuxcloth
+%doc /usr/share/doc/linuxcloth/copyright
+/usr/bin/linuxcloth
+/usr/bin/linuxcloth-desktop
+/usr/lib/linuxcloth
+/usr/share/applications/io.github.shiinamachi.linuxcloth.desktop
+/usr/share/icons/hicolor/scalable/apps/io.github.shiinamachi.linuxcloth.svg
+/usr/share/linuxcloth
+/usr/share/metainfo/io.github.shiinamachi.linuxcloth.metainfo.xml
+
+%changelog
+* @CHANGELOG_DATE@ Shiinamachi <shiinamachi@users.noreply.github.com> - @VERSION@-1
+- Build linuxcloth from a deterministic self-contained publish tree.

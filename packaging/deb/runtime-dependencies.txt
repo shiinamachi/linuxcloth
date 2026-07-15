@@ -1,11 +1,31 @@
 # Debian/Ubuntu package-name candidates for the runtime feature set.
 # Verify availability and minimum behavior on each supported distribution release.
+bubblewrap
+ca-certificates
+hicolor-icon-theme
+libc6
+libfontconfig1
+libfreetype6
+libgcc-s1
+libgssapi-krb5-2
+libice6
+# Select the suite-specific libicu ABI package declared in control.in.
+libsm6
+libssl3
+libstdc++6
+libx11-6
+libxcb1
+libxext6
+libxfixes3
+libxi6
+libxrandr2
+ovmf
+passt
 qemu-system-x86
 qemu-system-gui
 qemu-utils
-ovmf
 swtpm
 swtpm-tools
+tzdata
 virt-viewer
-passt
-bubblewrap
+zlib1g

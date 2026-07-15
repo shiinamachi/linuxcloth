@@ -1,0 +1,31 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: linuxcloth
+Source: https://github.com/shiinamachi/linuxcloth
+
+Files: *
+Copyright: 2026 linuxcloth contributors
+License: AGPL-3+
+ The complete GNU Affero General Public License is installed at
+ /usr/share/licenses/linuxcloth/LICENSE.
+
+Files: usr/lib/linuxcloth/catalog/*
+Copyright: TableClothCatalog contributors
+License: Apache-2.0
+ The complete catalog license is installed at
+ /usr/share/licenses/linuxcloth/TableClothCatalog-LICENSE.
+
+Files: usr/lib/linuxcloth/Avalonia* usr/lib/linuxcloth/SkiaSharp*
+ usr/lib/linuxcloth/HarfBuzzSharp* usr/lib/linuxcloth/MicroCom.Runtime.dll
+ usr/lib/linuxcloth/Tmds.DBus.Protocol.dll
+Copyright: respective upstream contributors
+License: MIT and other permissive licenses
+ Authoritative licenses and notices are installed below
+ /usr/share/licenses/linuxcloth/third-party.
+
+Files: usr/lib/linuxcloth/System.* usr/lib/linuxcloth/Microsoft.*
+ usr/lib/linuxcloth/libcoreclr* usr/lib/linuxcloth/libhost*
+Copyright: .NET Foundation, Microsoft, and respective contributors
+License: MIT and other permissive licenses
+ The .NET license and complete third-party notices are installed at
+ /usr/share/licenses/linuxcloth/dotnet-LICENSE.txt and
+ /usr/share/licenses/linuxcloth/dotnet-ThirdPartyNotices.txt.

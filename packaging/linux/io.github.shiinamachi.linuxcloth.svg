@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>linuxcloth</title>
+  <defs>
+    <linearGradient id="background" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#667eea" />
+      <stop offset="1" stop-color="#312e81" />
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="104" fill="url(#background)" />
+  <rect x="104" y="104" width="304" height="236" rx="28" fill="#eef2ff" />
+  <path d="M104 132c0-15.5 12.5-28 28-28h248c15.5 0 28 12.5 28 28v36H104z" fill="#c7d2fe" />
+  <circle cx="140" cy="136" r="10" fill="#ef4444" />
+  <circle cx="172" cy="136" r="10" fill="#f59e0b" />
+  <circle cx="204" cy="136" r="10" fill="#22c55e" />
+  <path d="M80 296h352v83c-25 0-25-28-50-28s-25 28-50 28-25-28-50-28-25 28-50 28-25-28-50-28-25 28-50 28-25-28-52-28z" fill="#ffffff" />
+  <path d="M80 379c27 0 27 28 52 28s25-28 50-28 25 28 50 28 25-28 50-28 25 28 50 28 25-28 50-28 25 28 50 28v33H80z" fill="#a7f3d0" />
+  <path d="M256 197l72 29v47c0 44-30 82-72 96-42-14-72-52-72-96v-47z" fill="#4338ca" />
+  <path d="M224 276l22 22 45-49" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="18" />
+</svg>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.shiinamachi.linuxcloth</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+  <name>linuxcloth</name>
+  <summary>Launch catalog services in disposable Windows virtual machines</summary>
+  <description>
+    <p>
+      linuxcloth is a Linux-native catalog and session launcher for services that
+      require Windows software. It creates a per-session qcow2 overlay and starts
+      Windows through QEMU/KVM without sharing host folders by default.
+    </p>
+    <p>
+      Users provide their own licensed Windows installation media and virtio-win
+      driver media. Windows media, product keys, and generated virtual-machine
+      images are not distributed with linuxcloth.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.shiinamachi.linuxcloth.desktop</launchable>
+  <provides>
+    <binary>linuxcloth-desktop</binary>
+    <binary>linuxcloth</binary>
+  </provides>
+  <categories>
+    <category>Office</category>
+    <category>Finance</category>
+  </categories>
+  <url type="homepage">https://github.com/shiinamachi/linuxcloth</url>
+  <url type="bugtracker">https://github.com/shiinamachi/linuxcloth/issues</url>
+  <developer id="io.github.shiinamachi">
+    <name>linuxcloth contributors</name>
+  </developer>
+  <content_rating type="oars-1.1" />
+</component>

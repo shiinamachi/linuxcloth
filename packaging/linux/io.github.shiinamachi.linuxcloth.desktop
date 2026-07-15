@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=linuxcloth
+GenericName=Disposable Windows Service Launcher
+Comment=Open catalog services in an isolated disposable Windows VM
+Exec=linuxcloth-desktop
+TryExec=linuxcloth-desktop
+Icon=io.github.shiinamachi.linuxcloth
+Terminal=false
+StartupNotify=true
+Categories=Office;Finance;
+Keywords=Windows;VM;KVM;banking;sandbox;TableCloth;
