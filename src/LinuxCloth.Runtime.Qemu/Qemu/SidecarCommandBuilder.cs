@@ -20,7 +20,8 @@ public static class SidecarCommandBuilder
 
     public static ProcessSpec BuildPasst(QemuToolchain toolchain, SessionPaths paths) =>
         new(
-            toolchain.Passt,
+            toolchain.Passt ?? throw new InvalidOperationException(
+                "passt is unavailable for this offline-only QEMU toolchain."),
             [
                 "--foreground",
                 "--one-off",

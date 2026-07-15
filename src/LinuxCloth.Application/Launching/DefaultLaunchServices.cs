@@ -15,10 +15,14 @@ public sealed class DoctorLaunchPrerequisiteSource : ILaunchPrerequisiteSource
     }
 
     public async Task<QemuLaunchPrerequisites> ResolveAsync(
+        bool networkEnabled,
         CancellationToken cancellationToken = default)
     {
         var result = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
-        return result.LaunchPrerequisites ?? throw new LaunchPrerequisiteException(result.Report);
+        var prerequisites = networkEnabled
+            ? result.LaunchPrerequisites
+            : result.OfflineLaunchPrerequisites;
+        return prerequisites ?? throw new LaunchPrerequisiteException(result.Report);
     }
 }
 

@@ -46,9 +46,12 @@ public sealed record ImageBuildPrerequisites(
 public sealed record QemuDoctorResult(
     DoctorReport Report,
     QemuLaunchPrerequisites? LaunchPrerequisites,
-    ImageBuildPrerequisites? ImageBuildPrerequisites)
+    ImageBuildPrerequisites? ImageBuildPrerequisites,
+    QemuLaunchPrerequisites? OfflineLaunchPrerequisites)
 {
     public bool CanLaunch => LaunchPrerequisites is not null;
+
+    public bool CanLaunchOffline => OfflineLaunchPrerequisites is not null;
 
     public bool CanBuildImage => ImageBuildPrerequisites is not null;
 }

@@ -32,6 +32,7 @@ public sealed class QemuDoctorTests : IDisposable
 
         Assert.True(result.Report.CanLaunch);
         Assert.True(result.CanLaunch);
+        Assert.True(result.CanLaunchOffline);
         Assert.True(result.CanBuildImage);
         var launch = Assert.IsType<QemuLaunchPrerequisites>(result.LaunchPrerequisites);
         Assert.Equal(Path.Combine(binaryDirectory, QemuDoctorCheckCodes.QemuSystem), launch.Toolchain.QemuSystem);
@@ -47,6 +48,33 @@ public sealed class QemuDoctorTests : IDisposable
         var image = Assert.IsType<ImageBuildPrerequisites>(result.ImageBuildPrerequisites);
         Assert.Equal(Path.Combine(binaryDirectory, QemuDoctorCheckCodes.WimlibImagex), image.WimlibImagex);
         Assert.Equal(Path.Combine(binaryDirectory, QemuDoctorCheckCodes.Xorriso), image.Xorriso);
+    }
+
+    [Fact]
+    public async Task MissingPasstStillReturnsAnOfflineLaunchToolchain()
+    {
+        using var firmware = new FirmwareDescriptorFixture();
+        firmware.WriteDescriptor();
+        var binaryDirectory = CreateExecutables(
+            QemuDoctorCheckCodes.QemuSystem,
+            QemuDoctorCheckCodes.QemuImg,
+            QemuDoctorCheckCodes.Swtpm,
+            QemuDoctorCheckCodes.RemoteViewer,
+            QemuDoctorCheckCodes.Bubblewrap);
+        var doctor = CreateDoctor(
+            binaryDirectory,
+            firmware,
+            CreateDirectory("runtime"),
+            CreateFile("devices/kvm"),
+            new FakeHostProbe());
+
+        var result = await doctor.InspectDetailedAsync(CancellationToken.None);
+
+        Assert.False(result.CanLaunch);
+        Assert.True(result.CanLaunchOffline);
+        Assert.Null(result.LaunchPrerequisites);
+        var offline = Assert.IsType<QemuLaunchPrerequisites>(result.OfflineLaunchPrerequisites);
+        Assert.Null(offline.Toolchain.Passt);
     }
 
     [Fact]

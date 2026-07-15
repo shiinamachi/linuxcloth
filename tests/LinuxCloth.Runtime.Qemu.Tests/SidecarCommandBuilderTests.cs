@@ -25,6 +25,15 @@ public sealed class SidecarCommandBuilderTests
     }
 
     [Fact]
+    public void OfflineToolchainCannotAccidentallyStartPasst()
+    {
+        var offline = Toolchain with { Passt = null };
+
+        Assert.Throws<InvalidOperationException>(() =>
+            SidecarCommandBuilder.BuildPasst(offline, CreatePaths()));
+    }
+
+    [Fact]
     public void SwtpmUsesPrivateSessionState()
     {
         var paths = CreatePaths();

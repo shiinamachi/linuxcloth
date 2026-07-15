@@ -75,7 +75,9 @@ public sealed class LinuxClothSessionLauncher
         _paths.CreateBaseDirectories();
 
         var catalogTask = _catalogResolver.ResolveAsync(request.ServiceIds, cancellationToken);
-        var prerequisitesTask = _prerequisiteSource.ResolveAsync(cancellationToken);
+        var prerequisitesTask = _prerequisiteSource.ResolveAsync(
+            request.NetworkEnabled,
+            cancellationToken);
         var imageTask = _imageSource.ResolveAsync(imageId, cancellationToken);
         await Task.WhenAll(catalogTask, prerequisitesTask, imageTask).ConfigureAwait(false);
 

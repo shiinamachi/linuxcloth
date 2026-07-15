@@ -77,7 +77,9 @@ public interface ILaunchCatalogResolver
 
 public interface ILaunchPrerequisiteSource
 {
-    Task<QemuLaunchPrerequisites> ResolveAsync(CancellationToken cancellationToken = default);
+    Task<QemuLaunchPrerequisites> ResolveAsync(
+        bool networkEnabled,
+        CancellationToken cancellationToken = default);
 }
 
 public interface ILaunchImageSource

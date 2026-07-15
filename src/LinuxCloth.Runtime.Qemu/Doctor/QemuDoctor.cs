@@ -74,11 +74,29 @@ public sealed class QemuDoctor
         var launchPrerequisites = report.CanLaunch &&
                                   firmwareResolution.Pair is not null &&
                                   runtimeDirectory.ResolvedPath is not null
-            ? BuildLaunchPrerequisites(report, firmwareResolution.Pair, runtimeDirectory.ResolvedPath)
+            ? BuildLaunchPrerequisites(
+                report,
+                firmwareResolution.Pair,
+                runtimeDirectory.ResolvedPath,
+                requireNetwork: true)
+            : null;
+        var offlineLaunchPrerequisites = CanLaunchOffline(report) &&
+                                         firmwareResolution.Pair is not null &&
+                                         runtimeDirectory.ResolvedPath is not null
+            ? BuildLaunchPrerequisites(
+                report,
+                firmwareResolution.Pair,
+                runtimeDirectory.ResolvedPath,
+                requireNetwork: false)
             : null;
 
         var imageBuildPrerequisites = BuildImagePrerequisites(report);
-        return Task.FromResult(new QemuDoctorResult(report, launchPrerequisites, imageBuildPrerequisites));
+        return Task.FromResult(
+            new QemuDoctorResult(
+                report,
+                launchPrerequisites,
+                imageBuildPrerequisites,
+                offlineLaunchPrerequisites));
     }
 
     private DoctorCheck CheckPlatform()
@@ -280,17 +298,26 @@ public sealed class QemuDoctor
     private static QemuLaunchPrerequisites BuildLaunchPrerequisites(
         DoctorReport report,
         FirmwarePair firmware,
-        string runtimeDirectory) =>
+        string runtimeDirectory,
+        bool requireNetwork) =>
         new(
             new QemuToolchain(
                 GetRequiredPath(report, QemuDoctorCheckCodes.QemuSystem),
                 GetRequiredPath(report, QemuDoctorCheckCodes.QemuImg),
                 GetRequiredPath(report, QemuDoctorCheckCodes.Swtpm),
-                GetRequiredPath(report, QemuDoctorCheckCodes.Passt),
+                requireNetwork
+                    ? GetRequiredPath(report, QemuDoctorCheckCodes.Passt)
+                    : report.FindPath(QemuDoctorCheckCodes.Passt),
                 GetRequiredPath(report, QemuDoctorCheckCodes.RemoteViewer)),
             firmware,
             GetRequiredPath(report, QemuDoctorCheckCodes.Bubblewrap),
             runtimeDirectory);
+
+    private static bool CanLaunchOffline(DoctorReport report) =>
+        report.Checks.All(check =>
+            !check.IsRequired ||
+            check.IsAvailable ||
+            string.Equals(check.Name, QemuDoctorCheckCodes.Passt, StringComparison.Ordinal));
 
     private static ImageBuildPrerequisites? BuildImagePrerequisites(DoctorReport report)
     {

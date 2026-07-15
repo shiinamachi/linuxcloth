@@ -52,6 +52,26 @@ public sealed class LinuxClothSessionLauncherTests : IDisposable
         Assert.Equal(new DateTimeOffset(2026, 7, 15, 3, 0, 0, TimeSpan.Zero), staged.IssuedAtUtc);
         Assert.Equal(fixture.Catalog.CatalogPath, fixture.GuestConfiguration.CatalogPath);
         Assert.False(Directory.Exists(start.Paths.ConfigDirectory + ".unexpected"));
+        Assert.True(fixture.Prerequisites.LastNetworkEnabled);
+    }
+
+    [Fact]
+    public async Task RequestsOfflinePrerequisitesWhenNetworkingIsDisabled()
+    {
+        var fixture = CreateFixture();
+        var request = new LaunchRequest(
+            fixture.Request.ServiceIds,
+            fixture.Request.CpuCount,
+            fixture.Request.MemoryMiB,
+            fixture.Request.DisplayMode,
+            networkEnabled: false,
+            fixture.Request.ClipboardEnabled,
+            fixture.Request.UsbDeviceIds);
+
+        _ = await fixture.Launcher.LaunchAsync(request, fixture.ImageId);
+
+        Assert.False(fixture.Prerequisites.LastNetworkEnabled);
+        Assert.Null(fixture.Starter.Request!.Configuration.PasstSocketPath);
     }
 
     [Theory]
@@ -259,8 +279,13 @@ public sealed class LinuxClothSessionLauncherTests : IDisposable
     {
         public QemuLaunchPrerequisites Value { get; set; } = value;
 
-        public Task<QemuLaunchPrerequisites> ResolveAsync(CancellationToken cancellationToken = default)
+        public bool LastNetworkEnabled { get; private set; }
+
+        public Task<QemuLaunchPrerequisites> ResolveAsync(
+            bool networkEnabled,
+            CancellationToken cancellationToken = default)
         {
+            LastNetworkEnabled = networkEnabled;
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(Value);
         }
