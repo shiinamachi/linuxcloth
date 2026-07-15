@@ -25,6 +25,7 @@ public static class QemuCommandBuilder
             "-uuid", configuration.MachineId.ToString("D"),
             "-rtc", "base=localtime,clock=host",
             "-global", "ICH9-LPC.disable_s3=1",
+            "-global", "driver=cfi.pflash01,property=secure,value=on",
             "-drive", Drive("if=pflash,format=raw,unit=0,readonly=on,file=", configuration.OvmfCodePath),
             "-drive", Drive("if=pflash,format=raw,unit=1,file=", configuration.OvmfVariablesPath),
             "-chardev", $"socket,id=chrtpm,path={Escape(configuration.SwtpmSocketPath)}",
@@ -36,7 +37,7 @@ public static class QemuCommandBuilder
             "-drive", Drive("if=none,id=os,format=qcow2,cache=none,discard=unmap,file=", configuration.OverlayPath),
             "-device", "scsi-hd,drive=os,bootindex=1",
             "-device", "qemu-xhci,id=xhci",
-            "-drive", Drive("if=none,id=config,format=raw,readonly=on,file=fat:ro:", configuration.ConfigDirectory),
+            "-drive", Drive("if=none,id=config,format=raw,readonly=on,file=fat:", configuration.ConfigDirectory),
             "-device", "usb-storage,drive=config,removable=on",
             "-qmp", $"unix:{Escape(configuration.QmpSocketPath)},server=on,wait=off",
             "-monitor", "none",
@@ -66,7 +67,7 @@ public static class QemuCommandBuilder
         }
 
         arguments.Add("-netdev");
-        arguments.Add($"stream,id=net0,addr.type=unix,addr.path={Escape(configuration.PasstSocketPath!)}");
+        arguments.Add($"stream,id=net0,server=off,addr.type=unix,addr.path={Escape(configuration.PasstSocketPath!)}");
         arguments.Add("-device");
         arguments.Add($"virtio-net-pci,netdev=net0,mac={CreateMacAddress(configuration.MachineId)}");
     }
@@ -80,7 +81,7 @@ public static class QemuCommandBuilder
                 arguments.Add("none");
                 arguments.Add("-spice");
                 arguments.Add(
-                    $"unix=on,addr={Escape(configuration.SpiceSocketPath)},disable-ticketing=on,disable-copy-paste={(configuration.Request.ClipboardEnabled ? "off" : "on")}");
+                    $"unix=on,addr={Escape(configuration.SpiceSocketPath)},disable-ticketing=on,disable-agent-file-xfer=on,disable-copy-paste={(configuration.Request.ClipboardEnabled ? "off" : "on")}");
                 arguments.Add("-device");
                 arguments.Add("qxl-vga,vgamem_mb=64");
                 break;

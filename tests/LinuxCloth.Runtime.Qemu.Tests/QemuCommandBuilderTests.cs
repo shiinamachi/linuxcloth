@@ -13,7 +13,7 @@ public sealed class QemuCommandBuilderTests
         Assert.Equal("/usr/bin/qemu-system-x86_64", spec.FileName);
         Assert.Contains("-enable-kvm", spec.Arguments);
         Assert.Contains("on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny", spec.Arguments);
-        Assert.Contains("unix=on,addr=/run/user/1000/linuxcloth/spice.sock,disable-ticketing=on,disable-copy-paste=on", spec.Arguments);
+        Assert.Contains("unix=on,addr=/run/user/1000/linuxcloth/spice.sock,disable-ticketing=on,disable-agent-file-xfer=on,disable-copy-paste=on", spec.Arguments);
         Assert.DoesNotContain(spec.Arguments, static argument => argument.Contains("/bin/sh", StringComparison.Ordinal));
         Assert.Equal("C", spec.Environment["LC_ALL"]);
     }
