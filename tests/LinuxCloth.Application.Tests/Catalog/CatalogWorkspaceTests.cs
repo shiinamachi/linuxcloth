@@ -61,6 +61,28 @@ public sealed class CatalogWorkspaceTests
     }
 
     [Fact]
+    public async Task RejectsPinnedImageTreeThatDoesNotMatchItsCompiledDigest()
+    {
+        using var fixture = new CatalogWorkspaceFixture();
+        var local = fixture.CreateBundle("tampered-images");
+        var catalogHash = CatalogSnapshotManifest.ComputeCatalogSha256(
+            await File.ReadAllBytesAsync(local.CatalogPath));
+        var pinned = new OfficialCatalogBundle(
+            local.CatalogPath,
+            local.ImagesDirectory,
+            OfficialCatalogBundle.OfficialRepository,
+            OfficialCatalogBundle.PinnedCommit,
+            catalogHash,
+            OfficialCatalogBundle.PinnedImagesSha256);
+        using var workspace = new CatalogWorkspace(fixture.Paths, pinned);
+
+        var exception = await Assert.ThrowsAsync<CatalogWorkspaceException>(
+            () => workspace.InitializeAsync());
+
+        Assert.Contains("catalog images", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ExistingLastKnownGoodSnapshotWinsOverANewerBundledFallback()
     {
         using var fixture = new CatalogWorkspaceFixture();
@@ -81,6 +103,37 @@ public sealed class CatalogWorkspaceTests
         Assert.Equal("처음 이름", Assert.Single(state.Search("처음")).Service.DisplayName);
         Assert.Empty(state.Search("번들 새"));
         Assert.Equal("1111111111111111111111111111111111111111", state.Snapshot.Manifest.UpstreamCommit);
+    }
+
+    [Fact]
+    public async Task BundledRefreshPromotesANewValidBundleAndRetainsLkgOnFailure()
+    {
+        using var fixture = new CatalogWorkspaceFixture();
+        var first = fixture.CreateBundle("refresh-first", "처음 이름");
+        using (var firstWorkspace = new CatalogWorkspace(fixture.Paths, first))
+        {
+            _ = await firstWorkspace.InitializeAsync();
+        }
+
+        var second = fixture.CreateBundle(
+            "refresh-second",
+            "새 번들 이름",
+            "2222222222222222222222222222222222222222");
+        using (var secondWorkspace = new CatalogWorkspace(fixture.Paths, second))
+        {
+            var refreshed = await secondWorkspace.InitializeWithBundledRefreshAsync();
+            Assert.Equal("새 번들 이름", Assert.Single(refreshed.Search("새 번들")).Service.DisplayName);
+        }
+
+        var invalid = fixture.CreateBundle(
+            "refresh-invalid",
+            "invalid",
+            "3333333333333333333333333333333333333333");
+        await File.WriteAllTextAsync(invalid.CatalogPath, "<invalid />");
+        using var invalidWorkspace = new CatalogWorkspace(fixture.Paths, invalid);
+        var retained = await invalidWorkspace.InitializeWithBundledRefreshAsync();
+
+        Assert.Equal("새 번들 이름", Assert.Single(retained.Search("새 번들")).Service.DisplayName);
     }
 
     [Fact]

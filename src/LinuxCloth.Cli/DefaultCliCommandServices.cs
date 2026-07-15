@@ -215,41 +215,9 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
                 .ConfigureAwait(false);
         }
 
-        var current = await resolved.Workspace.InitializeAsync(cancellationToken)
+        return await resolved.Workspace.InitializeWithBundledRefreshAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (MatchesBundle(current, resolved.Bundle))
-        {
-            return current;
-        }
-
-        try
-        {
-            return await resolved.Workspace.PromoteBundleAsync(resolved.Bundle, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (Exception exception) when (
-            exception is CatalogValidationException or CatalogWorkspaceException)
-        {
-            return current;
-        }
     }
-
-    private static bool MatchesBundle(
-        CatalogWorkspaceState state,
-        OfficialCatalogBundle bundle) =>
-        string.Equals(
-            state.Snapshot.Manifest.UpstreamRepository,
-            bundle.UpstreamRepository,
-            StringComparison.Ordinal) &&
-        string.Equals(
-            state.Snapshot.Manifest.UpstreamCommit,
-            bundle.UpstreamCommit,
-            StringComparison.Ordinal) &&
-        (bundle.ExpectedCatalogSha256 is null ||
-         string.Equals(
-             state.Snapshot.Manifest.CatalogSha256,
-             bundle.ExpectedCatalogSha256,
-             StringComparison.Ordinal));
 
     private QemuDoctor CreateDoctor()
     {

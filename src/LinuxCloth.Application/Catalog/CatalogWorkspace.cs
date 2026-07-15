@@ -50,6 +50,27 @@ public sealed class CatalogWorkspace : ILaunchCatalogResolver, IDisposable
     public Task<CatalogWorkspaceState> InitializeAsync(
         CancellationToken cancellationToken = default) => LoadAsync(cancellationToken);
 
+    public async Task<CatalogWorkspaceState> InitializeWithBundledRefreshAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var current = await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        if (MatchesBundle(current, _bundledCatalog))
+        {
+            return current;
+        }
+
+        try
+        {
+            return await PromoteBundleAsync(_bundledCatalog, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (
+            exception is CatalogValidationException or CatalogWorkspaceException)
+        {
+            return current;
+        }
+    }
+
     public async Task<CatalogWorkspaceState> LoadAsync(
         CancellationToken cancellationToken = default)
     {
@@ -301,8 +322,41 @@ public sealed class CatalogWorkspace : ILaunchCatalogResolver, IDisposable
                 "The pinned official catalog does not match its expected SHA-256 digest.");
         }
 
+        if (bundle.ExpectedImagesSha256 is not null)
+        {
+            var imagesSha256 = await CatalogImageTreeHasher.ComputeAsync(
+                    bundle.ImagesDirectory,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!string.Equals(
+                    imagesSha256,
+                    bundle.ExpectedImagesSha256,
+                    StringComparison.Ordinal))
+            {
+                throw new CatalogWorkspaceException(
+                    "The pinned official catalog images do not match their expected SHA-256 digest.");
+            }
+        }
+
         return snapshot;
     }
+
+    private static bool MatchesBundle(
+        CatalogWorkspaceState state,
+        OfficialCatalogBundle bundle) =>
+        string.Equals(
+            state.Snapshot.Manifest.UpstreamRepository,
+            bundle.UpstreamRepository,
+            StringComparison.Ordinal) &&
+        string.Equals(
+            state.Snapshot.Manifest.UpstreamCommit,
+            bundle.UpstreamCommit,
+            StringComparison.Ordinal) &&
+        (bundle.ExpectedCatalogSha256 is null ||
+         string.Equals(
+             state.Snapshot.Manifest.CatalogSha256,
+             bundle.ExpectedCatalogSha256,
+             StringComparison.Ordinal));
 
     private async Task<CompatibilityOverlay> LoadCompatibilityAsync(
         CancellationToken cancellationToken)

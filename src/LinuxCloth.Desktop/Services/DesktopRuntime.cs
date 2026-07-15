@@ -79,7 +79,8 @@ public sealed class DesktopRuntime : IAsyncDisposable
         _paths.CreateBaseDirectories();
         var recovery = await _recovery.RecoverAllAsync(_paths.RuntimeDirectory, cancellationToken)
             .ConfigureAwait(false);
-        var catalog = await _catalog.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        var catalog = await _catalog.InitializeWithBundledRefreshAsync(cancellationToken)
+            .ConfigureAwait(false);
         var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
         var images = await _images.ListAsync(cancellationToken).ConfigureAwait(false);
         return new DesktopStartupSnapshot(catalog, images, doctor, recovery);
