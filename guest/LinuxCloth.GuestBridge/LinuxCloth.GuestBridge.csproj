@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>LinuxCloth.GuestBridge</RootNamespace>
+    <AssemblyName>linuxcloth-guest-bridge</AssemblyName>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/LinuxCloth.Core/LinuxCloth.Core.csproj" />
+    <ProjectReference Include="../../src/LinuxCloth.Wsb/LinuxCloth.Wsb.csproj" />
+  </ItemGroup>
+</Project>

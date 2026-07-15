@@ -2,6 +2,6 @@
   <PropertyGroup>
     <RootNamespace>LinuxCloth.Core</RootNamespace>
     <AssemblyName>LinuxCloth.Core</AssemblyName>
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 </Project>
-

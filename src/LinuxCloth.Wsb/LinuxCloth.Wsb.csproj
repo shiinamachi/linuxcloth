@@ -2,6 +2,7 @@
   <PropertyGroup>
     <RootNamespace>LinuxCloth.Wsb</RootNamespace>
     <AssemblyName>LinuxCloth.Wsb</AssemblyName>
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../LinuxCloth.Core/LinuxCloth.Core.csproj" />
