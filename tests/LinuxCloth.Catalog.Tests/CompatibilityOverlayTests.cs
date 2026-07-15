@@ -48,4 +48,42 @@ public sealed class CompatibilityOverlayTests
         Assert.Throws<CatalogValidationException>(
             () => _parser.Parse(Encoding.UTF8.GetBytes(invalid)));
     }
+
+    [Theory]
+    [InlineData("{\"schemaVersion\":1,\"services\":[],\"unknown\":true}")]
+    [InlineData("{\"schemaVersion\":1,\"schemaVersion\":1,\"services\":[]}")]
+    [InlineData("{\"schemaVersion\":1,\"services\":[{\"serviceId\":\"Bank\",\"status\":\"verified\",\"unknown\":true}]}")]
+    [InlineData("{\"schemaVersion\":1,\"services\":[{\"serviceId\":\"Bank\",\"serviceId\":\"Bank\",\"status\":\"verified\"}]}")]
+    public void RejectsUnknownAndDuplicateProperties(string json)
+    {
+        Assert.Throws<CatalogValidationException>(
+            () => _parser.Parse(Encoding.UTF8.GetBytes(json)));
+    }
+
+    [Fact]
+    public void RejectsTooManyServices()
+    {
+        var services = Enumerable.Range(0, CompatibilityOverlayParser.MaximumServiceCount + 1)
+            .Select(index => $"{{\"serviceId\":\"Service{index}\",\"status\":\"untested\"}}");
+        var document = $"{{\"schemaVersion\":1,\"services\":[{string.Join(',', services)}]}}";
+
+        Assert.Throws<CatalogValidationException>(
+            () => _parser.Parse(Encoding.UTF8.GetBytes(document)));
+    }
+
+    [Fact]
+    public void RejectsOversizedKnownIssues()
+    {
+        var issue = new string('x', CompatibilityOverlayParser.MaximumKnownIssueLength + 1);
+        var document = $$"""
+            {"schemaVersion":1,"services":[{
+              "serviceId":"Bank",
+              "status":"partial",
+              "knownIssues":["{{issue}}"]
+            }]}
+            """;
+
+        Assert.Throws<CatalogValidationException>(
+            () => _parser.Parse(Encoding.UTF8.GetBytes(document)));
+    }
 }
