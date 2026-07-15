@@ -1,3 +1,6 @@
+using System.Collections;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Application.Images;
 using LinuxCloth.Desktop.Infrastructure;
@@ -6,7 +9,7 @@ using LinuxCloth.Desktop.Setup;
 
 namespace LinuxCloth.Desktop.ViewModels;
 
-public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
+public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo, IAsyncDisposable
 {
     private readonly CancellationToken _applicationShutdown;
     private readonly IDesktopImageBuildService _imageBuildService;
@@ -45,6 +48,8 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
             ShowError);
     }
 
+    public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
+
     public AsyncCommand StartBuildCommand { get; }
 
     public AsyncCommand ResumeBuildCommand { get; }
@@ -63,6 +68,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
 
             if (SetProperty(ref _imageIdText, value?.Trim() ?? string.Empty))
             {
+                RaiseValidationChanged(nameof(ImageIdText));
                 RaiseCommandState();
             }
         }
@@ -105,6 +111,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
         {
             if (SetProperty(ref _stagingDirectory, value?.Trim() ?? string.Empty))
             {
+                RaiseValidationChanged(nameof(StagingDirectory));
                 OnPropertyChanged(nameof(HasStagingDirectory));
                 RaiseCommandState();
             }
@@ -123,6 +130,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
 
             if (SetProperty(ref _diskSizeGiB, value))
             {
+                RaiseValidationChanged(nameof(DiskSizeGiB));
                 RaiseCommandState();
             }
         }
@@ -140,6 +148,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
 
             if (SetProperty(ref _cpuCount, value))
             {
+                RaiseValidationChanged(nameof(CpuCount));
                 RaiseResourceWarning();
                 RaiseCommandState();
             }
@@ -158,6 +167,7 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
 
             if (SetProperty(ref _memoryMiB, value))
             {
+                RaiseValidationChanged(nameof(MemoryMiB));
                 RaiseResourceWarning();
                 RaiseCommandState();
             }
@@ -210,6 +220,10 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
     }
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public bool HasErrors => GetValidationErrors(null).Count > 0;
+
+    public IEnumerable GetErrors(string? propertyName) => GetValidationErrors(propertyName);
 
     public string ResourceWarning
     {
@@ -469,15 +483,19 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
         !string.IsNullOrWhiteSpace(OvmfCodePath) &&
         !string.IsNullOrWhiteSpace(OvmfVariablesTemplatePath);
 
-    private void SetRequiredPath(ref string field, string? value)
+    private void SetRequiredPath(
+        ref string field,
+        string? value,
+        [CallerMemberName] string? propertyName = null)
     {
         if (IsBuilding)
         {
             return;
         }
 
-        if (SetProperty(ref field, value?.Trim() ?? string.Empty))
+        if (SetProperty(ref field, value?.Trim() ?? string.Empty, propertyName))
         {
+            RaiseValidationChanged(propertyName);
             RaiseCommandState();
         }
     }
@@ -495,6 +513,68 @@ public sealed class ImageSetupViewModel : ObservableObject, IAsyncDisposable
     {
         OnPropertyChanged(nameof(ResourceWarning));
         OnPropertyChanged(nameof(HasResourceWarning));
+    }
+
+    private void RaiseValidationChanged(string? propertyName)
+    {
+        ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(propertyName));
+        OnPropertyChanged(nameof(HasErrors));
+    }
+
+    private List<string> GetValidationErrors(string? propertyName)
+    {
+        var errors = new List<string>();
+        if (propertyName is null or nameof(ImageIdText))
+        {
+            if (!ImageId.TryParse(ImageIdText, out _))
+            {
+                errors.Add("이미지 ID는 영문 소문자, 숫자, 내부 하이픈만 사용할 수 있습니다.");
+            }
+        }
+
+        AddPathError(nameof(WindowsIsoPath), WindowsIsoPath, "Windows ISO");
+        AddPathError(nameof(VirtioWinIsoPath), VirtioWinIsoPath, "virtio-win ISO");
+        AddPathError(nameof(GuestBridgeExecutablePath), GuestBridgeExecutablePath, "GuestBridge");
+        AddPathError(nameof(OvmfCodePath), OvmfCodePath, "OVMF 코드");
+        AddPathError(nameof(OvmfVariablesTemplatePath), OvmfVariablesTemplatePath, "OVMF 변수 템플릿");
+        if (propertyName is null or nameof(StagingDirectory))
+        {
+            if (!string.IsNullOrWhiteSpace(StagingDirectory) && !Path.IsPathFullyQualified(StagingDirectory))
+            {
+                errors.Add("스테이징 디렉터리는 절대 경로여야 합니다.");
+            }
+        }
+
+        AddRangeError(nameof(DiskSizeGiB), DiskSizeGiB, 64, 1024, "디스크");
+        AddRangeError(nameof(CpuCount), CpuCount, 2, 32, "가상 CPU");
+        AddRangeError(nameof(MemoryMiB), MemoryMiB, 4096, 131072, "메모리");
+        return errors;
+
+        void AddPathError(string name, string value, string label)
+        {
+            if (propertyName is not null && !string.Equals(propertyName, name, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(value) || !Path.IsPathFullyQualified(value))
+            {
+                errors.Add($"{label}의 절대 경로가 필요합니다.");
+            }
+        }
+
+        void AddRangeError(string name, int value, int minimum, int maximum, string label)
+        {
+            if (propertyName is not null && !string.Equals(propertyName, name, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (value < minimum || value > maximum)
+            {
+                errors.Add($"{label} 값은 {minimum}~{maximum} 범위여야 합니다.");
+            }
+        }
     }
 
     private static string RequireAbsolutePath(string value, string label)

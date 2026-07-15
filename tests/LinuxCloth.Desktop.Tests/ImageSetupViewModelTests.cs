@@ -142,6 +142,11 @@ public sealed class ImageSetupViewModelTests
 
         Assert.False(viewModel.CanStartBuild);
         Assert.False(viewModel.CanResumeBuild);
+        Assert.True(viewModel.HasErrors);
+        Assert.Contains(
+            "이미지 ID",
+            viewModel.GetErrors(nameof(ImageSetupViewModel.ImageIdText)).Cast<string>().Single(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
