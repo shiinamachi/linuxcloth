@@ -1,4 +1,5 @@
 using LinuxCloth.Core;
+using LinuxCloth.Runtime.Qemu.Confinement;
 using LinuxCloth.Runtime.Qemu.Processes;
 using LinuxCloth.Runtime.Qemu.Qemu;
 using LinuxCloth.Runtime.Qemu.Qmp;
@@ -11,6 +12,7 @@ public sealed record QemuSessionStartRequest(
     string WindowTitle,
     string ImageId,
     string BaseImageSha256,
+    BubblewrapQemuConfinementOptions Confinement,
     IProgress<SessionState>? Progress = null);
 
 public sealed record QemuShutdownPolicy(
@@ -54,6 +56,9 @@ public sealed class QemuSessionHost
     {
         ArgumentNullException.ThrowIfNull(request);
         ValidatePaths(request);
+        var confinedQemuSpec = BubblewrapQemuConfinement.Wrap(
+            QemuCommandBuilder.Build(request.Configuration),
+            request.Confinement);
 
         IManagedProcess? swtpm = null;
         IManagedProcess? passt = null;
@@ -112,7 +117,7 @@ public sealed class QemuSessionHost
 
             request.Progress?.Report(SessionState.StartingVm);
             qemu = await StartLoggedAsync(
-                QemuCommandBuilder.Build(request.Configuration),
+                confinedQemuSpec,
                 request.Paths,
                 "qemu",
                 cancellationToken).ConfigureAwait(false);
@@ -222,7 +227,8 @@ public sealed class QemuSessionHost
             spec.Environment,
             Path.Combine(paths.SessionDirectory, $"{name}.stdout.log"),
             Path.Combine(paths.SessionDirectory, $"{name}.stderr.log"),
-            spec.InheritEnvironment);
+            spec.InheritEnvironment,
+            spec.IdentityExecutablePath);
         return await _processLauncher.StartAsync(loggedSpec, cancellationToken).ConfigureAwait(false);
     }
 
@@ -329,6 +335,7 @@ public sealed class QemuSessionHost
     {
         var configuration = request.Configuration;
         var paths = request.Paths;
+        ArgumentNullException.ThrowIfNull(request.Confinement);
         if (configuration.SessionId != paths.SessionId)
         {
             throw new ArgumentException("The QEMU configuration session identifier does not match its session path.", nameof(request));
@@ -344,6 +351,20 @@ public sealed class QemuSessionHost
             request.WindowTitle.Any(char.IsControl))
         {
             throw new ArgumentException("The viewer window title must be 1-256 printable characters.", nameof(request));
+        }
+
+        if (!string.Equals(
+                Path.GetFullPath(request.Confinement.SessionDirectory),
+                paths.SessionDirectory,
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                Path.GetFullPath(request.Confinement.OvmfCodePath),
+                Path.GetFullPath(configuration.OvmfCodePath),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "The QEMU confinement resources do not match the owned session configuration.",
+                nameof(request));
         }
 
         var pairs = new (string Actual, string Expected)[]

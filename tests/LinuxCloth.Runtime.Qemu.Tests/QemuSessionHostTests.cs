@@ -1,4 +1,5 @@
 using LinuxCloth.Core;
+using LinuxCloth.Runtime.Qemu.Confinement;
 using LinuxCloth.Runtime.Qemu.Processes;
 using LinuxCloth.Runtime.Qemu.Qemu;
 using LinuxCloth.Runtime.Qemu.Qmp;
@@ -25,6 +26,12 @@ public sealed class QemuSessionHostTests : IDisposable
 
         Assert.Equal(4, launcher.Processes.Count);
         Assert.Contains(launcher.Processes, process => process.Name == "qemu-system-x86_64");
+        var confinedQemu = Assert.Single(
+            launcher.Specs,
+            spec => spec.IdentityExecutablePath == "/usr/bin/qemu-system-x86_64");
+        Assert.Equal("/usr/bin/bwrap", confinedQemu.FileName);
+        Assert.Contains("--unshare-all", confinedQemu.Arguments);
+        Assert.DoesNotContain("--share-net", confinedQemu.Arguments);
         Assert.Contains(SessionState.Running, progress.States);
         var persisted = await recordStore.ReadAsync(paths);
         Assert.Equal(SessionState.Running, persisted.State);
@@ -147,6 +154,8 @@ public sealed class QemuSessionHostTests : IDisposable
             "/usr/bin/passt",
             "/usr/bin/remote-viewer");
         var launchRequest = new LaunchRequest([ServiceId.Parse("WooriBank")]);
+        var baseImagePath = WriteResource(paths.RuntimeRoot, "images/base.qcow2");
+        var ovmfCodePath = WriteResource(paths.RuntimeRoot, "firmware/OVMF_CODE.fd");
         var configuration = new QemuLaunchConfiguration(
             toolchain,
             launchRequest,
@@ -154,7 +163,7 @@ public sealed class QemuSessionHostTests : IDisposable
             Guid.Parse("057f24df-24e0-4815-8652-3f1e8c62e155"),
             paths.SessionDirectory,
             paths.OverlayPath,
-            "/usr/share/OVMF/OVMF_CODE.fd",
+            ovmfCodePath,
             paths.OvmfVariablesPath,
             paths.SwtpmSocketPath,
             paths.QmpSocketPath,
@@ -168,7 +177,24 @@ public sealed class QemuSessionHostTests : IDisposable
             "linuxcloth — 우리은행",
             "test-image",
             new string('a', 64),
+            new BubblewrapQemuConfinementOptions(
+                "/usr/bin/bwrap",
+                paths.SessionDirectory,
+                baseImagePath,
+                ovmfCodePath),
             progress);
+    }
+
+    private static string WriteResource(string runtimeRoot, string relativePath)
+    {
+        var path = Path.Combine(runtimeRoot, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        if (!File.Exists(path))
+        {
+            File.WriteAllText(path, relativePath);
+        }
+
+        return path;
     }
 
     private static QemuSessionHost CreateHost(
@@ -193,15 +219,19 @@ public sealed class QemuSessionHostTests : IDisposable
     {
         public List<FakeManagedProcess> Processes { get; } = [];
 
+        public List<ProcessSpec> Specs { get; } = [];
+
         public string? UnstoppableName { get; init; }
 
         public Task<IManagedProcess> StartAsync(ProcessSpec spec, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            Specs.Add(spec);
+            var identityExecutable = spec.IdentityExecutablePath ?? spec.FileName;
             var process = new FakeManagedProcess(
-                spec.FileName,
+                identityExecutable,
                 Processes.Count + 100,
-                string.Equals(Path.GetFileName(spec.FileName), UnstoppableName, StringComparison.Ordinal));
+                string.Equals(Path.GetFileName(identityExecutable), UnstoppableName, StringComparison.Ordinal));
             Processes.Add(process);
 
             if (process.Name == "swtpm")
