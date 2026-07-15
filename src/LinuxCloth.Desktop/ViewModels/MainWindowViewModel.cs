@@ -129,6 +129,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public bool IsSessionRunning => _runningSession is not null;
 
+    public bool CanConfigureImages => !IsBusy && !IsSessionRunning;
+
     public bool CanLaunch =>
         _isInitialized &&
         _canHostLaunch &&
@@ -202,6 +204,28 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public ImageSetupViewModel CreateImageSetupViewModel() =>
+        new(
+            _runtime,
+            RefreshImagesAfterBuildAsync,
+            _shutdown.Token);
+
+    public async Task RefreshImagesAsync()
+    {
+        ErrorMessage = null;
+        try
+        {
+            LoadImages(await _runtime.ListImagesAsync(_shutdown.Token));
+            SessionStatus = HasImages
+                ? "서비스와 Windows 이미지를 선택하세요."
+                : "등록된 Windows 이미지가 없습니다. 기준 이미지 준비를 시작하세요.";
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         _shutdown.Cancel();
@@ -253,6 +277,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             IsBusy = false;
         }
+    }
+
+    private async Task RefreshImagesAfterBuildAsync(CancellationToken cancellationToken)
+    {
+        LoadImages(await _runtime.ListImagesAsync(cancellationToken));
+        SessionStatus = "새 Windows 기준 이미지가 등록되었습니다.";
     }
 
     private async Task LaunchSelectedAsync()
@@ -417,6 +447,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void RaiseCommandState()
     {
         OnPropertyChanged(nameof(CanLaunch));
+        OnPropertyChanged(nameof(CanConfigureImages));
         LaunchCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();
         RefreshDoctorCommand.RaiseCanExecuteChanged();
@@ -429,8 +460,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SessionState.PreparingConfigDisk => "공식 TableCloth 실행 설정을 준비하고 있습니다…",
         SessionState.StartingNetwork => "격리된 네트워크를 시작하고 있습니다…",
         SessionState.StartingVm => "Windows를 시작하고 있습니다…",
-        SessionState.WaitingForGuest => "Windows 화면을 기다리고 있습니다…",
-        SessionState.Running => "Windows 창에서 서비스가 열렸습니다.",
+        SessionState.WaitingForGuest => "Windows와 GuestBridge 준비를 기다리고 있습니다…",
+        SessionState.Running => "Windows에서 TableCloth 실행 준비를 시작했습니다.",
         SessionState.Stopping => "Windows를 안전하게 종료하고 있습니다…",
         SessionState.Cleaning => "일회용 세션 데이터를 삭제하고 있습니다…",
         SessionState.Completed => "세션 정리가 완료되었습니다.",

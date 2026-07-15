@@ -68,9 +68,16 @@
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
+              <Button
+                  Classes="secondary"
+                  Content="기준 이미지 준비"
+                  Click="OnOpenImageSetup"
+                  IsEnabled="{Binding CanConfigureImages}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" />
               <TextBlock
                   IsVisible="{Binding !HasImages}"
-                  Text="등록된 이미지가 없습니다.&#10;CLI의 image build 안내를 따라 먼저 준비하세요."
+                  Text="등록된 이미지가 없습니다.&#10;위 버튼에서 Windows 11 기준 이미지를 준비하세요."
                   TextWrapping="Wrap"
                   Classes="muted"
                   FontSize="11" />

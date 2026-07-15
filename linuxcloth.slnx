@@ -16,6 +16,7 @@
     <Project Path="tests/LinuxCloth.Catalog.Tests/LinuxCloth.Catalog.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Cli.Tests/LinuxCloth.Cli.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Core.Tests/LinuxCloth.Core.Tests.csproj" />
+    <Project Path="tests/LinuxCloth.Desktop.Tests/LinuxCloth.Desktop.Tests.csproj" />
     <Project Path="tests/LinuxCloth.GuestBridge.Tests/LinuxCloth.GuestBridge.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Runtime.Qemu.Tests/LinuxCloth.Runtime.Qemu.Tests.csproj" />
     <Project Path="tests/LinuxCloth.Wsb.Tests/LinuxCloth.Wsb.Tests.csproj" />

@@ -6,6 +6,7 @@ namespace LinuxCloth.Desktop.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private bool _imageSetupOpen;
     private bool _shutdownComplete;
 
     public MainWindow()
@@ -47,6 +48,32 @@ public sealed partial class MainWindow : Window
         {
             _shutdownComplete = true;
             Close();
+        }
+    }
+
+    private async void OnOpenImageSetup(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        if (_imageSetupOpen || DataContext is not MainWindowViewModel viewModel || !viewModel.CanConfigureImages)
+        {
+            return;
+        }
+
+        _imageSetupOpen = true;
+        try
+        {
+            var dialog = new ImageSetupWindow(viewModel.CreateImageSetupViewModel());
+            await dialog.ShowDialog(this);
+            await viewModel.RefreshImagesAsync();
+        }
+        catch (Exception exception)
+        {
+            viewModel.ShowError(exception);
+        }
+        finally
+        {
+            _imageSetupOpen = false;
         }
     }
 }
