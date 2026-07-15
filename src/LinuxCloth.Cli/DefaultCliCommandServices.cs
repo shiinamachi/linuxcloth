@@ -153,6 +153,16 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
         ArgumentNullException.ThrowIfNull(progress);
 
         _paths.CreateBaseDirectories();
+        var recovery = await CleanupSessionsAsync(cancellationToken).ConfigureAwait(false);
+        var unresolvedRecoveryCount = recovery.Count(static result => !result.IsCleaned);
+        if (unresolvedRecoveryCount > 0)
+        {
+            throw new CliCommandException(
+                CliExitCode.CleanupIncomplete,
+                $"안전하게 복구하지 못한 이전 세션이 {unresolvedRecoveryCount}개 있습니다. " +
+                "linuxcloth cleanup 결과를 확인한 뒤 다시 실행하세요.");
+        }
+
         var resolved = CreateCatalogWorkspace(command.CatalogRoot);
         using var workspace = resolved.Workspace;
         _ = await InitializeCatalogAsync(resolved, cancellationToken).ConfigureAwait(false);

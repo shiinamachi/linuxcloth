@@ -1,5 +1,7 @@
 using LinuxCloth.Application.Catalog;
+using LinuxCloth.Application.Images;
 using LinuxCloth.Application.Storage;
+using LinuxCloth.Core;
 
 namespace LinuxCloth.Cli.Tests;
 
@@ -140,6 +142,38 @@ public sealed class CatalogBundleResolverTests : IDisposable
     }
 
     [Fact]
+    public async Task RunRefusesToStartWhileAStaleSessionCannotBeRecovered()
+    {
+        var paths = new LinuxClothPaths(
+            Path.Combine(_root, "run-config"),
+            Path.Combine(_root, "run-data"),
+            Path.Combine(_root, "run-cache"),
+            Path.Combine(_root, "run-runtime"));
+        paths.CreateBaseDirectories();
+        Directory.CreateDirectory(Path.Combine(paths.SessionsDirectory, "not-a-session"));
+        var services = new DefaultCliCommandServices(
+            paths,
+            new CatalogBundleResolver(_ => null, _root, _root));
+        var command = new RunCommand(
+            [ServiceId.Parse("WooriBank")],
+            ImageId.Parse("windows-11"),
+            CpuCount: 4,
+            MemoryMiB: 6144,
+            NetworkEnabled: true,
+            ClipboardEnabled: false,
+            CatalogRoot: null);
+
+        var exception = await Assert.ThrowsAsync<CliCommandException>(
+            () => services.RunSessionAsync(
+                command,
+                new NullProgress<SessionState>(),
+                CancellationToken.None));
+
+        Assert.Equal(CliExitCode.CleanupIncomplete, exception.ExitCode);
+        Assert.Contains("이전 세션", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MissingCheckoutFailsCleanly()
     {
         Directory.CreateDirectory(_root);
@@ -230,5 +264,10 @@ public sealed class CatalogBundleResolverTests : IDisposable
         }
 
         throw new InvalidOperationException("linuxcloth repository root was not found.");
+    }
+
+    private sealed class NullProgress<T> : IProgress<T>
+    {
+        public void Report(T value) => _ = value;
     }
 }
