@@ -207,6 +207,9 @@ public sealed class DesktopRuntime : IDesktopImageBuildService, IDesktopMediaVal
         ArgumentNullException.ThrowIfNull(progress);
         _paths.CreateBaseDirectories();
 
+        DesktopManagedComponentValidator.ValidateGuestBridge(
+            ResolveDefaultGuestBridgePath(),
+            request.GuestBridgeExecutablePath);
         ValidateSelectedFirmware(request);
         var toolchain = await ResolveImageBuildToolchainAsync(cancellationToken).ConfigureAwait(false);
         progress.Report(new DesktopImageBuildProgress(WindowsImageBuildPhase.Preparing, null));
