@@ -1,0 +1,35 @@
+<Application
+    x:Class="LinuxCloth.Desktop.App"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="Window">
+      <Setter Property="FontFamily" Value="Inter, Noto Sans CJK KR, sans-serif" />
+      <Setter Property="Background" Value="#0B1020" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#6D5DFB" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="18,11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.secondary">
+      <Setter Property="Background" Value="#202842" />
+      <Setter Property="Foreground" Value="#E9ECF8" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="14,9" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#141B2F" />
+      <Setter Property="BorderBrush" Value="#29324F" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#9CA7C4" />
+    </Style>
+  </Application.Styles>
+</Application>
