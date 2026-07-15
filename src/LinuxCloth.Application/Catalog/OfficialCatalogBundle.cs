@@ -4,12 +4,15 @@ public sealed record OfficialCatalogBundle
 {
     public const string OfficialRepository = "yourtablecloth/TableClothCatalog";
     public const string PinnedCommit = "7e3e6a8f54d5e273dad61667024e372cc2958dd9";
+    public const string PinnedCatalogSha256 =
+        "6198D7F3ABB6744991D0A1A2400E75F1E8A588470EF9AB765B8B11354C3F968A";
 
     public OfficialCatalogBundle(
         string catalogPath,
         string imagesDirectory,
         string upstreamRepository,
-        string upstreamCommit)
+        string upstreamCommit,
+        string? expectedCatalogSha256 = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(imagesDirectory);
@@ -30,10 +33,19 @@ public sealed record OfficialCatalogBundle
                 nameof(upstreamCommit));
         }
 
+        if (expectedCatalogSha256 is not null &&
+            (expectedCatalogSha256.Length != 64 || !expectedCatalogSha256.All(Uri.IsHexDigit)))
+        {
+            throw new ArgumentException(
+                "The expected catalog digest must be a complete SHA-256 value.",
+                nameof(expectedCatalogSha256));
+        }
+
         CatalogPath = Path.GetFullPath(catalogPath);
         ImagesDirectory = Path.GetFullPath(imagesDirectory);
         UpstreamRepository = upstreamRepository;
         UpstreamCommit = upstreamCommit.ToLowerInvariant();
+        ExpectedCatalogSha256 = expectedCatalogSha256?.ToUpperInvariant();
     }
 
     public string CatalogPath { get; }
@@ -43,6 +55,8 @@ public sealed record OfficialCatalogBundle
     public string UpstreamRepository { get; }
 
     public string UpstreamCommit { get; }
+
+    public string? ExpectedCatalogSha256 { get; }
 
     public static OfficialCatalogBundle FromPinnedCheckout(string checkoutDirectory)
     {
@@ -54,6 +68,20 @@ public sealed record OfficialCatalogBundle
             Path.Combine(documentation, "Catalog.xml"),
             Path.Combine(documentation, "images"),
             OfficialRepository,
-            PinnedCommit);
+            PinnedCommit,
+            PinnedCatalogSha256);
+    }
+
+    public static OfficialCatalogBundle FromPinnedDocsDirectory(string docsDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(docsDirectory);
+
+        var documentation = Path.GetFullPath(docsDirectory);
+        return new OfficialCatalogBundle(
+            Path.Combine(documentation, "Catalog.xml"),
+            Path.Combine(documentation, "images"),
+            OfficialRepository,
+            PinnedCommit,
+            PinnedCatalogSha256);
     }
 }

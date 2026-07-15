@@ -20,6 +20,9 @@ public sealed class CatalogWorkspaceTests
         var state = await workspace.InitializeAsync();
 
         Assert.True(officialBytes.AsSpan().SequenceEqual(state.Snapshot.CatalogXml.Span));
+        Assert.Equal(
+            OfficialCatalogBundle.PinnedCatalogSha256,
+            state.Snapshot.Manifest.CatalogSha256);
         Assert.Equal(OfficialCatalogBundle.PinnedCommit, state.Snapshot.Manifest.UpstreamCommit);
         var duplicate = Assert.Single(
             state.Diagnostics,
@@ -36,6 +39,25 @@ public sealed class CatalogWorkspaceTests
                 $"{state.Snapshot.Manifest.CatalogSha256}-{state.Snapshot.Manifest.UpstreamCommit}"),
             woori.Image.Path,
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RejectsPinnedCatalogBytesThatDoNotMatchTheCompiledDigest()
+    {
+        using var fixture = new CatalogWorkspaceFixture();
+        var local = fixture.CreateBundle("tampered-pinned");
+        var pinned = new OfficialCatalogBundle(
+            local.CatalogPath,
+            local.ImagesDirectory,
+            OfficialCatalogBundle.OfficialRepository,
+            OfficialCatalogBundle.PinnedCommit,
+            OfficialCatalogBundle.PinnedCatalogSha256);
+        using var workspace = new CatalogWorkspace(fixture.Paths, pinned);
+
+        var exception = await Assert.ThrowsAsync<CatalogWorkspaceException>(
+            () => workspace.InitializeAsync());
+
+        Assert.Contains("expected SHA-256", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -285,12 +285,23 @@ public sealed class CatalogWorkspace : ILaunchCatalogResolver, IDisposable
                 "official catalog bundle",
                 cancellationToken)
             .ConfigureAwait(false);
-        return CatalogSnapshot.Create(
+        var snapshot = CatalogSnapshot.Create(
             catalogXml,
             _parser,
             bundle.UpstreamRepository,
             bundle.UpstreamCommit,
             _timeProvider.GetUtcNow());
+        if (bundle.ExpectedCatalogSha256 is not null &&
+            !string.Equals(
+                snapshot.Manifest.CatalogSha256,
+                bundle.ExpectedCatalogSha256,
+                StringComparison.Ordinal))
+        {
+            throw new CatalogWorkspaceException(
+                "The pinned official catalog does not match its expected SHA-256 digest.");
+        }
+
+        return snapshot;
     }
 
     private async Task<CompatibilityOverlay> LoadCompatibilityAsync(
