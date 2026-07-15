@@ -11,6 +11,8 @@ changes.
 - the integrity of registered Windows base images and per-image machine identity;
 - catalog service identity and the guest bootstrap code selected for execution;
 - ownership of QEMU, swtpm, passt, and viewer processes during crash recovery.
+- the integrity of privileged host package installation decisions and first-run
+  state used to guide the operator.
 
 ## Trust boundaries
 
@@ -41,6 +43,10 @@ VM-detection evasion and Windows licensing bypasses are explicitly out of scope.
 | Process execution | Generated external process arguments are passed as arrays, and normal-session wrappers compare complete expected helper commands. User data is not concatenated into a host shell command. |
 | Pre-launch enforcement | Desktop and CLI launch paths run conservative stale-session recovery and block launch on unresolved records, resolve validated service IDs, run host prerequisites, verify the registered image immediately before use, prepare the confined overlay/config, and then start the session host. |
 | Crash recovery | A durable journal records boot-aware process identities. Desktop initialization and CLI `run` recover before launch, validate identity before QMP or signals, and preserve ambiguous sessions. `linuxcloth cleanup` is the manual diagnostic/retry path. |
+| First-run authority | Desktop routing is derived from recovery, Doctor, image verification, packaged GuestBridge/OVMF resolution, and durable build state. Private setup JSON restores UI state only and cannot mark an unsafe host ready. |
+| Host package installation | Debian/Fedora names come from packaged manifests. PackageKit resolves and simulates the exact plan before an explicit user action; PackageKit/polkit owns privilege elevation. The desktop never runs a shell, sudo, pkexec, apt, or dnf. |
+| Installation media | Only the two user-selected ISO files are accepted. Size-bounded content probes run through Bubblewrap-confined xorriso and exact required paths are checked before SHA-256 hashing. Media are not uploaded. |
+| Managed build inputs | Desktop image builds require the packaged GuestBridge path and the descriptor-selected Secure Boot OVMF pair. Arbitrary GuestBridge and firmware file selections are rejected before the builder runs. |
 
 ## Important limitations and required controls
 
@@ -83,6 +89,11 @@ VM-detection evasion and Windows licensing bypasses are explicitly out of scope.
    readiness, and recovery. A real Windows 11/KVM test of installation,
    GuestBridge startup, the pinned Bootstrap and Spork launch, shutdown, and
    artifact deletion has not been recorded and remains a release blocker.
+10. **Package manager trust:** PackageKit and the configured distribution
+    repositories are inside the host package trust boundary. The preview reduces
+    accidental changes but does not make a malicious repository or compromised
+    PackageKit backend trustworthy. Repository addition, key acceptance, EULA
+    handling, and package-manager repair remain explicit operator tasks.
 
 ## Security release checks
 

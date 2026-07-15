@@ -26,6 +26,38 @@ platform, KVM access, executable presence, firmware descriptors, and runtime
 socket capability; release testing must additionally execute the exact QEMU,
 Bubblewrap, passt, swtpm, and viewer features because package contents vary.
 
+## Desktop first-run setup
+
+The desktop evaluates recovery, Doctor, registered-image verification, packaged
+GuestBridge availability, compatible OVMF descriptors, and durable image-build
+state on every start. It opens the five-step setup or environment-repair flow
+when those facts require it; there is no authoritative “setup complete” flag.
+
+On supported Debian- and Fedora-family systems, **필수 구성 요소** shows the
+PackageKit simulation including versions, repositories, dependency changes, and
+download size. **필수 구성 요소 설치** starts the PackageKit transaction, which
+requests polkit authorization, and then runs Doctor again. Do not launch the
+desktop as root. If PackageKit is unavailable, copy the displayed `apt` or `dnf`
+command into a terminal, run it yourself, and choose **다시 검사**. The desktop
+never executes that command or adds a repository.
+
+Only two local files are selected in the normal setup flow:
+
+1. a licensed Microsoft Windows 11 x64 ISO;
+2. a Windows 11 amd64 virtio-win ISO containing `vioscsi` and `NetKVM`.
+
+Selection immediately performs bounded, Bubblewrap-confined ISO inspection and
+SHA-256 hashing. linuxcloth does not upload either file. The packaged
+GuestBridge and the QEMU descriptor-selected Secure Boot OVMF pair are displayed
+as automatically managed checks, not file pickers. Automatic virtio download is
+disabled until the release includes a reviewed immutable artifact manifest.
+
+The wizard can remember the two media paths only when the user opts in.
+`$XDG_CONFIG_HOME/linuxcloth/setup-state.json` is mode 0600 in a mode-0700
+directory and is atomically replaced. Durable staging metadata under the image
+registry always takes precedence over this UI state, and the file never stores
+keys, accounts, passwords, or other credentials.
+
 ## Build and package entry points
 
 Initialize the official catalog submodule before a source build, then restore,
@@ -91,10 +123,11 @@ application directories are rejected.
 ## Image lifecycle
 
 The operator supplies licensed Windows installation media and a Windows 11
-amd64 virtio-win ISO. In the desktop app choose **기준 이미지 준비**;
-the dialog detects the exact Q35 Secure Boot OVMF code/variables pair, accepts
-the two ISOs and GuestBridge path, and supports safe cancellation and resume
-from a preserved staging directory. The equivalent CLI flow is:
+amd64 virtio-win ISO. The desktop first-run wizard detects the exact Q35 Secure
+Boot OVMF code/variables pair and packaged GuestBridge, accepts and immediately
+validates only the two ISOs, and supports safe cancellation and resume from a
+preserved staging directory. From the catalog, **기준 이미지 준비** reopens the
+same wizard. The equivalent expert CLI flow is:
 
 ```text
 linuxcloth doctor
