@@ -183,6 +183,59 @@ public sealed class QemuSessionHostTests : IDisposable
 
         Assert.Empty(launcher.Processes);
         Assert.False(File.Exists(paths.SessionRecordPath));
+        Assert.False(Directory.Exists(paths.SessionDirectory));
+    }
+
+    [Fact]
+    public async Task ConfinementValidationFailureCleansPreparedSessionArtifacts()
+    {
+        var paths = CreatePaths();
+        var launcher = new FakeProcessLauncher();
+        var connector = new FakeQmpConnector(launcher);
+        var host = CreateHost(launcher, connector);
+        var request = CreateRequest(paths) with
+        {
+            Confinement = new BubblewrapQemuConfinementOptions(
+                "/tmp/untrusted-bwrap",
+                paths.SessionDirectory,
+                WriteResource(paths.RuntimeRoot, "images/base.qcow2"),
+                WriteResource(paths.RuntimeRoot, "firmware/OVMF_CODE.fd")),
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => host.StartAsync(request));
+
+        Assert.Empty(launcher.Processes);
+        Assert.False(File.Exists(paths.SessionRecordPath));
+        Assert.False(Directory.Exists(paths.SessionDirectory));
+    }
+
+    [Fact]
+    public async Task CleanupCanBeRetriedAfterSessionDirectoryDeletionFails()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var paths = CreatePaths();
+        var launcher = new FakeProcessLauncher();
+        var connector = new FakeQmpConnector(launcher) { ExitOnPowerdown = true };
+        var host = CreateHost(launcher, connector);
+        var session = await host.StartAsync(CreateRequest(paths));
+        var sessionsRoot = Path.Combine(_runtimeRoot, "sessions");
+        var realSessionsRoot = Path.Combine(_runtimeRoot, "sessions-real");
+        Directory.Move(sessionsRoot, realSessionsRoot);
+        Directory.CreateSymbolicLink(sessionsRoot, realSessionsRoot);
+
+        await Assert.ThrowsAsync<AggregateException>(() => session.StopAsync());
+        Assert.True(Directory.Exists(paths.SessionDirectory));
+
+        Directory.Delete(sessionsRoot);
+        Directory.Move(realSessionsRoot, sessionsRoot);
+        await session.StopAsync();
+
+        Assert.False(Directory.Exists(paths.SessionDirectory));
+        await session.DisposeAsync();
     }
 
     public void Dispose()

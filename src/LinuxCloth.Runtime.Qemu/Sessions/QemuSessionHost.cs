@@ -60,10 +60,6 @@ public sealed class QemuSessionHost
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ValidatePaths(request);
-        var confinedQemuSpec = BubblewrapQemuConfinement.Wrap(
-            QemuCommandBuilder.Build(request.Configuration),
-            request.Confinement);
 
         IManagedProcess? swtpm = null;
         IManagedProcess? passt = null;
@@ -74,6 +70,11 @@ public sealed class QemuSessionHost
 
         try
         {
+            ValidatePaths(request);
+            var confinedQemuSpec = BubblewrapQemuConfinement.Wrap(
+                QemuCommandBuilder.Build(request.Configuration),
+                request.Confinement);
+
             journal = new SessionRecordJournal(
                 _recordStore,
                 request.Paths,
@@ -510,12 +511,14 @@ public sealed class QemuRunningSession : IAsyncDisposable
                 return;
             }
 
-            _stopped = true;
             _progress?.Report(SessionState.Stopping);
             var failures = new List<Exception>();
-            await CaptureFailureAsync(
-                () => _journal.TransitionAsync(SessionState.Stopping, CancellationToken.None),
-                failures).ConfigureAwait(false);
+            if (SessionStateTransitions.CanTransition(_journal.CurrentState, SessionState.Stopping))
+            {
+                await CaptureFailureAsync(
+                    () => _journal.TransitionAsync(SessionState.Stopping, CancellationToken.None),
+                    failures).ConfigureAwait(false);
+            }
             await CaptureFailureAsync(StopQemuAsync, failures).ConfigureAwait(false);
             await CaptureFailureAsync(() => StopOwnedProcessAsync(_viewer), failures).ConfigureAwait(false);
             await CaptureFailureAsync(() => StopOwnedProcessAsync(_passt), failures).ConfigureAwait(false);
@@ -554,6 +557,8 @@ public sealed class QemuRunningSession : IAsyncDisposable
             {
                 throw new AggregateException("One or more session cleanup operations failed.", failures);
             }
+
+            _stopped = true;
         }
         finally
         {
