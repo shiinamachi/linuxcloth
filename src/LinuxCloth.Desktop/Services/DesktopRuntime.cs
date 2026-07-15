@@ -4,6 +4,7 @@ using LinuxCloth.Application.Images;
 using LinuxCloth.Application.Launching;
 using LinuxCloth.Application.Storage;
 using LinuxCloth.Core;
+using LinuxCloth.Desktop.Setup;
 using LinuxCloth.Runtime.Qemu.Doctor;
 using LinuxCloth.Runtime.Qemu.Processes;
 using LinuxCloth.Runtime.Qemu.Qmp;
@@ -14,8 +15,12 @@ namespace LinuxCloth.Desktop.Services;
 public sealed record DesktopStartupSnapshot(
     CatalogWorkspaceState Catalog,
     IReadOnlyList<ManagedWindowsImage> Images,
+    IReadOnlyList<ImageVerificationResult> ImageVerification,
     QemuDoctorResult Doctor,
-    IReadOnlyList<RecoveryResult> Recovery);
+    IReadOnlyList<RecoveryResult> Recovery,
+    DesktopImageBuildDefaults ImageBuildDefaults,
+    IReadOnlyList<ResumableImageBuild> ResumableBuilds,
+    IReadOnlyList<ImageBuildRecoveryIssue> ImageBuildRecoveryIssues);
 
 public sealed class DesktopRuntime : IDesktopImageBuildService, IAsyncDisposable
 {
@@ -92,8 +97,32 @@ public sealed class DesktopRuntime : IDesktopImageBuildService, IAsyncDisposable
         var catalog = await _catalog.InitializeWithBundledRefreshAsync(cancellationToken)
             .ConfigureAwait(false);
         var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
-        var images = await _images.ListAsync(cancellationToken).ConfigureAwait(false);
-        return new DesktopStartupSnapshot(catalog, images, doctor, recovery);
+        var listedImages = await _images.ListAsync(cancellationToken).ConfigureAwait(false);
+        var verification = new List<ImageVerificationResult>(listedImages.Count);
+        var images = new List<ManagedWindowsImage>(listedImages.Count);
+        foreach (var image in listedImages)
+        {
+            var result = await _images.VerifyAsync(image.ImageId, cancellationToken)
+                .ConfigureAwait(false);
+            verification.Add(result);
+            if (result.IsValid)
+            {
+                images.Add(image);
+            }
+        }
+
+        var defaults = await GetImageBuildDefaultsAsync(cancellationToken).ConfigureAwait(false);
+        var (resumableBuilds, recoveryIssues) = await FindResumableBuildsAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new DesktopStartupSnapshot(
+            catalog,
+            images,
+            verification,
+            doctor,
+            recovery,
+            defaults,
+            resumableBuilds,
+            recoveryIssues);
     }
 
     public Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default) =>
@@ -102,6 +131,43 @@ public sealed class DesktopRuntime : IDesktopImageBuildService, IAsyncDisposable
     public Task<IReadOnlyList<ManagedWindowsImage>> ListImagesAsync(
         CancellationToken cancellationToken = default) =>
         _images.ListAsync(cancellationToken);
+
+    public async Task<(
+        IReadOnlyList<ResumableImageBuild> Builds,
+        IReadOnlyList<ImageBuildRecoveryIssue> Issues)> FindResumableBuildsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var builds = new List<ResumableImageBuild>();
+        var issues = new List<ImageBuildRecoveryIssue>();
+        foreach (var staging in _images.ListStaging())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var state = await WindowsImageBuildStateStore.ReadAsync(staging, cancellationToken)
+                    .ConfigureAwait(false);
+                builds.Add(
+                    new ResumableImageBuild(
+                        state.ImageId,
+                        staging.DirectoryPath,
+                        state.Phase,
+                        state.UpdatedAt));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception) when (
+                exception is IOException or UnauthorizedAccessException or WindowsImageBuildException)
+            {
+                issues.Add(new ImageBuildRecoveryIssue(staging.DirectoryPath, exception.Message));
+            }
+        }
+
+        builds.Sort(static (left, right) => right.UpdatedAt.CompareTo(left.UpdatedAt));
+        return (builds, issues);
+    }
 
     public async Task<DesktopImageBuildDefaults> GetImageBuildDefaultsAsync(
         CancellationToken cancellationToken = default)

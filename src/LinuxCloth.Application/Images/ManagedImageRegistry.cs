@@ -250,11 +250,32 @@ public sealed class ManagedImageRegistry
     public async Task<IReadOnlyList<ManagedWindowsImage>> ListAsync(
         CancellationToken cancellationToken = default)
     {
-        EnsureRegistryRoot();
-        var imageIds = new List<ImageId>();
-        foreach (var entry in Directory.EnumerateFileSystemEntries(_imagesDirectory))
+        var imageIds = ListEntries().Images;
+        var images = new List<ManagedWindowsImage>(imageIds.Count);
+        foreach (var imageId in imageIds)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            images.Add(await LoadAsync(imageId, cancellationToken).ConfigureAwait(false));
+        }
+
+        return images;
+    }
+
+    public IReadOnlyList<ImageRegistrationStaging> ListStaging()
+    {
+        var entries = ListEntries();
+        return entries.Staging
+            .Select(entry => new ImageRegistrationStaging(entry.ImageId, entry.DirectoryPath))
+            .ToArray();
+    }
+
+    private RegistryEntries ListEntries()
+    {
+        EnsureRegistryRoot();
+        var imageIds = new List<ImageId>();
+        var staging = new List<StagingEntry>();
+        foreach (var entry in Directory.EnumerateFileSystemEntries(_imagesDirectory))
+        {
             var name = Path.GetFileName(entry);
             var attributes = File.GetAttributes(entry);
             if (attributes.HasFlag(FileAttributes.ReparsePoint))
@@ -263,13 +284,14 @@ public sealed class ManagedImageRegistry
                     $"The image registry cannot contain a symbolic link or reparse point: {entry}");
             }
 
-            if (TryParseStagingName(name, out _))
+            if (TryParseStagingName(name, out var stagingImageId))
             {
                 if (!attributes.HasFlag(FileAttributes.Directory))
                 {
                     throw new ImageRegistryException($"A staging entry is not a directory: {entry}");
                 }
 
+                staging.Add(new StagingEntry(stagingImageId, entry));
                 continue;
             }
 
@@ -282,13 +304,9 @@ public sealed class ManagedImageRegistry
         }
 
         imageIds.Sort();
-        var images = new List<ManagedWindowsImage>(imageIds.Count);
-        foreach (var imageId in imageIds)
-        {
-            images.Add(await LoadAsync(imageId, cancellationToken).ConfigureAwait(false));
-        }
-
-        return images;
+        staging.Sort(static (left, right) =>
+            StringComparer.Ordinal.Compare(left.DirectoryPath, right.DirectoryPath));
+        return new RegistryEntries(imageIds, staging);
     }
 
     public async Task<ImageVerificationResult> VerifyAsync(
@@ -774,4 +792,10 @@ public sealed class ManagedImageRegistry
 
     private static StringComparison PathComparison =>
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+    private sealed record RegistryEntries(
+        IReadOnlyList<ImageId> Images,
+        IReadOnlyList<StagingEntry> Staging);
+
+    private sealed record StagingEntry(ImageId ImageId, string DirectoryPath);
 }

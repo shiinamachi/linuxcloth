@@ -110,13 +110,15 @@ public sealed class ManagedImageRegistryTests
     public async Task ListsImagesInIdentifierOrderAndIgnoresPreservedStaging()
     {
         using var fixture = new ImageRegistryFixture();
-        _ = fixture.Registry.CreateStaging(ImageId.Parse("unfinished"));
+        var unfinished = fixture.Registry.CreateStaging(ImageId.Parse("unfinished"));
         _ = await fixture.PromoteReadyAsync("zulu");
         _ = await fixture.PromoteReadyAsync("alpha");
 
         var images = await fixture.Registry.ListAsync();
+        var staging = fixture.Registry.ListStaging();
 
         Assert.Equal(["alpha", "zulu"], images.Select(image => image.ImageId.Value));
+        Assert.Equal([unfinished], staging);
     }
 
     [Fact]
