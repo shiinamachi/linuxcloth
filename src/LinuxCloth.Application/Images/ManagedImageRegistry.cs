@@ -90,12 +90,42 @@ public sealed class ManagedImageRegistry
         SecureImageFileSystem.DeleteTreeWithoutFollowingLinks(staging.DirectoryPath);
     }
 
-    public async Task<ManagedWindowsImage> PromoteAsync(
+    public Task<ManagedWindowsImage> PromoteAsync(
         ImageRegistrationStaging staging,
         Guid machineId,
         string ovmfCodePath,
         RegistrationFailureBehavior failureBehavior = RegistrationFailureBehavior.PreserveStaging,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        PromoteCoreAsync(
+            staging,
+            machineId,
+            ovmfCodePath,
+            buildProvenance: null,
+            failureBehavior,
+            cancellationToken);
+
+    public Task<ManagedWindowsImage> PromoteAsync(
+        ImageRegistrationStaging staging,
+        Guid machineId,
+        string ovmfCodePath,
+        ManagedImageBuildProvenance buildProvenance,
+        RegistrationFailureBehavior failureBehavior = RegistrationFailureBehavior.PreserveStaging,
+        CancellationToken cancellationToken = default) =>
+        PromoteCoreAsync(
+            staging,
+            machineId,
+            ovmfCodePath,
+            buildProvenance ?? throw new ArgumentNullException(nameof(buildProvenance)),
+            failureBehavior,
+            cancellationToken);
+
+    private async Task<ManagedWindowsImage> PromoteCoreAsync(
+        ImageRegistrationStaging staging,
+        Guid machineId,
+        string ovmfCodePath,
+        ManagedImageBuildProvenance? buildProvenance,
+        RegistrationFailureBehavior failureBehavior,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(staging);
         if (!Enum.IsDefined(failureBehavior))
@@ -161,7 +191,8 @@ public sealed class ManagedImageRegistry
                     ovmfCode.Length,
                     ovmfCode.LastWriteUtcTicks),
                 ovmfVariables,
-                swtpmState);
+                swtpmState,
+                buildProvenance);
 
             await WriteMetadataAtomicallyAsync(staging.DirectoryPath, metadata, cancellationToken)
                 .ConfigureAwait(false);
@@ -540,6 +571,7 @@ public sealed class ManagedImageRegistry
         var targetPath = Path.Combine(directory, MetadataFileName);
         var temporaryPath = Path.Combine(directory, $"{MetadataTemporaryPrefix}{Guid.NewGuid():N}");
         var contents = ImageMetadataSerializer.Serialize(metadata);
+        _ = ImageMetadataSerializer.Parse(contents);
         try
         {
             await using (var stream = new FileStream(

@@ -51,6 +51,24 @@ public sealed record ManagedImageTreeMetadata(
     long TotalLength,
     long LastWriteUtcTicks);
 
+public sealed record ManagedImageBuildProvenance(
+    ExternalImageFileMetadata WindowsIso,
+    ExternalImageFileMetadata VirtioWinIso,
+    ExternalImageFileMetadata GuestBridgeExecutable,
+    string GuestBridgeVersion,
+    string WindowsArchitecture,
+    int WindowsBuild,
+    string WindowsEditionId,
+    string WindowsDisplayVersion,
+    int DiskSizeGiB,
+    int CpuCount,
+    int MemoryMiB,
+    string EvidenceKind,
+    DateTimeOffset ObservedAt)
+{
+    public const string GuestSelfReportEvidence = "guest-bridge-self-report";
+}
+
 public sealed record ManagedImageMetadata(
     int SchemaVersion,
     ImageId ImageId,
@@ -59,9 +77,10 @@ public sealed record ManagedImageMetadata(
     ManagedImageFileMetadata BaseImage,
     ExternalImageFileMetadata OvmfCode,
     ManagedImageFileMetadata OvmfVariablesTemplate,
-    ManagedImageTreeMetadata SwtpmStateTemplate)
+    ManagedImageTreeMetadata SwtpmStateTemplate,
+    ManagedImageBuildProvenance? BuildProvenance)
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 }
 
 public sealed record ManagedWindowsImage(

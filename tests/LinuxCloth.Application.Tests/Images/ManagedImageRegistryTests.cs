@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using LinuxCloth.Application.Images;
 
 namespace LinuxCloth.Application.Tests.Images;
@@ -81,6 +83,27 @@ public sealed class ManagedImageRegistryTests
 
         Assert.Equal(promoted.Metadata, loaded.Metadata);
         Assert.Equal(metadataMtime, File.GetLastWriteTimeUtc(Path.Combine(loaded.DirectoryPath, "metadata.json")));
+    }
+
+    [Fact]
+    public async Task LoadsSealedVersionOneMetadataWithoutBuildProvenance()
+    {
+        using var fixture = new ImageRegistryFixture();
+        var image = await fixture.PromoteReadyAsync("legacy-windows-11");
+        RewriteMetadata(
+            image,
+            json =>
+            {
+                var root = JsonNode.Parse(json)!.AsObject();
+                root["schemaVersion"] = 1;
+                Assert.True(root.Remove("buildProvenance"));
+                return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            });
+
+        var loaded = await fixture.Registry.LoadAsync(image.ImageId);
+
+        Assert.Equal(1, loaded.Metadata.SchemaVersion);
+        Assert.Null(loaded.Metadata.BuildProvenance);
     }
 
     [Fact]
@@ -420,8 +443,8 @@ public sealed class ManagedImageRegistryTests
         RewriteMetadata(
             duplicate,
             json => json.Replace(
-                "\"schemaVersion\": 1,",
-                "\"schemaVersion\": 1,\n  \"schemaVersion\": 1,",
+                "\"schemaVersion\": 2,",
+                "\"schemaVersion\": 2,\n  \"schemaVersion\": 2,",
                 StringComparison.Ordinal));
 
         await Assert.ThrowsAsync<ImageMetadataValidationException>(() =>

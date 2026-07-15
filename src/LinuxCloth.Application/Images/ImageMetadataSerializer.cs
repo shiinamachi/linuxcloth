@@ -5,7 +5,7 @@ namespace LinuxCloth.Application.Images;
 
 internal static class ImageMetadataSerializer
 {
-    private static readonly string[] RootProperties =
+    private static readonly string[] Version1RootProperties =
     [
         "schemaVersion",
         "imageId",
@@ -15,6 +15,12 @@ internal static class ImageMetadataSerializer
         "ovmfCode",
         "ovmfVariablesTemplate",
         "swtpmStateTemplate",
+    ];
+
+    private static readonly string[] Version2RootProperties =
+    [
+        .. Version1RootProperties,
+        "buildProvenance",
     ];
 
     private static readonly string[] FileProperties =
@@ -40,9 +46,37 @@ internal static class ImageMetadataSerializer
         "lastWriteUtcTicks",
     ];
 
+    private static readonly string[] BuildProvenanceProperties =
+    [
+        "windowsIso",
+        "virtioWinIso",
+        "guestBridgeExecutable",
+        "guestBridgeVersion",
+        "windowsArchitecture",
+        "windowsBuild",
+        "windowsEditionId",
+        "windowsDisplayVersion",
+        "diskSizeGiB",
+        "cpuCount",
+        "memoryMiB",
+        "evidenceKind",
+        "observedAt",
+    ];
+
     public static byte[] Serialize(ManagedImageMetadata metadata)
     {
         ArgumentNullException.ThrowIfNull(metadata);
+        if (metadata.SchemaVersion == 1 && metadata.BuildProvenance is not null)
+        {
+            throw new ImageMetadataValidationException(
+                "Image metadata schema version 1 cannot contain build provenance.");
+        }
+
+        if (metadata.SchemaVersion is not 1 and not ManagedImageMetadata.CurrentSchemaVersion)
+        {
+            throw new ImageMetadataValidationException(
+                $"Image metadata schema version {metadata.SchemaVersion} is not supported.");
+        }
 
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
@@ -71,6 +105,10 @@ internal static class ImageMetadataSerializer
             writer.WriteNumber("totalLength", metadata.SwtpmStateTemplate.TotalLength);
             writer.WriteNumber("lastWriteUtcTicks", metadata.SwtpmStateTemplate.LastWriteUtcTicks);
             writer.WriteEndObject();
+            if (metadata.SchemaVersion == ManagedImageMetadata.CurrentSchemaVersion)
+            {
+                WriteBuildProvenance(writer, metadata.BuildProvenance);
+            }
             writer.WriteEndObject();
         }
 
@@ -99,13 +137,18 @@ internal static class ImageMetadataSerializer
                     CommentHandling = JsonCommentHandling.Disallow,
                     MaxDepth = 8,
                 });
-            var root = ReadStrictObject(document.RootElement, RootProperties, "metadata");
-
-            var schemaVersion = ReadInt32(root, "schemaVersion", "metadata");
-            if (schemaVersion != ManagedImageMetadata.CurrentSchemaVersion)
+            var schemaVersion = ReadSchemaVersion(document.RootElement);
+            var expectedProperties = schemaVersion switch
             {
-                throw new ImageMetadataValidationException(
-                    $"Image metadata schema version {schemaVersion} is not supported.");
+                1 => Version1RootProperties,
+                ManagedImageMetadata.CurrentSchemaVersion => Version2RootProperties,
+                _ => throw new ImageMetadataValidationException(
+                    $"Image metadata schema version {schemaVersion} is not supported."),
+            };
+            var root = ReadStrictObject(document.RootElement, expectedProperties, "metadata");
+            if (ReadInt32(root, "schemaVersion", "metadata") != schemaVersion)
+            {
+                throw new ImageMetadataValidationException("The metadata schemaVersion changed while parsing.");
             }
 
             var imageId = ParseImageId(ReadString(root, "imageId", "metadata"));
@@ -131,6 +174,9 @@ internal static class ImageMetadataSerializer
             var ovmfVariables = ReadFile(root["ovmfVariablesTemplate"], "ovmfVariablesTemplate");
             var ovmfCode = ReadExternalFile(root["ovmfCode"]);
             var swtpmState = ReadTree(root["swtpmStateTemplate"]);
+            var buildProvenance = schemaVersion == 1
+                ? null
+                : ReadBuildProvenance(root["buildProvenance"]);
 
             return new ManagedImageMetadata(
                 schemaVersion,
@@ -140,7 +186,8 @@ internal static class ImageMetadataSerializer
                 baseImage,
                 ovmfCode,
                 ovmfVariables,
-                swtpmState);
+                swtpmState,
+                buildProvenance);
         }
         catch (ImageMetadataValidationException)
         {
@@ -178,9 +225,11 @@ internal static class ImageMetadataSerializer
             ReadUtcTicks(properties, "lastWriteUtcTicks", context));
     }
 
-    private static ExternalImageFileMetadata ReadExternalFile(JsonElement element)
+    private static ExternalImageFileMetadata ReadExternalFile(JsonElement element) =>
+        ReadExternalFile(element, "ovmfCode");
+
+    private static ExternalImageFileMetadata ReadExternalFile(JsonElement element, string context)
     {
-        const string context = "ovmfCode";
         var properties = ReadStrictObject(element, ExternalFileProperties, context);
         var path = ReadString(properties, "path", context);
         if (path.Length > 4096 || !Path.IsPathFullyQualified(path) ||
@@ -219,6 +268,122 @@ internal static class ImageMetadataSerializer
             ReadUtcTicks(properties, "lastWriteUtcTicks", context));
     }
 
+    private static void WriteBuildProvenance(
+        Utf8JsonWriter writer,
+        ManagedImageBuildProvenance? provenance)
+    {
+        if (provenance is null)
+        {
+            writer.WriteNull("buildProvenance");
+            return;
+        }
+
+        writer.WriteStartObject("buildProvenance");
+        WriteExternalFile(writer, "windowsIso", provenance.WindowsIso);
+        WriteExternalFile(writer, "virtioWinIso", provenance.VirtioWinIso);
+        WriteExternalFile(writer, "guestBridgeExecutable", provenance.GuestBridgeExecutable);
+        writer.WriteString("guestBridgeVersion", provenance.GuestBridgeVersion);
+        writer.WriteString("windowsArchitecture", provenance.WindowsArchitecture);
+        writer.WriteNumber("windowsBuild", provenance.WindowsBuild);
+        writer.WriteString("windowsEditionId", provenance.WindowsEditionId);
+        writer.WriteString("windowsDisplayVersion", provenance.WindowsDisplayVersion);
+        writer.WriteNumber("diskSizeGiB", provenance.DiskSizeGiB);
+        writer.WriteNumber("cpuCount", provenance.CpuCount);
+        writer.WriteNumber("memoryMiB", provenance.MemoryMiB);
+        writer.WriteString("evidenceKind", provenance.EvidenceKind);
+        writer.WriteString(
+            "observedAt",
+            provenance.ObservedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        writer.WriteEndObject();
+    }
+
+    private static void WriteExternalFile(
+        Utf8JsonWriter writer,
+        string propertyName,
+        ExternalImageFileMetadata metadata)
+    {
+        writer.WriteStartObject(propertyName);
+        writer.WriteString("path", metadata.Path);
+        writer.WriteString("sha256", metadata.Sha256);
+        writer.WriteNumber("length", metadata.Length);
+        writer.WriteNumber("lastWriteUtcTicks", metadata.LastWriteUtcTicks);
+        writer.WriteEndObject();
+    }
+
+    private static ManagedImageBuildProvenance? ReadBuildProvenance(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        const string context = "buildProvenance";
+        var properties = ReadStrictObject(element, BuildProvenanceProperties, context);
+        var windowsArchitecture = ReadBoundedText(
+            properties,
+            "windowsArchitecture",
+            context,
+            16);
+        if (!string.Equals(windowsArchitecture, "X64", StringComparison.Ordinal))
+        {
+            throw new ImageMetadataValidationException(
+                "The buildProvenance.windowsArchitecture value is unsupported.");
+        }
+
+        var windowsBuild = ReadInt32(properties, "windowsBuild", context);
+        var diskSizeGiB = ReadInt32(properties, "diskSizeGiB", context);
+        var cpuCount = ReadInt32(properties, "cpuCount", context);
+        var memoryMiB = ReadInt32(properties, "memoryMiB", context);
+        if (windowsBuild < 22000 ||
+            diskSizeGiB is < 64 or > 1024 ||
+            cpuCount is < 2 or > 32 ||
+            memoryMiB is < 4096 or > 131072)
+        {
+            throw new ImageMetadataValidationException(
+                "The buildProvenance numeric resource values are invalid.");
+        }
+
+        var evidenceKind = ReadBoundedText(properties, "evidenceKind", context, 64);
+        if (!string.Equals(
+                evidenceKind,
+                ManagedImageBuildProvenance.GuestSelfReportEvidence,
+                StringComparison.Ordinal))
+        {
+            throw new ImageMetadataValidationException(
+                "The buildProvenance.evidenceKind value is unsupported.");
+        }
+
+        var observedAtText = ReadString(properties, "observedAt", context);
+        if (!DateTimeOffset.TryParseExact(
+                observedAtText,
+                "O",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var observedAt) ||
+            observedAt.Offset != TimeSpan.Zero)
+        {
+            throw new ImageMetadataValidationException(
+                "The buildProvenance.observedAt value must be a UTC timestamp.");
+        }
+
+        return new ManagedImageBuildProvenance(
+            ReadExternalFile(properties["windowsIso"], "buildProvenance.windowsIso"),
+            ReadExternalFile(properties["virtioWinIso"], "buildProvenance.virtioWinIso"),
+            ReadExternalFile(
+                properties["guestBridgeExecutable"],
+                "buildProvenance.guestBridgeExecutable"),
+            ReadBoundedText(properties, "guestBridgeVersion", context, 128),
+            windowsArchitecture,
+            windowsBuild,
+            ReadBoundedText(properties, "windowsEditionId", context, 128),
+            ReadBoundedText(properties, "windowsDisplayVersion", context, 64),
+            diskSizeGiB,
+            cpuCount,
+            memoryMiB,
+            evidenceKind,
+            observedAt);
+    }
+
     private static Dictionary<string, JsonElement> ReadStrictObject(
         JsonElement element,
         IReadOnlyCollection<string> expectedProperties,
@@ -254,6 +419,33 @@ internal static class ImageMetadataSerializer
         }
 
         return properties;
+    }
+
+    private static int ReadSchemaVersion(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new ImageMetadataValidationException("The metadata value must be an object.");
+        }
+
+        JsonElement schemaVersion = default;
+        var count = 0;
+        foreach (var property in element.EnumerateObject())
+        {
+            if (string.Equals(property.Name, "schemaVersion", StringComparison.Ordinal))
+            {
+                schemaVersion = property.Value;
+                count++;
+            }
+        }
+
+        if (count != 1 || !schemaVersion.TryGetInt32(out var value))
+        {
+            throw new ImageMetadataValidationException(
+                "The metadata must contain exactly one integer schemaVersion.");
+        }
+
+        return value;
     }
 
     private static ImageId ParseImageId(string value)
@@ -341,5 +533,21 @@ internal static class ImageMetadataSerializer
         }
 
         return element.GetString()!;
+    }
+
+    private static string ReadBoundedText(
+        Dictionary<string, JsonElement> properties,
+        string propertyName,
+        string context,
+        int maximumLength)
+    {
+        var value = ReadString(properties, propertyName, context);
+        if (value.Length is 0 || value.Length > maximumLength || value.Any(char.IsControl))
+        {
+            throw new ImageMetadataValidationException(
+                $"The {context}.{propertyName} text is invalid.");
+        }
+
+        return value;
     }
 }
