@@ -10,6 +10,7 @@
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Tmds.DBus.Protocol" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../LinuxCloth.Application/LinuxCloth.Application.csproj" />
@@ -22,6 +23,18 @@
     </Content>
     <Content Include="../../vendor/TableClothCatalog/LICENSE">
       <Link>catalog/LICENSE</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../packaging/deb/*-dependencies.txt">
+      <Link>setup-packages/deb/%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="../../packaging/rpm/*-dependencies.txt">
+      <Link>setup-packages/rpm/%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
