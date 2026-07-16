@@ -149,11 +149,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public string CurrentDescription => CurrentStep switch
     {
-        SetupStep.HostInspection => "이 컴퓨터에서 Windows 환경을 준비하고 실행할 수 있는지 확인합니다.",
-        SetupStep.Components => "linuxcloth 실행에 필요한 구성 요소를 준비합니다.",
-        SetupStep.WindowsMedia => "Microsoft가 제공하는 Windows 11 설치 파일을 선택합니다.",
-        SetupStep.VirtioMedia => "Windows에서 디스크와 네트워크를 사용할 드라이버를 선택합니다.",
-        SetupStep.ImageBuild => "확인한 파일로 서비스 실행에 사용할 Windows 환경을 만듭니다.",
+        SetupStep.HostInspection => "이 컴퓨터에서 Windows 환경을 실행할 수 있는지 확인합니다.",
+        SetupStep.Components => "실행에 필요한 구성 요소를 준비합니다.",
+        SetupStep.WindowsMedia => "Windows 11 설치 파일을 선택합니다.",
+        SetupStep.VirtioMedia => "디스크·네트워크 드라이버를 선택합니다.",
+        SetupStep.ImageBuild => "선택한 파일로 Windows 환경을 만듭니다.",
         _ => string.Empty,
     };
 

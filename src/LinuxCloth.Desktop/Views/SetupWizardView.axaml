@@ -6,17 +6,14 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto">
     <Border
         Grid.Row="0"
-        Padding="24,16"
+        Padding="20,14"
         Background="{DynamicResource SurfaceBrush}"
         BorderBrush="{DynamicResource BorderSubtleBrush}"
         BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" VerticalAlignment="Center">
-        <StackPanel Spacing="3">
-          <TextBlock Text="Windows 환경 준비" FontSize="22" FontWeight="Bold" />
-          <TextBlock Text="서비스를 열 때 사용할 별도의 Windows 환경을 준비합니다." Classes="muted" TextWrapping="Wrap" />
-        </StackPanel>
-        <Border Grid.Column="1" Classes="badge" VerticalAlignment="Center">
-          <TextBlock Text="{Binding StepProgressText}" FontSize="11" FontWeight="SemiBold" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+        <TextBlock Text="Windows 환경 준비" FontSize="18" FontWeight="SemiBold" />
+        <Border Grid.Column="1" Classes="badge-neutral" VerticalAlignment="Center">
+          <TextBlock Text="{Binding StepProgressText}" FontSize="11" FontWeight="SemiBold" Classes="muted" />
         </Border>
       </Grid>
     </Border>
@@ -35,69 +32,143 @@
       </Grid>
     </Border>
 
-    <Grid x:Name="WizardBody" Grid.Row="2" ColumnDefinitions="248,*">
+    <Grid x:Name="WizardBody" Grid.Row="2" ColumnDefinitions="220,*">
       <Border
           x:Name="StepRail"
           Grid.Column="0"
-          Padding="18,24"
+          Padding="14,20"
           Background="{DynamicResource SurfaceBrush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
           BorderThickness="0,0,1,0">
-        <Grid RowDefinitions="Auto,*,Auto">
-          <TextBlock Grid.Row="0" Text="설정 단계" Classes="eyebrow" Margin="10,0,0,12" />
-          <ItemsControl Grid.Row="1" ItemsSource="{Binding Steps}">
+        <Grid RowDefinitions="*,Auto">
+          <ItemsControl Grid.Row="0" ItemsSource="{Binding Steps}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border Classes="subtle-card" Padding="11,10" Margin="0,0,0,7">
-                  <Grid ColumnDefinitions="30,*,Auto" ColumnSpacing="9">
-                    <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource SurfaceOverlayBrush}">
-                      <TextBlock Text="{Binding Marker}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="11" />
-                    </Border>
-                    <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" FontWeight="SemiBold" TextWrapping="Wrap" />
-                    <TextBlock Grid.Column="2" Text="현재" Classes="eyebrow" IsVisible="{Binding IsCurrent}" VerticalAlignment="Center" />
-                  </Grid>
-                </Border>
+                <Panel Margin="0,0,0,4">
+                  <Border
+                      Padding="10,9"
+                      CornerRadius="10"
+                      Background="{DynamicResource SurfaceSubtleBrush}"
+                      IsVisible="{Binding !IsCurrent}">
+                    <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                      <Border
+                          Width="24"
+                          Height="24"
+                          CornerRadius="12"
+                          Background="{DynamicResource SurfaceOverlayBrush}">
+                        <TextBlock
+                            Text="{Binding Marker}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontWeight="Bold"
+                            FontSize="11"
+                            Classes="muted" />
+                      </Border>
+                      <TextBlock
+                          Grid.Column="1"
+                          Text="{Binding Title}"
+                          VerticalAlignment="Center"
+                          FontSize="12"
+                          Classes="muted"
+                          TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                  <Border
+                      Padding="10,9"
+                      CornerRadius="10"
+                      Background="{DynamicResource AccentSoftBrush}"
+                      IsVisible="{Binding IsCurrent}">
+                    <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                      <Border
+                          Width="24"
+                          Height="24"
+                          CornerRadius="12"
+                          Background="{DynamicResource AccentBrush}">
+                        <TextBlock
+                            Text="{Binding Marker}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontWeight="Bold"
+                            FontSize="11"
+                            Foreground="{DynamicResource TextOnAccentBrush}" />
+                      </Border>
+                      <TextBlock
+                          Grid.Column="1"
+                          Text="{Binding Title}"
+                          VerticalAlignment="Center"
+                          FontSize="12"
+                          FontWeight="SemiBold"
+                          TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                </Panel>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
 
-          <Border Grid.Row="2" Classes="notice-warning" Padding="12" Margin="0,18,0,0">
-            <StackPanel Spacing="5">
-              <TextBlock Text="아직 실제 업무에 사용하지 마세요" FontWeight="SemiBold" />
-              <TextBlock Text="네트워크와 화면 격리 기능이 완성되기 전까지는 테스트 목적으로만 사용하세요." TextWrapping="Wrap" Classes="muted" FontSize="11" />
-            </StackPanel>
+          <Border Grid.Row="1" Classes="notice-warning" Padding="12" Margin="0,12,0,0">
+            <TextBlock
+                Text="테스트 전용입니다. 실제 업무에는 사용하지 마세요."
+                TextWrapping="Wrap"
+                FontSize="11"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource WarningBrush}" />
           </Border>
         </Grid>
       </Border>
 
-      <Grid x:Name="WizardContent" Grid.Column="1" RowDefinitions="Auto,*" Margin="30,24">
-        <StackPanel Grid.Row="0" Spacing="5" Margin="0,0,0,20" MaxWidth="900" HorizontalAlignment="Stretch">
-          <TextBlock Text="{Binding CurrentTitle}" Classes="page-title" FontSize="26" />
-          <TextBlock Text="{Binding CurrentDescription}" Classes="muted" TextWrapping="Wrap" />
-        </StackPanel>
+      <Grid x:Name="WizardContent" Grid.Column="1" RowDefinitions="Auto,*" Margin="28,22">
+        <TextBlock
+            Grid.Row="0"
+            Text="{Binding CurrentTitle}"
+            Classes="page-title"
+            FontSize="22"
+            Margin="0,0,0,16" />
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-          <Grid MaxWidth="900" HorizontalAlignment="Stretch" Margin="0,0,8,12">
-            <StackPanel IsVisible="{Binding IsHostInspectionStep}" Spacing="14">
-              <Border Classes="card" Padding="18">
-                <StackPanel Spacing="14">
+          <Grid MaxWidth="860" HorizontalAlignment="Stretch" Margin="0,0,8,12">
+            <!-- Host inspection -->
+            <StackPanel IsVisible="{Binding IsHostInspectionStep}" Spacing="12">
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="12">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel Spacing="3">
-                      <TextBlock Text="확인 결과" Classes="section-title" FontSize="18" />
-                      <TextBlock Text="Windows 환경을 준비하는 데 필요한 항목입니다." Classes="muted" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button Grid.Column="1" Classes="secondary" Content="다시 확인" Command="{Binding ReinspectCommand}" AutomationProperties.AutomationId="Setup.Host.Refresh" AutomationProperties.Name="시스템 다시 확인" />
+                    <TextBlock Text="확인 결과" Classes="section-title" VerticalAlignment="Center" />
+                    <Button
+                        Grid.Column="1"
+                        Classes="secondary"
+                        Content="다시 확인"
+                        Command="{Binding ReinspectCommand}"
+                        AutomationProperties.AutomationId="Setup.Host.Refresh"
+                        AutomationProperties.Name="시스템 다시 확인" />
                   </Grid>
                   <ItemsControl ItemsSource="{Binding HostChecks}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
-                        <Border BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="4,10">
+                        <Border BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="2,10">
                           <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="28,*,Auto" ColumnSpacing="8">
-                            <TextBlock Text="✓" FontWeight="Bold" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" IsVisible="{Binding IsAvailable}" />
-                            <TextBlock Text="!" FontWeight="Bold" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center" IsVisible="{Binding !IsAvailable}" />
+                            <PathIcon
+                                Width="14"
+                                Height="14"
+                                Data="{StaticResource IconCheck}"
+                                Foreground="{DynamicResource SuccessBrush}"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsAvailable}" />
+                            <PathIcon
+                                Width="14"
+                                Height="14"
+                                Data="{StaticResource IconAlert}"
+                                Foreground="{DynamicResource DangerBrush}"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding !IsAvailable}" />
                             <TextBlock Grid.Column="1" Text="{Binding Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
-                            <Expander Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Classes="technical" Header="세부정보" AutomationProperties.AutomationId="Setup.Host.CheckDetails">
+                            <Expander
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Grid.ColumnSpan="2"
+                                Classes="technical"
+                                Header="세부정보"
+                                AutomationProperties.AutomationId="Setup.Host.CheckDetails">
                               <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Classes="muted" FontSize="11" Margin="0,6,0,0" />
                             </Expander>
                           </Grid>
@@ -107,25 +178,31 @@
                   </ItemsControl>
                 </StackPanel>
               </Border>
-              <Border Classes="notice-info" Padding="14">
-                <StackPanel Spacing="5">
-                  <TextBlock Text="가상화를 사용할 수 없나요?" FontWeight="SemiBold" />
-                  <TextBlock Text="컴퓨터의 펌웨어 설정에서 가상화를 켜고, 현재 사용자에게 가상화 권한이 있는지 확인한 뒤 다시 검사하세요. 앱을 관리자 권한으로 실행할 필요는 없습니다." TextWrapping="Wrap" />
-                </StackPanel>
+              <Border Classes="notice-info" Padding="12">
+                <TextBlock
+                    Text="가상화가 꺼져 있으면 펌웨어에서 켠 뒤 다시 확인하세요. 관리자 권한으로 실행할 필요는 없습니다."
+                    TextWrapping="Wrap"
+                    FontSize="12" />
               </Border>
             </StackPanel>
 
-            <StackPanel IsVisible="{Binding IsComponentsStep}" Spacing="14">
-              <Border Classes="card" Padding="18">
-                <StackPanel Spacing="13">
+            <!-- Components -->
+            <StackPanel IsVisible="{Binding IsComponentsStep}" Spacing="12">
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="12">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel Spacing="3">
-                      <TextBlock Text="필수 구성 요소" Classes="section-title" FontSize="18" />
-                      <TextBlock Text="{Binding DistributionLabel}" Classes="muted" />
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="필수 구성 요소" Classes="section-title" />
+                      <TextBlock Text="{Binding DistributionLabel}" Classes="muted" FontSize="12" />
                     </StackPanel>
-                    <Button Grid.Column="1" Classes="secondary" Content="다시 확인" Command="{Binding ReinspectCommand}" AutomationProperties.AutomationId="Setup.Components.Refresh" />
+                    <Button
+                        Grid.Column="1"
+                        Classes="secondary"
+                        Content="다시 확인"
+                        Command="{Binding ReinspectCommand}"
+                        AutomationProperties.AutomationId="Setup.Components.Refresh" />
                   </Grid>
-                  <TextBlock Text="{Binding PackageStatus}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding PackageStatus}" TextWrapping="Wrap" FontSize="13" />
                   <Button
                       Classes="primary"
                       Content="필수 구성 요소 설치"
@@ -134,82 +211,126 @@
                       HorizontalAlignment="Left"
                       AutomationProperties.AutomationId="Setup.Components.Install"
                       AutomationProperties.HelpText="필요한 경우 시스템 인증 후 설치합니다." />
-                  <TextBlock IsVisible="{Binding HasUnresolvedPackages}" Text="{Binding UnresolvedPackages, StringFormat=준비하지 못한 항목: {0}}" Classes="danger" TextWrapping="Wrap" />
+                  <TextBlock
+                      IsVisible="{Binding HasUnresolvedPackages}"
+                      Text="{Binding UnresolvedPackages, StringFormat=준비하지 못한 항목: {0}}"
+                      Classes="danger"
+                      TextWrapping="Wrap" />
 
-                  <Expander Classes="technical" Header="설치 세부정보" AutomationProperties.AutomationId="Setup.Components.InstallDetails">
+                  <Expander
+                      Classes="technical"
+                      Header="설치 세부정보"
+                      AutomationProperties.AutomationId="Setup.Components.InstallDetails">
                     <StackPanel Spacing="10" Margin="0,8,0,0">
                       <ItemsControl ItemsSource="{Binding PackageChanges}" MaxHeight="220">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <Grid ColumnDefinitions="160,110,*,Auto" ColumnSpacing="8" Margin="0,5">
-                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                              <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="muted" TextTrimming="CharacterEllipsis" />
-                              <TextBlock Grid.Column="2" Text="{Binding Repository}" Classes="muted" TextTrimming="CharacterEllipsis" />
-                              <TextBlock Grid.Column="3" Text="{Binding Kind}" />
+                            <Grid ColumnDefinitions="160,110,*,Auto" ColumnSpacing="8" Margin="0,4">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" />
+                              <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="muted" TextTrimming="CharacterEllipsis" FontSize="12" />
+                              <TextBlock Grid.Column="2" Text="{Binding Repository}" Classes="muted" TextTrimming="CharacterEllipsis" FontSize="12" />
+                              <TextBlock Grid.Column="3" Text="{Binding Kind}" FontSize="12" />
                             </Grid>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
-                      <TextBlock Text="{Binding PackageRepositories, StringFormat=저장소: {0}}" Classes="muted" TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding PackageDownloadSize, StringFormat=다운로드: {0}}" Classes="muted" />
+                      <TextBlock Text="{Binding PackageRepositories, StringFormat=저장소: {0}}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
+                      <TextBlock Text="{Binding PackageDownloadSize, StringFormat=다운로드: {0}}" Classes="muted" FontSize="11" />
                     </StackPanel>
                   </Expander>
                 </StackPanel>
               </Border>
 
-              <Border IsVisible="{Binding ShowManualCommand}" Classes="card" Padding="18">
-                <StackPanel Spacing="9">
-                  <TextBlock Text="직접 설치가 필요합니다" FontSize="16" FontWeight="SemiBold" />
-                  <TextBlock Text="아래 명령을 터미널에서 실행한 뒤 다시 확인하세요." Classes="muted" TextWrapping="Wrap" />
+              <Border IsVisible="{Binding ShowManualCommand}" Classes="card" Padding="16">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="직접 설치가 필요합니다" FontWeight="SemiBold" />
+                  <TextBlock Text="아래 명령을 터미널에서 실행한 뒤 다시 확인하세요." Classes="muted" TextWrapping="Wrap" FontSize="12" />
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBox Text="{Binding ManualInstallCommand}" IsReadOnly="True" AutomationProperties.AutomationId="Setup.Components.ManualCommand" AutomationProperties.Name="수동 설치 명령" />
-                    <Button Grid.Column="1" Classes="secondary" Content="복사" Click="OnCopyManualCommand" AutomationProperties.AutomationId="Setup.Components.CopyManualCommand" />
+                    <TextBox
+                        Text="{Binding ManualInstallCommand}"
+                        IsReadOnly="True"
+                        AutomationProperties.AutomationId="Setup.Components.ManualCommand"
+                        AutomationProperties.Name="수동 설치 명령" />
+                    <Button
+                        Grid.Column="1"
+                        Classes="secondary"
+                        Content="복사"
+                        Click="OnCopyManualCommand"
+                        AutomationProperties.AutomationId="Setup.Components.CopyManualCommand" />
                   </Grid>
                 </StackPanel>
               </Border>
 
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                <Border Classes="subtle-card" Padding="14">
-                  <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Border Classes="subtle-card" Padding="12">
+                  <StackPanel Spacing="2">
                     <TextBlock Text="Windows 연결" Classes="eyebrow" />
-                    <TextBlock Text="{Binding GuestBridgeStatus}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding GuestBridgeStatus}" FontWeight="SemiBold" FontSize="13" />
                   </StackPanel>
                 </Border>
-                <Border Grid.Column="1" Classes="subtle-card" Padding="14">
-                  <StackPanel Spacing="4">
+                <Border Grid.Column="1" Classes="subtle-card" Padding="12">
+                  <StackPanel Spacing="2">
                     <TextBlock Text="Windows 시작" Classes="eyebrow" />
-                    <TextBlock Text="{Binding FirmwareStatus}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding FirmwareStatus}" FontWeight="SemiBold" FontSize="13" />
                   </StackPanel>
                 </Border>
               </Grid>
-              <Expander Classes="technical" Header="기술 세부정보" AutomationProperties.AutomationId="Setup.Components.TechnicalDetails">
+              <Expander
+                  Classes="technical"
+                  Header="기술 세부정보"
+                  AutomationProperties.AutomationId="Setup.Components.TechnicalDetails">
                 <StackPanel Spacing="6" Margin="0,8,0,0">
-                  <TextBlock Text="{Binding GuestBridgeStatus, StringFormat=GuestBridge: {0}}" TextWrapping="Wrap" />
-                  <TextBlock Text="{Binding FirmwareStatus, StringFormat=Secure Boot OVMF: {0}}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding GuestBridgeStatus, StringFormat=GuestBridge: {0}}" TextWrapping="Wrap" FontSize="12" />
+                  <TextBlock Text="{Binding FirmwareStatus, StringFormat=Secure Boot OVMF: {0}}" TextWrapping="Wrap" FontSize="12" />
                 </StackPanel>
               </Expander>
             </StackPanel>
 
-            <StackPanel IsVisible="{Binding IsWindowsMediaStep}" Spacing="14">
-              <Border Classes="card" Padding="20">
-                <StackPanel Spacing="14">
-                  <StackPanel Spacing="4">
-                    <TextBlock Text="Windows 11 설치 파일" Classes="section-title" FontSize="18" />
-                    <TextBlock Text="Microsoft가 제공하는 64비트 ISO를 선택하세요. 파일은 이 컴퓨터에서만 검사하며 외부로 보내지 않습니다." Classes="muted" TextWrapping="Wrap" />
-                  </StackPanel>
+            <!-- Windows media -->
+            <StackPanel IsVisible="{Binding IsWindowsMediaStep}" Spacing="12">
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="12">
+                  <TextBlock
+                      Text="Microsoft 64비트 ISO를 선택하세요. 파일은 이 컴퓨터에서만 검사합니다."
+                      Classes="muted"
+                      TextWrapping="Wrap"
+                      FontSize="13" />
                   <WrapPanel Orientation="Horizontal">
-                    <Button Classes="secondary" Content="Microsoft 다운로드 페이지" Click="OnOpenWindowsDownload" IsEnabled="{Binding !IsBusy}" Margin="0,0,10,8" AutomationProperties.AutomationId="Setup.WindowsMedia.Download" />
-                    <Button Classes="primary" Content="ISO 파일 선택" Click="OnBrowseWindowsIso" IsEnabled="{Binding !IsBusy}" AutomationProperties.AutomationId="Setup.WindowsMedia.Select" AutomationProperties.Name="Windows 11 ISO 선택" Margin="0,0,0,8" />
+                    <Button
+                        Classes="secondary"
+                        Content="다운로드 페이지"
+                        Click="OnOpenWindowsDownload"
+                        IsEnabled="{Binding !IsBusy}"
+                        Margin="0,0,8,8"
+                        AutomationProperties.AutomationId="Setup.WindowsMedia.Download" />
+                    <Button
+                        Classes="primary"
+                        Content="ISO 파일 선택"
+                        Click="OnBrowseWindowsIso"
+                        IsEnabled="{Binding !IsBusy}"
+                        Margin="0,0,0,8"
+                        AutomationProperties.AutomationId="Setup.WindowsMedia.Select"
+                        AutomationProperties.Name="Windows 11 ISO 선택" />
                   </WrapPanel>
-                  <Border Classes="subtle-card" Padding="14">
-                    <StackPanel Spacing="5">
+                  <Border Classes="subtle-card" Padding="12">
+                    <StackPanel Spacing="4">
                       <TextBlock Text="{Binding WindowsMediaName}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding WindowsMediaStatus}" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding WindowsMediaStatus}" TextWrapping="Wrap" Classes="muted" FontSize="12" />
                     </StackPanel>
                   </Border>
-                  <CheckBox IsChecked="{Binding IsLicenseConfirmed}" Content="선택한 설치 파일을 사용할 적절한 Windows 라이선스가 있습니다" AutomationProperties.AutomationId="Setup.WindowsMedia.License" AutomationProperties.HelpText="Windows 사용 권한 확인" />
-                  <CheckBox IsChecked="{Binding RememberMediaPaths}" Content="다음 실행을 위해 이 컴퓨터의 파일 위치 기억" AutomationProperties.AutomationId="Setup.WindowsMedia.RememberPath" />
-                  <Expander Classes="technical" Header="기술 세부정보" AutomationProperties.AutomationId="Setup.WindowsMedia.TechnicalDetails">
+                  <CheckBox
+                      IsChecked="{Binding IsLicenseConfirmed}"
+                      Content="사용할 수 있는 Windows 라이선스가 있습니다"
+                      AutomationProperties.AutomationId="Setup.WindowsMedia.License"
+                      AutomationProperties.HelpText="Windows 사용 권한 확인" />
+                  <CheckBox
+                      IsChecked="{Binding RememberMediaPaths}"
+                      Content="파일 위치 기억"
+                      AutomationProperties.AutomationId="Setup.WindowsMedia.RememberPath" />
+                  <Expander
+                      Classes="technical"
+                      Header="기술 세부정보"
+                      AutomationProperties.AutomationId="Setup.WindowsMedia.TechnicalDetails">
                     <StackPanel Spacing="6" Margin="0,8,0,0">
                       <TextBlock Text="{Binding WindowsMediaPath}" TextWrapping="Wrap" FontFamily="monospace" FontSize="10" />
                       <TextBlock Text="{Binding WindowsMediaHash, StringFormat=SHA-256  {0}}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
@@ -219,29 +340,50 @@
               </Border>
             </StackPanel>
 
-            <StackPanel IsVisible="{Binding IsVirtioMediaStep}" Spacing="14">
-              <Border Classes="card" Padding="20">
-                <StackPanel Spacing="14">
-                  <StackPanel Spacing="4">
-                    <TextBlock Text="Windows 장치 드라이버" Classes="section-title" FontSize="18" />
-                    <TextBlock Text="Windows 환경에서 디스크와 네트워크를 사용하기 위한 공식 드라이버 파일이 필요합니다." Classes="muted" TextWrapping="Wrap" />
-                  </StackPanel>
-                  <Border Classes="notice-warning" Padding="13">
-                    <TextBlock Text="자동 다운로드를 제공하지 않습니다. 공식 배포 페이지에서 stable ISO를 받은 뒤 직접 선택하세요." TextWrapping="Wrap" />
+            <!-- Virtio media -->
+            <StackPanel IsVisible="{Binding IsVirtioMediaStep}" Spacing="12">
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="12">
+                  <TextBlock
+                      Text="디스크와 네트워크용 공식 드라이버 ISO가 필요합니다."
+                      Classes="muted"
+                      TextWrapping="Wrap"
+                      FontSize="13" />
+                  <Border Classes="notice-warning" Padding="12">
+                    <TextBlock
+                        Text="자동 다운로드는 제공하지 않습니다. 공식 배포 페이지에서 stable ISO를 받아 선택하세요."
+                        TextWrapping="Wrap"
+                        FontSize="12" />
                   </Border>
                   <WrapPanel Orientation="Horizontal">
-                    <Button Classes="secondary" Content="드라이버 다운로드 페이지" Click="OnOpenVirtioDownload" IsEnabled="{Binding !IsBusy}" Margin="0,0,10,8" AutomationProperties.AutomationId="Setup.Drivers.Download" />
-                    <Button Classes="primary" Content="드라이버 ISO 선택" Click="OnBrowseVirtioIso" IsEnabled="{Binding !IsBusy}" AutomationProperties.AutomationId="Setup.Drivers.Select" AutomationProperties.Name="Windows 드라이버 ISO 선택" Margin="0,0,0,8" />
+                    <Button
+                        Classes="secondary"
+                        Content="다운로드 페이지"
+                        Click="OnOpenVirtioDownload"
+                        IsEnabled="{Binding !IsBusy}"
+                        Margin="0,0,8,8"
+                        AutomationProperties.AutomationId="Setup.Drivers.Download" />
+                    <Button
+                        Classes="primary"
+                        Content="드라이버 ISO 선택"
+                        Click="OnBrowseVirtioIso"
+                        IsEnabled="{Binding !IsBusy}"
+                        Margin="0,0,0,8"
+                        AutomationProperties.AutomationId="Setup.Drivers.Select"
+                        AutomationProperties.Name="Windows 드라이버 ISO 선택" />
                   </WrapPanel>
-                  <Border Classes="subtle-card" Padding="14">
-                    <StackPanel Spacing="5">
+                  <Border Classes="subtle-card" Padding="12">
+                    <StackPanel Spacing="4">
                       <TextBlock Text="{Binding VirtioMediaName}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding VirtioMediaStatus}" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding VirtioMediaStatus}" TextWrapping="Wrap" Classes="muted" FontSize="12" />
                     </StackPanel>
                   </Border>
-                  <Expander Classes="technical" Header="기술 세부정보" AutomationProperties.AutomationId="Setup.Drivers.TechnicalDetails">
+                  <Expander
+                      Classes="technical"
+                      Header="기술 세부정보"
+                      AutomationProperties.AutomationId="Setup.Drivers.TechnicalDetails">
                     <StackPanel Spacing="6" Margin="0,8,0,0">
-                      <TextBlock Text="virtio-win · Windows 11 amd64 vioscsi · NetKVM" TextWrapping="Wrap" />
+                      <TextBlock Text="virtio-win · Windows 11 amd64 vioscsi · NetKVM" TextWrapping="Wrap" FontSize="12" />
                       <TextBlock Text="{Binding VirtioMediaPath}" TextWrapping="Wrap" FontFamily="monospace" FontSize="10" />
                       <TextBlock Text="{Binding VirtioMediaHash, StringFormat=SHA-256  {0}}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
                     </StackPanel>
@@ -250,56 +392,144 @@
               </Border>
             </StackPanel>
 
-            <StackPanel IsVisible="{Binding IsImageBuildStep}" Spacing="14">
-              <Border Classes="card" Padding="18">
-                <StackPanel Spacing="11">
-                  <TextBlock Text="실행 전 확인" Classes="section-title" FontSize="18" />
-                  <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="9">
-                    <TextBlock Text="Windows 설치 파일" Classes="muted" /><TextBlock Grid.Column="1" Text="{Binding WindowsMediaName}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="1" Text="장치 드라이버" Classes="muted" /><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding VirtioMediaName}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="2" Text="Windows 연결" Classes="muted" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GuestBridgeStatus}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="3" Text="Windows 시작" Classes="muted" /><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding FirmwareStatus}" TextWrapping="Wrap" />
+            <!-- Image build -->
+            <StackPanel IsVisible="{Binding IsImageBuildStep}" Spacing="12">
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="실행 전 확인" Classes="section-title" />
+                  <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                    <TextBlock Text="설치 파일" Classes="muted" FontSize="12" />
+                    <TextBlock Grid.Column="1" Text="{Binding WindowsMediaName}" TextWrapping="Wrap" FontSize="13" />
+                    <TextBlock Grid.Row="1" Text="드라이버" Classes="muted" FontSize="12" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding VirtioMediaName}" TextWrapping="Wrap" FontSize="13" />
+                    <TextBlock Grid.Row="2" Text="Windows 연결" Classes="muted" FontSize="12" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GuestBridgeStatus}" TextWrapping="Wrap" FontSize="13" />
+                    <TextBlock Grid.Row="3" Text="Windows 시작" Classes="muted" FontSize="12" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding FirmwareStatus}" TextWrapping="Wrap" FontSize="13" />
                   </Grid>
                 </StackPanel>
               </Border>
 
-              <Border Classes="card" Padding="18">
+              <Border Classes="card" Padding="16">
                 <StackPanel Spacing="12">
-                  <TextBlock Text="Windows 환경 설정" Classes="section-title" FontSize="18" />
-                  <StackPanel Spacing="5">
+                  <TextBlock Text="환경 설정" Classes="section-title" />
+                  <StackPanel Spacing="4">
                     <TextBlock Text="환경 이름" Classes="eyebrow" />
-                    <TextBox Text="{Binding Build.ImageIdText}" IsReadOnly="{Binding Build.IsBuilding}" AutomationProperties.AutomationId="Setup.Build.EnvironmentName" AutomationProperties.Name="Windows 환경 이름" />
+                    <TextBox
+                        Text="{Binding Build.ImageIdText}"
+                        IsReadOnly="{Binding Build.IsBuilding}"
+                        AutomationProperties.AutomationId="Setup.Build.EnvironmentName"
+                        AutomationProperties.Name="Windows 환경 이름" />
                   </StackPanel>
-                  <Expander Classes="technical" Header="고급 리소스 설정" AutomationProperties.AutomationId="Setup.Build.AdvancedResources">
+                  <Expander
+                      Classes="technical"
+                      Header="고급 리소스 설정"
+                      AutomationProperties.AutomationId="Setup.Build.AdvancedResources">
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12" Margin="0,10,0,0">
-                      <StackPanel><TextBlock Text="디스크 (GiB)" Classes="muted"/><NumericUpDown Value="{Binding Build.DiskSizeGiB}" Minimum="64" Maximum="1024" Increment="8" AutomationProperties.AutomationId="Setup.Build.DiskSize" AutomationProperties.Name="Windows 디스크 크기" /></StackPanel>
-                      <StackPanel Grid.Column="1"><TextBlock Text="가상 CPU" Classes="muted"/><NumericUpDown Value="{Binding Build.CpuCount}" Minimum="2" Maximum="32" AutomationProperties.AutomationId="Setup.Build.CpuCount" AutomationProperties.Name="가상 CPU 수" /></StackPanel>
-                      <StackPanel Grid.Column="2"><TextBlock Text="메모리 (MiB)" Classes="muted"/><NumericUpDown Value="{Binding Build.MemoryMiB}" Minimum="4096" Maximum="131072" Increment="1024" AutomationProperties.AutomationId="Setup.Build.Memory" AutomationProperties.Name="Windows 메모리 크기" /></StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="디스크 (GiB)" Classes="muted" FontSize="12" />
+                        <NumericUpDown
+                            Value="{Binding Build.DiskSizeGiB}"
+                            Minimum="64"
+                            Maximum="1024"
+                            Increment="8"
+                            AutomationProperties.AutomationId="Setup.Build.DiskSize"
+                            AutomationProperties.Name="Windows 디스크 크기" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1">
+                        <TextBlock Text="가상 CPU" Classes="muted" FontSize="12" />
+                        <NumericUpDown
+                            Value="{Binding Build.CpuCount}"
+                            Minimum="2"
+                            Maximum="32"
+                            AutomationProperties.AutomationId="Setup.Build.CpuCount"
+                            AutomationProperties.Name="가상 CPU 수" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Text="메모리 (MiB)" Classes="muted" FontSize="12" />
+                        <NumericUpDown
+                            Value="{Binding Build.MemoryMiB}"
+                            Minimum="4096"
+                            Maximum="131072"
+                            Increment="1024"
+                            AutomationProperties.AutomationId="Setup.Build.Memory"
+                            AutomationProperties.Name="Windows 메모리 크기" />
+                      </StackPanel>
                     </Grid>
                   </Expander>
-                  <TextBlock Text="{Binding Build.ResourceWarning}" IsVisible="{Binding Build.HasResourceWarning}" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" />
+                  <TextBlock
+                      Text="{Binding Build.ResourceWarning}"
+                      IsVisible="{Binding Build.HasResourceWarning}"
+                      Foreground="{DynamicResource WarningBrush}"
+                      TextWrapping="Wrap"
+                      FontSize="12" />
                 </StackPanel>
               </Border>
 
-              <Border Classes="notice-info" Padding="14">
-                <StackPanel Spacing="5">
-                  <TextBlock Text="Windows 설치 창이 별도로 열립니다" FontWeight="SemiBold" />
-                  <TextBlock Text="보유 라이선스와 일치하는 Windows 에디션을 설치하세요. 설치가 끝나면 linuxcloth가 환경을 자동으로 확인합니다." TextWrapping="Wrap" />
-                </StackPanel>
+              <Border Classes="notice-info" Padding="12">
+                <TextBlock
+                    Text="설치 창이 별도로 열립니다. 보유 라이선스에 맞는 에디션을 설치하면 환경 확인이 이어집니다."
+                    TextWrapping="Wrap"
+                    FontSize="12" />
               </Border>
 
-              <Border Classes="card" Padding="18">
-                <StackPanel Spacing="11">
-                  <ProgressBar IsIndeterminate="True" IsVisible="{Binding Build.IsBuilding}" AutomationProperties.Name="Windows 환경 준비 진행 중" />
-                  <TextBlock Text="{Binding Build.BuildStatus}" TextWrapping="Wrap" AutomationProperties.Name="Windows 환경 준비 상태" AutomationProperties.LiveSetting="Polite" />
-                  <TextBlock x:Name="BuildErrorSummary" Text="{Binding Build.ErrorMessage}" IsVisible="{Binding Build.HasError}" Classes="danger" TextWrapping="Wrap" Focusable="True" AutomationProperties.Name="Windows 환경 준비 오류" AutomationProperties.LiveSetting="Assertive" />
-                  <Expander Classes="technical" Header="작업 세부정보" IsVisible="{Binding Build.HasStagingDirectory}" AutomationProperties.AutomationId="Setup.Build.OperationDetails">
-                    <TextBlock Text="{Binding Build.StagingDirectory}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,0" />
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="10">
+                  <ProgressBar
+                      IsIndeterminate="True"
+                      IsVisible="{Binding Build.IsBuilding}"
+                      AutomationProperties.Name="Windows 환경 준비 진행 중" />
+                  <TextBlock
+                      Text="{Binding Build.BuildStatus}"
+                      TextWrapping="Wrap"
+                      FontSize="13"
+                      AutomationProperties.Name="Windows 환경 준비 상태"
+                      AutomationProperties.LiveSetting="Polite" />
+                  <TextBlock
+                      x:Name="BuildErrorSummary"
+                      Text="{Binding Build.ErrorMessage}"
+                      IsVisible="{Binding Build.HasError}"
+                      Classes="danger"
+                      TextWrapping="Wrap"
+                      Focusable="True"
+                      AutomationProperties.Name="Windows 환경 준비 오류"
+                      AutomationProperties.LiveSetting="Assertive" />
+                  <Expander
+                      Classes="technical"
+                      Header="작업 세부정보"
+                      IsVisible="{Binding Build.HasStagingDirectory}"
+                      AutomationProperties.AutomationId="Setup.Build.OperationDetails">
+                    <TextBlock
+                        Text="{Binding Build.StagingDirectory}"
+                        Classes="muted"
+                        FontFamily="monospace"
+                        FontSize="10"
+                        TextWrapping="Wrap"
+                        Margin="0,8,0,0" />
                   </Expander>
                   <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Classes="secondary" Content="이전 작업 계속" Command="{Binding Build.ResumeBuildCommand}" IsEnabled="{Binding Build.CanResumeBuild}" IsVisible="{Binding Build.HasStagingDirectory}" Margin="0,0,10,8" AutomationProperties.AutomationId="Setup.Build.Resume" />
-                    <Button Classes="primary" Content="Windows 환경 만들기" Command="{Binding Build.StartBuildCommand}" IsEnabled="{Binding Build.CanStartBuild}" IsVisible="{Binding !Build.IsBuilding}" Margin="0,0,10,8" AutomationProperties.AutomationId="Setup.Build.Start" />
-                    <Button Classes="secondary" Content="안전하게 중단" Command="{Binding Build.CancelBuildCommand}" IsVisible="{Binding Build.IsBuilding}" Margin="0,0,0,8" AutomationProperties.AutomationId="Setup.Build.Cancel" />
+                    <Button
+                        Classes="secondary"
+                        Content="이전 작업 계속"
+                        Command="{Binding Build.ResumeBuildCommand}"
+                        IsEnabled="{Binding Build.CanResumeBuild}"
+                        IsVisible="{Binding Build.HasStagingDirectory}"
+                        Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="Setup.Build.Resume" />
+                    <Button
+                        Classes="primary"
+                        Content="Windows 환경 만들기"
+                        Command="{Binding Build.StartBuildCommand}"
+                        IsEnabled="{Binding Build.CanStartBuild}"
+                        IsVisible="{Binding !Build.IsBuilding}"
+                        Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="Setup.Build.Start" />
+                    <Button
+                        Classes="secondary"
+                        Content="안전하게 중단"
+                        Command="{Binding Build.CancelBuildCommand}"
+                        IsVisible="{Binding Build.IsBuilding}"
+                        AutomationProperties.AutomationId="Setup.Build.Cancel" />
                   </WrapPanel>
                 </StackPanel>
               </Border>
@@ -311,15 +541,45 @@
 
     <Border
         Grid.Row="3"
-        Padding="18,12"
+        Padding="16,12"
         Background="{DynamicResource SurfaceBrush}"
         BorderBrush="{DynamicResource BorderSubtleBrush}"
         BorderThickness="0,1,0,0">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-        <Button Grid.Column="0" Classes="ghost" Content="나중에 계속" Command="{Binding LaterCommand}" AutomationProperties.AutomationId="Setup.Navigation.Later" />
-        <TextBlock x:Name="ErrorSummary" Grid.Column="1" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Classes="danger" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0" Focusable="True" AutomationProperties.Name="현재 단계 오류" AutomationProperties.LiveSetting="Assertive" />
-        <Button Grid.Column="2" Classes="secondary" Content="뒤로" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" AutomationProperties.AutomationId="Setup.Navigation.Back" />
-        <Button Grid.Column="3" Classes="primary" Content="{Binding ContinueLabel}" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" IsVisible="{Binding !IsImageBuildStep}" AutomationProperties.AutomationId="Setup.Navigation.Continue" />
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+        <Button
+            Grid.Column="0"
+            Classes="ghost"
+            Content="나중에"
+            Command="{Binding LaterCommand}"
+            AutomationProperties.AutomationId="Setup.Navigation.Later" />
+        <TextBlock
+            x:Name="ErrorSummary"
+            Grid.Column="1"
+            Text="{Binding ErrorMessage}"
+            IsVisible="{Binding HasError}"
+            Classes="danger"
+            FontSize="12"
+            TextTrimming="CharacterEllipsis"
+            VerticalAlignment="Center"
+            Margin="8,0"
+            Focusable="True"
+            AutomationProperties.Name="현재 단계 오류"
+            AutomationProperties.LiveSetting="Assertive" />
+        <Button
+            Grid.Column="2"
+            Classes="secondary"
+            Content="뒤로"
+            Command="{Binding BackCommand}"
+            IsEnabled="{Binding CanGoBack}"
+            AutomationProperties.AutomationId="Setup.Navigation.Back" />
+        <Button
+            Grid.Column="3"
+            Classes="primary"
+            Content="{Binding ContinueLabel}"
+            Command="{Binding ContinueCommand}"
+            IsEnabled="{Binding CanContinue}"
+            IsVisible="{Binding !IsImageBuildStep}"
+            AutomationProperties.AutomationId="Setup.Navigation.Continue" />
       </Grid>
     </Border>
   </Grid>
