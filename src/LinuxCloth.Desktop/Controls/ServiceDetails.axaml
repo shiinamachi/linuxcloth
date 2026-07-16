@@ -2,77 +2,69 @@
     x:Class="LinuxCloth.Desktop.Controls.ServiceDetails"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- TableCloth DetailPage-inspired form: logo, title, launch, options. -->
   <Grid RowDefinitions="*,Auto">
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-      <StackPanel Spacing="18">
-        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="96,*" ColumnSpacing="8">
           <Border
               Width="88"
               Height="88"
-              CornerRadius="24"
               Background="{DynamicResource CatalogLogoBackgroundBrush}"
               BorderBrush="{DynamicResource BorderSubtleBrush}"
               BorderThickness="1"
-              Padding="12"
-              HorizontalAlignment="Center">
+              Padding="6"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top">
             <Image Source="{Binding SelectedService.Image}" Stretch="Uniform" />
           </Border>
-          <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+          <StackPanel Grid.Column="1" Spacing="6">
             <TextBlock
                 Text="{Binding SelectedService.DisplayName}"
                 FontSize="22"
                 FontWeight="Bold"
-                TextAlignment="Center"
                 TextWrapping="Wrap"
-                LetterSpacing="-0.3" />
-            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                TextTrimming="CharacterEllipsis" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
               <Border Classes="badge-success" IsVisible="{Binding SelectedService.IsVerified}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource SuccessBrush}" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontSize="11" Foreground="{DynamicResource SuccessBrush}" />
               </Border>
               <Border Classes="badge-warning" IsVisible="{Binding SelectedService.IsPartial}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource WarningBrush}" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontSize="11" Foreground="{DynamicResource WarningBrush}" />
               </Border>
               <Border Classes="badge-danger" IsVisible="{Binding SelectedService.IsBlocked}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource DangerBrush}" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontSize="11" Foreground="{DynamicResource DangerBrush}" />
               </Border>
               <Border Classes="badge-neutral" IsVisible="{Binding SelectedService.IsUnknown}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Classes="muted" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontSize="11" Classes="muted" />
               </Border>
-              <TextBlock
-                  Text="{Binding SelectedService.Category}"
-                  Classes="muted"
-                  FontSize="12"
-                  VerticalAlignment="Center" />
+              <TextBlock Text="{Binding SelectedService.Category}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
             </StackPanel>
+            <TextBlock
+                Text="{Binding SelectedService.Url}"
+                Classes="muted"
+                FontSize="12"
+                TextWrapping="Wrap" />
           </StackPanel>
-        </StackPanel>
+        </Grid>
 
         <TextBlock
             Text="{Binding SelectedService.CompatibilityDescription}"
             TextWrapping="Wrap"
-            TextAlignment="Center"
-            Classes="muted"
-            FontSize="13" />
+            FontSize="12"
+            Classes="muted" />
 
-        <Border Classes="notice-warning" Padding="14,12">
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <PathIcon
-                Width="16"
-                Height="16"
-                Data="{StaticResource IconAlert}"
-                Foreground="{DynamicResource WarningBrush}"
-                VerticalAlignment="Center" />
-            <TextBlock
-                Text="닫으면 이번 실행의 파일과 변경사항이 삭제됩니다."
-                TextWrapping="Wrap"
-                FontSize="12"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource WarningBrush}" />
-          </StackPanel>
+        <Border Classes="notice-warning" Padding="8">
+          <TextBlock
+              Text="닫으면 이번 실행의 파일과 변경사항이 삭제됩니다."
+              TextWrapping="Wrap"
+              FontSize="12"
+              FontWeight="Bold"
+              Foreground="{DynamicResource WarningBrush}" />
         </Border>
 
-        <StackPanel Spacing="8">
-          <TextBlock Text="WINDOWS 환경" Classes="eyebrow" />
+        <StackPanel Spacing="4">
+          <TextBlock Text="Windows 환경" FontWeight="Bold" FontSize="12" />
           <ComboBox
               ItemsSource="{Binding Images}"
               SelectedItem="{Binding SelectedImage}"
@@ -91,32 +83,28 @@
               Content="Windows 환경 준비"
               Click="OnOpenSetup"
               AutomationProperties.AutomationId="Catalog.Details.PrepareWindowsEnvironment"
-              HorizontalAlignment="Stretch"
-              HorizontalContentAlignment="Center" />
+              HorizontalAlignment="Left" />
         </StackPanel>
 
         <Expander
             Classes="technical"
             Header="기술 세부정보"
             AutomationProperties.AutomationId="Catalog.Details.TechnicalDetails">
-          <StackPanel Spacing="10" Margin="0,10,0,0">
+          <StackPanel Spacing="8" Margin="0,8,0,0">
             <StackPanel Spacing="2">
-              <TextBlock Text="영문 이름" Classes="eyebrow" />
-              <TextBlock Text="{Binding SelectedService.EnglishDisplayName}" TextWrapping="Wrap" />
+              <TextBlock Text="영문 이름" Classes="muted" FontSize="11" />
+              <TextBlock Text="{Binding SelectedService.EnglishDisplayName}" TextWrapping="Wrap" FontSize="12" />
             </StackPanel>
             <StackPanel Spacing="2">
-              <TextBlock Text="공식 주소" Classes="eyebrow" />
-              <TextBlock Text="{Binding SelectedService.Url}" TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel Spacing="2">
-              <TextBlock Text="실행 구성" Classes="eyebrow" />
-              <TextBlock Text="{Binding SelectedService.PackageSummary}" TextWrapping="Wrap" />
+              <TextBlock Text="실행 구성" Classes="muted" FontSize="11" />
+              <TextBlock Text="{Binding SelectedService.PackageSummary}" TextWrapping="Wrap" FontSize="12" />
             </StackPanel>
             <TextBlock
                 IsVisible="{Binding SelectedService.HasCustomBootstrap}"
                 Text="추가 준비 단계를 사용합니다."
                 TextWrapping="Wrap"
-                Classes="muted" />
+                Classes="muted"
+                FontSize="12" />
           </StackPanel>
         </Expander>
       </StackPanel>
@@ -125,9 +113,9 @@
     <Button
         Grid.Row="1"
         Classes="primary"
-        Margin="0,18,0,0"
-        MinHeight="48"
-        Content="서비스 열기"
+        Margin="0,12,0,0"
+        MinHeight="32"
+        Content="실행하기"
         Command="{Binding LaunchCommand}"
         IsEnabled="{Binding CanLaunch}"
         HorizontalAlignment="Stretch"

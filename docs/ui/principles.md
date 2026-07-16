@@ -8,10 +8,13 @@ support this task without replacing it with infrastructure terminology.
 
 ## Visual direction
 
-- Use calm neutral surfaces, one accent family, and limited semantic status
-  colors.
-- Establish hierarchy with spacing, typography, and surface changes before
-  adding borders.
+- Prefer a TableCloth-like Windows utility aesthetic over marketing-style
+  desktop chrome: light gray canvas (`#F8F8F8`), flat panels, small corner
+  radii, and system-blue selection (`#26A0DA` / `#0078D4`).
+- Catalog layout follows the upstream CatalogPage pattern: left category list,
+  instruction + search row, icon-under-label service grid, and a utilitarian
+  detail form rather than launcher cards or dark navigation rails.
+- Establish hierarchy with spacing and typography before decorative surfaces.
 - Follow the system light or dark theme.
 - Use vector application chrome and preserve official catalog logos.
 - Use motion only when it explains a state or navigation change.
