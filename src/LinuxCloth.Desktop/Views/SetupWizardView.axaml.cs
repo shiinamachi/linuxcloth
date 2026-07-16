@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
@@ -16,6 +17,8 @@ public sealed partial class SetupWizardView : UserControl
     public SetupWizardView()
     {
         InitializeComponent();
+        SizeChanged += (_, _) => ApplyResponsiveLayout();
+        AttachedToVisualTree += (_, _) => ApplyResponsiveLayout();
     }
 
     public SetupWizardView(SetupWizardViewModel viewModel)
@@ -49,7 +52,7 @@ public sealed partial class SetupWizardView : UserControl
     {
         _ = sender;
         _ = eventArgs;
-        var path = await PickIsoAsync("virtio-win ISO 선택");
+        var path = await PickIsoAsync("Windows 드라이버 ISO 선택");
         if (path is not null)
         {
             await ViewModel.ValidateVirtioMediaAsync(path);
@@ -140,5 +143,17 @@ public sealed partial class SetupWizardView : UserControl
         {
             Dispatcher.UIThread.Post(() => BuildErrorSummary.Focus());
         }
+    }
+
+    private void ApplyResponsiveLayout()
+    {
+        var width = Bounds.Width > 0 ? Bounds.Width : 980;
+        var isCompact = width < 900;
+        StepRail.IsVisible = !isCompact;
+        CompactStepHeader.IsVisible = isCompact;
+        WizardBody.ColumnDefinitions[0].Width = new GridLength(isCompact ? 0 : 248);
+        WizardContent.Margin = isCompact
+            ? new Thickness(16, 18, 12, 12)
+            : new Thickness(30, 24);
     }
 }

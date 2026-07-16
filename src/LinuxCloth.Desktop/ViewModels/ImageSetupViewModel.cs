@@ -281,10 +281,10 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
         OvmfCodePath = defaults.OvmfCodePath ?? string.Empty;
         OvmfVariablesTemplatePath = defaults.OvmfVariablesTemplatePath ?? string.Empty;
         BuildStatus = !defaults.IsGuestBridgeAvailable
-            ? "앱에 포함된 GuestBridge가 없습니다. linuxcloth 패키지를 다시 설치하세요."
+            ? "Windows 연결 구성 요소가 없습니다. linuxcloth 패키지를 다시 설치하세요."
             : defaults.OvmfCodePath is null || defaults.OvmfVariablesTemplatePath is null
-                ? "검증된 Secure Boot OVMF 디스크립터를 찾지 못했습니다. 배포판의 QEMU 펌웨어 패키지를 설치하세요."
-                : "GuestBridge와 Secure Boot OVMF를 자동으로 확인했습니다.";
+                ? "Windows 시작 구성 요소를 찾지 못했습니다. 필수 구성 요소를 설치하고 다시 확인하세요."
+                : "Windows 연결 및 시작 구성 요소를 확인했습니다.";
     }
 
     public void ApplyHostCapacity(HostCapacitySnapshot capacity)
@@ -591,9 +591,9 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
     {
         WindowsImageBuildPhase.Preparing => "설치 미디어를 검증하고 이미지 작업 공간을 만들고 있습니다…",
         WindowsImageBuildPhase.Prepared => "Windows 설치를 시작할 준비가 되었습니다.",
-        WindowsImageBuildPhase.InstallerRunning => "Windows를 설치하고 GuestBridge를 구성하고 있습니다. 열린 Windows 창을 닫지 마세요.",
+        WindowsImageBuildPhase.InstallerRunning => "Windows를 설치하고 연결 구성 요소를 준비하고 있습니다. 열린 Windows 창을 닫지 마세요.",
         WindowsImageBuildPhase.ReadyToVerify => "설치가 끝났습니다. 미디어 없는 검증 부팅을 준비하고 있습니다…",
-        WindowsImageBuildPhase.VerificationRunning => "GuestBridge와 Windows 환경을 검증하고 있습니다…",
+        WindowsImageBuildPhase.VerificationRunning => "Windows 환경을 확인하고 있습니다…",
         WindowsImageBuildPhase.ReadyToFinalize => "검증을 마쳤습니다. 기준 이미지를 봉인하고 있습니다…",
         _ => "이미지 생성을 준비하고 있습니다…",
     };

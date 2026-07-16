@@ -112,4 +112,6 @@ public sealed record ImageChoiceViewModel(ImageId Id, string Label);
 public sealed record DoctorCheckViewModel(string Label, bool IsAvailable, bool IsRequired, string Detail)
 {
     public string Status => IsAvailable ? "✓" : "!";
+
+    public string StatusLabel => IsAvailable ? "사용 가능" : IsRequired ? "설정 필요" : "권장";
 }

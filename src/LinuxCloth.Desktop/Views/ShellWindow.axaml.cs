@@ -94,10 +94,10 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
 
     private async Task ShowSetupAsync(FirstRunSnapshot firstRun)
     {
-        Width = 980;
+        Width = 1000;
         Height = 760;
-        MinWidth = 900;
-        MinHeight = 700;
+        MinWidth = 720;
+        MinHeight = 480;
         if (_mainViewModel is not null)
         {
             _mainViewModel.SetupRequested -= OnSetupRequested;
@@ -127,10 +127,10 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
 
     private async Task ShowMainAsync(DesktopStartupSnapshot startup)
     {
-        Width = 1380;
-        Height = 860;
-        MinWidth = 1080;
-        MinHeight = 700;
+        Width = 1280;
+        Height = 820;
+        MinWidth = 720;
+        MinHeight = 480;
         await DisposeSetupAsync();
         if (_mainViewModel is not null)
         {

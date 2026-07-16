@@ -35,7 +35,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private bool _rememberMediaPaths;
     private string _packageStatus = "설치 계획을 준비하지 않았습니다.";
     private string _virtioMediaPath = string.Empty;
-    private string _virtioMediaStatus = "virtio-win ISO를 선택하세요.";
+    private string _virtioMediaStatus = "Windows 장치 드라이버 파일을 선택하세요.";
     private string _windowsMediaPath = string.Empty;
     private string _windowsMediaStatus = "Windows 11 x64 ISO를 선택하세요.";
 
@@ -88,11 +88,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     private static (SetupStep Step, string Title)[] StepDefinitions { get; } =
     [
-        (SetupStep.HostInspection, "이 컴퓨터 확인"),
+        (SetupStep.HostInspection, "시스템 확인"),
         (SetupStep.Components, "필수 구성 요소"),
-        (SetupStep.WindowsMedia, "Windows 11 미디어"),
-        (SetupStep.VirtioMedia, "virtio 드라이버"),
-        (SetupStep.ImageBuild, "기준 이미지 생성"),
+        (SetupStep.WindowsMedia, "Windows 설치 파일"),
+        (SetupStep.VirtioMedia, "Windows 드라이버"),
+        (SetupStep.ImageBuild, "Windows 환경 만들기"),
     ];
 
     public ObservableCollection<SetupStepItemViewModel> Steps { get; } = [];
@@ -127,6 +127,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
                 OnPropertyChanged(nameof(IsImageBuildStep));
                 OnPropertyChanged(nameof(CurrentTitle));
                 OnPropertyChanged(nameof(CurrentDescription));
+                OnPropertyChanged(nameof(StepProgressText));
                 UpdateStepState();
                 RaiseNavigationState();
             }
@@ -147,13 +148,15 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public string CurrentDescription => CurrentStep switch
     {
-        SetupStep.HostInspection => "Windows 11 가상 머신을 안전하게 만들고 실행할 수 있는지 확인합니다.",
-        SetupStep.Components => "배포판의 공식 저장소에서 필요한 Linux 구성 요소를 준비합니다.",
-        SetupStep.WindowsMedia => "공식 Windows 11 x64 ISO를 선택하면 로컬에서 즉시 검사합니다.",
-        SetupStep.VirtioMedia => "Windows 11용 저장소·네트워크 드라이버가 들어 있는 ISO를 검사합니다.",
-        SetupStep.ImageBuild => "확인한 미디어와 자동 탐지된 구성 요소로 기준 이미지를 만듭니다.",
+        SetupStep.HostInspection => "이 컴퓨터에서 Windows 환경을 준비하고 실행할 수 있는지 확인합니다.",
+        SetupStep.Components => "linuxcloth 실행에 필요한 구성 요소를 준비합니다.",
+        SetupStep.WindowsMedia => "Microsoft가 제공하는 Windows 11 설치 파일을 선택합니다.",
+        SetupStep.VirtioMedia => "Windows에서 디스크와 네트워크를 사용할 드라이버를 선택합니다.",
+        SetupStep.ImageBuild => "확인한 파일로 서비스 실행에 사용할 Windows 환경을 만듭니다.",
         _ => string.Empty,
     };
+
+    public string StepProgressText => $"{(int)CurrentStep + 1}/{StepDefinitions.Length} 단계";
 
     public bool IsBusy
     {
@@ -286,12 +289,12 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     public bool CanLaunchOnline => _readiness.CanLaunchOnline;
 
     public string GuestBridgeStatus => _readiness.IsGuestBridgeAvailable
-        ? "앱에 포함됨 · 확인됨"
-        : "앱 패키지에서 찾지 못함";
+        ? "준비됨"
+        : "구성 요소를 찾지 못했습니다";
 
     public string FirmwareStatus => _readiness.HasCompatibleFirmware
-        ? "Secure Boot · 등록 키 · SMM 호환 쌍 감지됨"
-        : "호환되는 배포판 펌웨어를 찾지 못함";
+        ? "준비됨"
+        : "시작 구성 요소를 찾지 못했습니다";
 
     public string? ErrorMessage
     {
@@ -409,7 +412,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         _virtioFingerprint = null;
         Build.VirtioWinIsoPath = string.Empty;
         ErrorMessage = null;
-        VirtioMediaStatus = "Windows 11 amd64 vioscsi와 NetKVM 드라이버를 확인하고 있습니다…";
+        VirtioMediaStatus = "Windows 장치 드라이버를 확인하고 있습니다…";
         RaiseMediaState();
         try
         {
@@ -501,12 +504,12 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private async Task PreparePackagePlanAsync()
     {
         ErrorMessage = null;
-        PackageStatus = "배포판과 설치 계획을 확인하고 있습니다…";
+        PackageStatus = "필요한 구성 요소를 확인하고 있습니다…";
         var distribution = await _distributionReader.ReadAsync(_shutdown.Token).ConfigureAwait(true);
         DistributionLabel = $"{distribution.Name ?? distribution.Id} {distribution.VersionId}".Trim();
         if (distribution.Family == DistributionFamily.Unsupported)
         {
-            PackageStatus = "이 배포판은 자동 설치 계획을 지원하지 않습니다. 배포판 문서에 따라 Doctor의 누락 항목을 설치하세요.";
+            PackageStatus = "이 Linux 배포판에서는 자동 설치를 지원하지 않습니다. 세부정보의 누락 항목을 배포판 문서에 따라 설치하세요.";
             return;
         }
 
@@ -521,12 +524,12 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
 
         PackageStatus = _packagePreview.IsAlreadySatisfied
-            ? "배포판 패키지 기준으로 필수 구성 요소가 이미 설치되어 있습니다. 실제 기능 검사 결과를 함께 확인하세요."
+            ? "필수 구성 요소가 이미 설치되어 있습니다."
             : !_packagePreview.IsPackageKitAvailable
                 ? "PackageKit을 사용할 수 없습니다. 아래 명령을 터미널에서 직접 실행한 뒤 다시 검사하세요."
                 : _packagePreview.UnresolvedPackages.Count > 0
                     ? "공식 저장소에서 해결하지 못한 패키지가 있습니다. 저장소 설정을 확인하세요."
-                    : "설치될 패키지와 저장소를 검토한 뒤 관리자 인증을 진행하세요.";
+                    : "필요한 구성 요소를 설치할 준비가 되었습니다. 시스템 인증이 요청될 수 있습니다.";
         RaisePackageState();
     }
 
@@ -723,26 +726,26 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         WindowsImageBuildException when windows && exception.Message.Contains("install.wim", StringComparison.Ordinal) =>
             "install.wim 또는 install.esd를 찾지 못했습니다.",
         WindowsImageBuildException when !windows && exception.Message.Contains("storage and network", StringComparison.Ordinal) =>
-            "Windows 11 amd64 vioscsi 또는 NetKVM 드라이버를 찾지 못했습니다.",
+            "Windows 11용 디스크 또는 네트워크 드라이버를 찾지 못했습니다.",
         WindowsImageBuildException when exception.Message.Contains("size", StringComparison.Ordinal) =>
-            windows ? "Windows ISO가 허용된 32 GiB 크기 제한을 벗어났습니다." : "virtio-win ISO가 허용된 8 GiB 크기 제한을 벗어났습니다.",
+            windows ? "Windows 설치 파일이 허용된 32 GiB 크기 제한을 벗어났습니다." : "드라이버 파일이 허용된 8 GiB 크기 제한을 벗어났습니다.",
         _ => $"미디어를 검증하지 못했습니다. {exception.Message}",
     };
 
     private static string DoctorLabel(string code) => code switch
     {
-        QemuDoctorCheckCodes.Platform => "Linux x86_64",
-        QemuDoctorCheckCodes.Kvm => "KVM 접근",
-        QemuDoctorCheckCodes.QemuSystem => "QEMU x86_64",
-        QemuDoctorCheckCodes.QemuImg => "qemu-img",
-        QemuDoctorCheckCodes.Firmware => "Secure Boot OVMF",
-        QemuDoctorCheckCodes.Swtpm => "가상 TPM",
-        QemuDoctorCheckCodes.Bubblewrap => "Bubblewrap 격리",
-        QemuDoctorCheckCodes.RemoteViewer => "SPICE 뷰어",
-        QemuDoctorCheckCodes.WimlibImagex => "Windows 이미지 도구",
-        QemuDoctorCheckCodes.Xorriso => "ISO 검사 도구",
-        QemuDoctorCheckCodes.Passt => "온라인 네트워크",
-        QemuDoctorCheckCodes.RuntimeDirectory => "런타임 소켓",
+        QemuDoctorCheckCodes.Platform => "운영체제",
+        QemuDoctorCheckCodes.Kvm => "가상화",
+        QemuDoctorCheckCodes.QemuSystem => "Windows 실행",
+        QemuDoctorCheckCodes.QemuImg => "Windows 디스크",
+        QemuDoctorCheckCodes.Firmware => "Windows 시작",
+        QemuDoctorCheckCodes.Swtpm => "보안 장치",
+        QemuDoctorCheckCodes.Bubblewrap => "프로세스 격리",
+        QemuDoctorCheckCodes.RemoteViewer => "Windows 화면",
+        QemuDoctorCheckCodes.WimlibImagex => "Windows 설치 파일",
+        QemuDoctorCheckCodes.Xorriso => "드라이버 파일",
+        QemuDoctorCheckCodes.Passt => "인터넷 연결",
+        QemuDoctorCheckCodes.RuntimeDirectory => "작업 공간",
         _ => code,
     };
 
