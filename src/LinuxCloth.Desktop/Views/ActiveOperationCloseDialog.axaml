@@ -1,0 +1,37 @@
+<Window
+    x:Class="LinuxCloth.Desktop.Views.ActiveOperationCloseDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="linuxcloth — 작업 중단 확인"
+    Width="480"
+    Height="220"
+    CanResize="False"
+    WindowStartupLocation="CenterOwner"
+    Background="{DynamicResource AppBackgroundBrush}">
+  <Grid RowDefinitions="*,Auto" Margin="20">
+    <StackPanel Spacing="10">
+      <TextBlock Text="진행 중인 작업을 중단할까요?" Classes="dialog-title" TextWrapping="Wrap" />
+      <TextBlock
+          Text="설치는 현재 시스템 상태를 따릅니다. Windows 환경 만들기는 안전하게 중단하고 나중에 다시 시작할 수 있도록 현재 상태를 보존합니다."
+          Classes="body"
+          TextWrapping="Wrap" />
+    </StackPanel>
+    <StackPanel
+        Grid.Row="1"
+        Orientation="Horizontal"
+        HorizontalAlignment="Right"
+        Spacing="8"
+        Margin="0,16,0,0">
+      <Button
+          Classes="secondary"
+          Content="계속 작업"
+          Click="OnKeepWorking"
+          AutomationProperties.AutomationId="ActiveOperation.KeepWorking" />
+      <Button
+          Classes="primary"
+          Content="안전하게 중단하고 닫기"
+          Click="OnStopAndClose"
+          AutomationProperties.AutomationId="ActiveOperation.StopAndClose" />
+    </StackPanel>
+  </Grid>
+</Window>

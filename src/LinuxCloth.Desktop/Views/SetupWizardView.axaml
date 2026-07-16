@@ -4,23 +4,17 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="{DynamicResource AppBackgroundBrush}">
   <Grid RowDefinitions="Auto,Auto,*,Auto">
-    <Border
-        Grid.Row="0"
-        Padding="10,8"
-        Background="{DynamicResource SurfaceRaisedBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,0,0,1">
+    <Border Grid.Row="0" Classes="chrome-bar">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <StackPanel Spacing="2">
-          <TextBlock Text="Windows 환경 준비" FontSize="15" FontWeight="Bold" />
-          <TextBlock Text="서비스를 열 때 사용할 환경을 준비합니다." Classes="muted" FontSize="12" />
+          <TextBlock Text="Windows 환경 준비" Classes="section-title" />
+          <TextBlock Text="서비스를 열 때 사용할 환경을 준비합니다." Classes="caption" />
         </StackPanel>
         <TextBlock
             Grid.Column="1"
             Text="{Binding StepProgressText}"
             VerticalAlignment="Center"
-            Classes="muted"
-            FontSize="12" />
+            Classes="caption" />
       </Grid>
     </Border>
 
@@ -28,13 +22,11 @@
         x:Name="CompactStepHeader"
         Grid.Row="1"
         IsVisible="False"
-        Padding="10,6"
-        Background="{DynamicResource SurfaceSubtleBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,0,0,1">
+        Classes="chrome-bar"
+        Background="{DynamicResource SurfaceSubtleBrush}">
       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-        <TextBlock Text="{Binding StepProgressText}" Classes="muted" VerticalAlignment="Center" FontSize="12" />
-        <TextBlock Grid.Column="1" Text="{Binding CurrentTitle}" FontWeight="Bold" VerticalAlignment="Center" FontSize="13" />
+        <TextBlock Text="{Binding StepProgressText}" Classes="caption" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding CurrentTitle}" FontWeight="Bold" Classes="body" VerticalAlignment="Center" />
       </Grid>
     </Border>
 
@@ -72,18 +64,17 @@
                         Grid.Column="1"
                         Text="{Binding Title}"
                         VerticalAlignment="Center"
-                        FontSize="12"
                         TextWrapping="Wrap"
                         FontWeight="Normal"
                         IsVisible="{Binding !IsCurrent}"
-                        Classes="muted" />
+                        Classes="caption" />
                     <TextBlock
                         Grid.Column="1"
                         Text="{Binding Title}"
                         VerticalAlignment="Center"
-                        FontSize="12"
                         TextWrapping="Wrap"
                         FontWeight="Bold"
+                        Classes="body"
                         IsVisible="{Binding IsCurrent}" />
                   </Grid>
                 </Border>
@@ -91,13 +82,12 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
 
-          <Border Grid.Row="1" Classes="notice-warning" Padding="8" Margin="4,8,4,0">
+          <Border Grid.Row="1" Classes="notice-warning" Margin="4,8,4,0">
             <TextBlock
                 Text="테스트 전용입니다. 실제 업무에는 사용하지 마세요."
                 TextWrapping="Wrap"
-                FontSize="11"
-                FontWeight="Bold"
-                Foreground="{DynamicResource WarningBrush}" />
+                Classes="meta warning"
+                FontWeight="Bold" />
           </Border>
         </Grid>
       </Border>
@@ -106,17 +96,16 @@
         <TextBlock
             Grid.Row="0"
             Text="{Binding CurrentTitle}"
-            FontSize="16"
-            FontWeight="Bold"
+            Classes="dialog-title"
             Margin="0,0,0,12" />
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
           <Grid MaxWidth="860" HorizontalAlignment="Stretch" Margin="0,0,4,8">
             <StackPanel IsVisible="{Binding IsHostInspectionStep}" Spacing="10">
-              <Border Classes="card" Padding="12">
+              <Border Classes="card">
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="확인 결과" FontWeight="Bold" VerticalAlignment="Center" />
+                    <TextBlock Text="확인 결과" Classes="section-title" VerticalAlignment="Center" />
                     <Button
                         Grid.Column="1"
                         Classes="secondary"
@@ -130,10 +119,22 @@
                       <DataTemplate>
                         <Border BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="2,8">
                           <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="20,*,Auto" ColumnSpacing="8">
-                            <TextBlock Text="✓" Foreground="{DynamicResource SuccessBrush}" FontWeight="Bold" IsVisible="{Binding IsAvailable}" />
-                            <TextBlock Text="!" Foreground="{DynamicResource DangerBrush}" FontWeight="Bold" IsVisible="{Binding !IsAvailable}" />
-                            <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+                            <PathIcon
+                                Width="14"
+                                Height="14"
+                                Data="{StaticResource IconCheck}"
+                                Foreground="{DynamicResource SuccessBrush}"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsAvailable}" />
+                            <PathIcon
+                                Width="14"
+                                Height="14"
+                                Data="{StaticResource IconAlert}"
+                                Foreground="{DynamicResource DangerBrush}"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding !IsAvailable}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Label}" Classes="body" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Classes="meta" VerticalAlignment="Center" />
                             <Expander
                                 Grid.Row="1"
                                 Grid.Column="1"
@@ -141,7 +142,7 @@
                                 Classes="technical"
                                 Header="세부정보"
                                 AutomationProperties.AutomationId="Setup.Host.CheckDetails">
-                              <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Classes="muted" FontSize="11" Margin="0,4,0,0" />
+                              <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Classes="meta" Margin="0,4,0,0" />
                             </Expander>
                           </Grid>
                         </Border>
@@ -150,21 +151,21 @@
                   </ItemsControl>
                 </StackPanel>
               </Border>
-              <Border Classes="notice-info" Padding="8">
+              <Border Classes="notice-info">
                 <TextBlock
                     Text="가상화가 꺼져 있으면 펌웨어에서 켠 뒤 다시 확인하세요. 관리자 권한은 필요 없습니다."
                     TextWrapping="Wrap"
-                    FontSize="12" />
+                    />
               </Border>
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsComponentsStep}" Spacing="10">
-              <Border Classes="card" Padding="12">
+              <Border Classes="card">
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto">
                     <StackPanel Spacing="2">
-                      <TextBlock Text="필수 구성 요소" FontWeight="Bold" />
-                      <TextBlock Text="{Binding DistributionLabel}" Classes="muted" FontSize="12" />
+                      <TextBlock Text="필수 구성 요소" Classes="section-title" />
+                      <TextBlock Text="{Binding DistributionLabel}" Classes="caption" />
                     </StackPanel>
                     <Button
                         Grid.Column="1"
@@ -173,7 +174,7 @@
                         Command="{Binding ReinspectCommand}"
                         AutomationProperties.AutomationId="Setup.Components.Refresh" />
                   </Grid>
-                  <TextBlock Text="{Binding PackageStatus}" TextWrapping="Wrap" FontSize="12" />
+                  <TextBlock Text="{Binding PackageStatus}" TextWrapping="Wrap" />
                   <Button
                       Classes="primary"
                       Content="필수 구성 요소 설치"
@@ -196,25 +197,25 @@
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
                             <Grid ColumnDefinitions="160,110,*,Auto" ColumnSpacing="8" Margin="0,3">
-                              <TextBlock Text="{Binding Name}" FontSize="12" />
-                              <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="muted" TextTrimming="CharacterEllipsis" FontSize="12" />
-                              <TextBlock Grid.Column="2" Text="{Binding Repository}" Classes="muted" TextTrimming="CharacterEllipsis" FontSize="12" />
-                              <TextBlock Grid.Column="3" Text="{Binding Kind}" FontSize="12" />
+                              <TextBlock Text="{Binding Name}" />
+                              <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Grid.Column="2" Text="{Binding Repository}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Grid.Column="3" Text="{Binding Kind}" />
                             </Grid>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
-                      <TextBlock Text="{Binding PackageRepositories, StringFormat=저장소: {0}}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
-                      <TextBlock Text="{Binding PackageDownloadSize, StringFormat=다운로드: {0}}" Classes="muted" FontSize="11" />
+                      <TextBlock Text="{Binding PackageRepositories, StringFormat=저장소: {0}}" Classes="caption" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding PackageDownloadSize, StringFormat=다운로드: {0}}" Classes="meta" />
                     </StackPanel>
                   </Expander>
                 </StackPanel>
               </Border>
 
-              <Border IsVisible="{Binding ShowManualCommand}" Classes="card" Padding="12">
+              <Border IsVisible="{Binding ShowManualCommand}" Classes="card">
                 <StackPanel Spacing="8">
-                  <TextBlock Text="직접 설치가 필요합니다" FontWeight="Bold" />
-                  <TextBlock Text="아래 명령을 터미널에서 실행한 뒤 다시 확인하세요." Classes="muted" TextWrapping="Wrap" FontSize="12" />
+                  <TextBlock Text="직접 설치가 필요합니다" Classes="section-title" />
+                  <TextBlock Text="아래 명령을 터미널에서 실행한 뒤 다시 확인하세요." Classes="caption" TextWrapping="Wrap" />
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                     <TextBox
                         Text="{Binding ManualInstallCommand}"
@@ -232,16 +233,16 @@
               </Border>
 
               <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                <Border Classes="subtle-card" Padding="10">
+                <Border Classes="subtle-card">
                   <StackPanel Spacing="2">
-                    <TextBlock Text="Windows 연결" Classes="muted" FontSize="11" />
-                    <TextBlock Text="{Binding GuestBridgeStatus}" FontWeight="Bold" FontSize="13" />
+                    <TextBlock Text="Windows 연결" Classes="meta" />
+                    <TextBlock Text="{Binding GuestBridgeStatus}" FontWeight="Bold" Classes="body" />
                   </StackPanel>
                 </Border>
-                <Border Grid.Column="1" Classes="subtle-card" Padding="10">
+                <Border Grid.Column="1" Classes="subtle-card">
                   <StackPanel Spacing="2">
-                    <TextBlock Text="Windows 시작" Classes="muted" FontSize="11" />
-                    <TextBlock Text="{Binding FirmwareStatus}" FontWeight="Bold" FontSize="13" />
+                    <TextBlock Text="Windows 시작" Classes="meta" />
+                    <TextBlock Text="{Binding FirmwareStatus}" FontWeight="Bold" Classes="body" />
                   </StackPanel>
                 </Border>
               </Grid>
@@ -250,20 +251,20 @@
                   Header="기술 세부정보"
                   AutomationProperties.AutomationId="Setup.Components.TechnicalDetails">
                 <StackPanel Spacing="4" Margin="0,6,0,0">
-                  <TextBlock Text="{Binding GuestBridgeStatus, StringFormat=GuestBridge: {0}}" TextWrapping="Wrap" FontSize="12" />
-                  <TextBlock Text="{Binding FirmwareStatus, StringFormat=Secure Boot OVMF: {0}}" TextWrapping="Wrap" FontSize="12" />
+                  <TextBlock Text="{Binding GuestBridgeStatus, StringFormat=GuestBridge: {0}}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding FirmwareStatus, StringFormat=Secure Boot OVMF: {0}}" TextWrapping="Wrap" />
                 </StackPanel>
               </Expander>
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsWindowsMediaStep}" Spacing="10">
-              <Border Classes="card" Padding="12">
+              <Border Classes="card">
                 <StackPanel Spacing="10">
                   <TextBlock
                       Text="Microsoft 64비트 ISO를 선택하세요. 파일은 이 컴퓨터에서만 검사합니다."
-                      Classes="muted"
+                      Classes="caption"
                       TextWrapping="Wrap"
-                      FontSize="12" />
+                      />
                   <WrapPanel Orientation="Horizontal">
                     <Button
                         Classes="secondary"
@@ -280,10 +281,10 @@
                         AutomationProperties.AutomationId="Setup.WindowsMedia.Select"
                         AutomationProperties.Name="Windows 11 ISO 선택" />
                   </WrapPanel>
-                  <Border Classes="subtle-card" Padding="10">
+                  <Border Classes="subtle-card">
                     <StackPanel Spacing="2">
                       <TextBlock Text="{Binding WindowsMediaName}" FontWeight="Bold" />
-                      <TextBlock Text="{Binding WindowsMediaStatus}" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+                      <TextBlock Text="{Binding WindowsMediaStatus}" TextWrapping="Wrap" Classes="caption" />
                     </StackPanel>
                   </Border>
                   <CheckBox
@@ -300,8 +301,8 @@
                       Header="기술 세부정보"
                       AutomationProperties.AutomationId="Setup.WindowsMedia.TechnicalDetails">
                     <StackPanel Spacing="4" Margin="0,6,0,0">
-                      <TextBlock Text="{Binding WindowsMediaPath}" TextWrapping="Wrap" FontFamily="monospace" FontSize="10" />
-                      <TextBlock Text="{Binding WindowsMediaHash, StringFormat=SHA-256  {0}}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding WindowsMediaPath}" TextWrapping="Wrap" Classes="mono" />
+                      <TextBlock Text="{Binding WindowsMediaHash, StringFormat=SHA-256  {0}}" Classes="caption mono" TextWrapping="Wrap" />
                     </StackPanel>
                   </Expander>
                 </StackPanel>
@@ -309,18 +310,18 @@
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsVirtioMediaStep}" Spacing="10">
-              <Border Classes="card" Padding="12">
+              <Border Classes="card">
                 <StackPanel Spacing="10">
                   <TextBlock
                       Text="디스크와 네트워크용 공식 드라이버 ISO가 필요합니다."
-                      Classes="muted"
+                      Classes="caption"
                       TextWrapping="Wrap"
-                      FontSize="12" />
-                  <Border Classes="notice-warning" Padding="8">
+                      />
+                  <Border Classes="notice-warning">
                     <TextBlock
                         Text="자동 다운로드는 제공하지 않습니다. 공식 배포 페이지에서 stable ISO를 받아 선택하세요."
                         TextWrapping="Wrap"
-                        FontSize="12" />
+                        />
                   </Border>
                   <WrapPanel Orientation="Horizontal">
                     <Button
@@ -338,10 +339,10 @@
                         AutomationProperties.AutomationId="Setup.Drivers.Select"
                         AutomationProperties.Name="Windows 드라이버 ISO 선택" />
                   </WrapPanel>
-                  <Border Classes="subtle-card" Padding="10">
+                  <Border Classes="subtle-card">
                     <StackPanel Spacing="2">
                       <TextBlock Text="{Binding VirtioMediaName}" FontWeight="Bold" />
-                      <TextBlock Text="{Binding VirtioMediaStatus}" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+                      <TextBlock Text="{Binding VirtioMediaStatus}" TextWrapping="Wrap" Classes="caption" />
                     </StackPanel>
                   </Border>
                   <Expander
@@ -349,9 +350,9 @@
                       Header="기술 세부정보"
                       AutomationProperties.AutomationId="Setup.Drivers.TechnicalDetails">
                     <StackPanel Spacing="4" Margin="0,6,0,0">
-                      <TextBlock Text="virtio-win · Windows 11 amd64 vioscsi · NetKVM" TextWrapping="Wrap" FontSize="12" />
-                      <TextBlock Text="{Binding VirtioMediaPath}" TextWrapping="Wrap" FontFamily="monospace" FontSize="10" />
-                      <TextBlock Text="{Binding VirtioMediaHash, StringFormat=SHA-256  {0}}" Classes="muted" FontFamily="monospace" FontSize="10" TextWrapping="Wrap" />
+                      <TextBlock Text="virtio-win · Windows 11 amd64 vioscsi · NetKVM" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding VirtioMediaPath}" TextWrapping="Wrap" Classes="mono" />
+                      <TextBlock Text="{Binding VirtioMediaHash, StringFormat=SHA-256  {0}}" Classes="caption mono" TextWrapping="Wrap" />
                     </StackPanel>
                   </Expander>
                 </StackPanel>
@@ -359,27 +360,27 @@
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsImageBuildStep}" Spacing="10">
-              <Border Classes="card" Padding="12">
+              <Border Classes="card">
                 <StackPanel Spacing="8">
-                  <TextBlock Text="실행 전 확인" FontWeight="Bold" />
+                  <TextBlock Text="실행 전 확인" Classes="section-title" />
                   <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
-                    <TextBlock Text="설치 파일" Classes="muted" FontSize="12" />
+                    <TextBlock Text="설치 파일" Classes="caption" />
                     <TextBlock Grid.Column="1" Text="{Binding WindowsMediaName}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="1" Text="드라이버" Classes="muted" FontSize="12" />
+                    <TextBlock Grid.Row="1" Text="드라이버" Classes="caption" />
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding VirtioMediaName}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="2" Text="Windows 연결" Classes="muted" FontSize="12" />
+                    <TextBlock Grid.Row="2" Text="Windows 연결" Classes="caption" />
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GuestBridgeStatus}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="3" Text="Windows 시작" Classes="muted" FontSize="12" />
+                    <TextBlock Grid.Row="3" Text="Windows 시작" Classes="caption" />
                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding FirmwareStatus}" TextWrapping="Wrap" />
                   </Grid>
                 </StackPanel>
               </Border>
 
-              <Border Classes="card" Padding="12">
+              <Border Classes="card">
                 <StackPanel Spacing="10">
-                  <TextBlock Text="환경 설정" FontWeight="Bold" />
+                  <TextBlock Text="환경 설정" Classes="section-title" />
                   <StackPanel Spacing="4">
-                    <TextBlock Text="환경 이름" Classes="muted" FontSize="12" />
+                    <TextBlock Text="환경 이름" Classes="caption" />
                     <TextBox
                         Text="{Binding Build.ImageIdText}"
                         IsReadOnly="{Binding Build.IsBuilding}"
@@ -392,7 +393,7 @@
                       AutomationProperties.AutomationId="Setup.Build.AdvancedResources">
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10" Margin="0,8,0,0">
                       <StackPanel>
-                        <TextBlock Text="디스크 (GiB)" Classes="muted" FontSize="12" />
+                        <TextBlock Text="디스크 (GiB)" Classes="caption" />
                         <NumericUpDown
                             Value="{Binding Build.DiskSizeGiB}"
                             Minimum="64"
@@ -402,7 +403,7 @@
                             AutomationProperties.Name="Windows 디스크 크기" />
                       </StackPanel>
                       <StackPanel Grid.Column="1">
-                        <TextBlock Text="가상 CPU" Classes="muted" FontSize="12" />
+                        <TextBlock Text="가상 CPU" Classes="caption" />
                         <NumericUpDown
                             Value="{Binding Build.CpuCount}"
                             Minimum="2"
@@ -411,7 +412,7 @@
                             AutomationProperties.Name="가상 CPU 수" />
                       </StackPanel>
                       <StackPanel Grid.Column="2">
-                        <TextBlock Text="메모리 (MiB)" Classes="muted" FontSize="12" />
+                        <TextBlock Text="메모리 (MiB)" Classes="caption" />
                         <NumericUpDown
                             Value="{Binding Build.MemoryMiB}"
                             Minimum="4096"
@@ -427,18 +428,18 @@
                       IsVisible="{Binding Build.HasResourceWarning}"
                       Foreground="{DynamicResource WarningBrush}"
                       TextWrapping="Wrap"
-                      FontSize="12" />
+                      />
                 </StackPanel>
               </Border>
 
-              <Border Classes="notice-info" Padding="8">
+              <Border Classes="notice-info">
                 <TextBlock
                     Text="설치 창이 별도로 열립니다. 보유 라이선스에 맞는 에디션을 설치하면 환경 확인이 이어집니다."
                     TextWrapping="Wrap"
-                    FontSize="12" />
+                    />
               </Border>
 
-              <Border Classes="card" Padding="12">
+              <Border Classes="card">
                 <StackPanel Spacing="8">
                   <ProgressBar
                       IsIndeterminate="True"
@@ -447,7 +448,7 @@
                   <TextBlock
                       Text="{Binding Build.BuildStatus}"
                       TextWrapping="Wrap"
-                      FontSize="12"
+                     
                       AutomationProperties.Name="Windows 환경 준비 상태"
                       AutomationProperties.LiveSetting="Polite" />
                   <TextBlock
@@ -466,9 +467,7 @@
                       AutomationProperties.AutomationId="Setup.Build.OperationDetails">
                     <TextBlock
                         Text="{Binding Build.StagingDirectory}"
-                        Classes="muted"
-                        FontFamily="monospace"
-                        FontSize="10"
+                        Classes="caption mono"
                         TextWrapping="Wrap"
                         Margin="0,6,0,0" />
                   </Expander>
@@ -504,12 +503,7 @@
       </Grid>
     </Grid>
 
-    <Border
-        Grid.Row="3"
-        Padding="10,8"
-        Background="{DynamicResource SurfaceRaisedBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,1,0,0">
+    <Border Grid.Row="3" Classes="status-strip" Background="{DynamicResource SurfaceRaisedBrush}">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
         <Button
             Grid.Column="0"
@@ -522,8 +516,7 @@
             Grid.Column="1"
             Text="{Binding ErrorMessage}"
             IsVisible="{Binding HasError}"
-            Classes="danger"
-            FontSize="12"
+            Classes="danger caption"
             TextTrimming="CharacterEllipsis"
             VerticalAlignment="Center"
             Margin="8,0"

@@ -803,7 +803,7 @@ public sealed class SetupStepItemViewModel : ObservableObject
         private set => SetProperty(ref _isCurrent, value);
     }
 
-    public string Marker => IsComplete ? "✓" : Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    public string Marker => Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     public void Update(bool isComplete, bool isCurrent)
     {

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Avalonia.Automation;
 using Avalonia.Controls;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Desktop.Setup;
@@ -66,39 +65,8 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
             Environment.NewLine,
             failures.Select(result =>
                 $"• {result.SessionId}: {result.Detail ?? result.Failure?.Message ?? result.Disposition.ToString()}"));
-        var technicalDetails = new Expander
-        {
-            Header = "기술 세부정보",
-            Content = new TextBlock { Text = details, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
-        };
-        AutomationProperties.SetAutomationId(technicalDetails, "Recovery.TechnicalDetails");
-        ShellContent.Content = new Border
-        {
-            Padding = new Avalonia.Thickness(48),
-            Child = new StackPanel
-            {
-                MaxWidth = 720,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                Spacing = 16,
-                Children =
-                {
-                    new TextBlock { Text = "이전 작업 정리가 필요합니다", FontSize = 26, FontWeight = Avalonia.Media.FontWeight.Bold },
-                    new TextBlock { Text = "이전 Windows 환경의 안전한 정리가 끝날 때까지 새 서비스를 열거나 환경을 만들 수 없습니다.", TextWrapping = Avalonia.Media.TextWrapping.Wrap },
-                    technicalDetails,
-                    CreateRetryButton(),
-                },
-            },
-        };
+        ShellContent.Content = new RecoveryView(details, async (_, _) => await RouteFromCurrentStateAsync());
         StartupPanel.IsVisible = false;
-    }
-
-    private Button CreateRetryButton()
-    {
-        var button = new Button { Content = "복구 다시 시도", Classes = { "primary" } };
-        AutomationProperties.SetAutomationId(button, "Recovery.Retry");
-        button.Click += async (_, _) => await RouteFromCurrentStateAsync();
-        return button;
     }
 
     private async Task ShowSetupAsync(FirstRunSnapshot firstRun)
@@ -278,57 +246,5 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
     {
         Trace.TraceError("Desktop startup failure: {0}", exception);
         StartupStatus.Text = userMessage;
-    }
-}
-
-internal sealed class ActiveOperationCloseDialog : Window
-{
-    public ActiveOperationCloseDialog()
-    {
-        Title = "linuxcloth — 작업 중단 확인";
-        Width = 480;
-        Height = 250;
-        CanResize = false;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var cancel = new Button { Content = "계속 작업", Classes = { "secondary" } };
-        AutomationProperties.SetAutomationId(cancel, "ActiveOperation.KeepWorking");
-        cancel.Click += (_, _) => Close(false);
-        var stop = new Button { Content = "안전하게 중단하고 닫기", Classes = { "primary" } };
-        AutomationProperties.SetAutomationId(stop, "ActiveOperation.StopAndClose");
-        stop.Click += (_, _) => Close(true);
-        Content = new Grid
-        {
-            RowDefinitions = RowDefinitions.Parse("*,Auto"),
-            Margin = new Avalonia.Thickness(26),
-            Children =
-            {
-                new StackPanel
-                {
-                    Spacing = 12,
-                    Children =
-                    {
-                        new TextBlock
-                        {
-                            Text = "진행 중인 작업을 중단할까요?",
-                            FontSize = 21,
-                            FontWeight = Avalonia.Media.FontWeight.Bold,
-                        },
-                        new TextBlock
-                        {
-                            Text = "설치는 현재 시스템 상태를 따릅니다. Windows 환경 만들기는 안전하게 중단하고 나중에 다시 시작할 수 있도록 현재 상태를 보존합니다.",
-                            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                        },
-                    },
-                },
-                new StackPanel
-                {
-                    [Grid.RowProperty] = 1,
-                    Orientation = Avalonia.Layout.Orientation.Horizontal,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                    Spacing = 10,
-                    Children = { cancel, stop },
-                },
-            },
-        };
     }
 }

@@ -15,19 +15,16 @@
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360">
         <TextBlock
             Text="linuxcloth"
-            FontSize="22"
-            FontWeight="Bold"
+            Classes="dialog-title"
             HorizontalAlignment="Center" />
         <TextBlock
             x:Name="StartupStatus"
             Text="준비 중…"
-            Classes="muted"
+            Classes="caption"
             TextWrapping="Wrap"
-            TextAlignment="Center"
-            FontSize="13" />
+            TextAlignment="Center" />
         <ProgressBar
             Width="200"
-            Height="4"
             IsIndeterminate="True"
             HorizontalAlignment="Center"
             AutomationProperties.Name="시작 준비 진행 중" />

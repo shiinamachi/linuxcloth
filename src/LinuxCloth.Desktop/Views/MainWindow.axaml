@@ -5,76 +5,20 @@
     xmlns:controls="using:LinuxCloth.Desktop.Controls"
     Background="{DynamicResource AppBackgroundBrush}"
     KeyDown="OnKeyDown">
-  <!-- Layout modeled on TableCloth CatalogPage: category radios, instruction + search, icon grid. -->
-  <UserControl.Styles>
-    <Style Selector="ListBox.category-list">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="ListBox.category-list > ListBoxItem">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Padding" Value="8,6" />
-      <Setter Property="Margin" Value="4,2" />
-      <Setter Property="CornerRadius" Value="0" />
-    </Style>
-    <Style Selector="ListBox.category-list > ListBoxItem:pointerover">
-      <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
-    </Style>
-    <Style Selector="ListBox.category-list > ListBoxItem:selected">
-      <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="ListBox.category-list > ListBoxItem:selected TextBlock.category-label">
-      <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
-    <Style Selector="ListBox.category-list > ListBoxItem:selected Ellipse.category-radio">
-      <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-    </Style>
-    <Style Selector="ListBox.service-grid">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="ListBox.service-grid > ListBoxItem">
-      <Setter Property="Width" Value="78" />
-      <Setter Property="MinHeight" Value="96" />
-      <Setter Property="Padding" Value="4,4" />
-      <Setter Property="Margin" Value="5" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
-      <Setter Property="VerticalContentAlignment" Value="Top" />
-      <Setter Property="CornerRadius" Value="0" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-    </Style>
-    <Style Selector="ListBox.service-grid > ListBoxItem:pointerover">
-      <Setter Property="BorderBrush" Value="{DynamicResource SelectionBorderBrush}" />
-      <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="ListBox.service-grid > ListBoxItem:selected">
-      <Setter Property="BorderBrush" Value="{DynamicResource SelectionBorderBrush}" />
-      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-    </Style>
-  </UserControl.Styles>
-
   <Grid RowDefinitions="Auto,*,Auto">
-    <!-- Compact: title + search + category combo (TableCloth-like utility chrome) -->
     <Border
         x:Name="CompactHeader"
         Grid.Row="0"
         IsVisible="False"
-        Background="{DynamicResource SurfaceRaisedBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,0,0,1"
-        Padding="8,6">
+        Classes="chrome-bar">
       <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
           <TextBlock Text="linuxcloth" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
           <Border Grid.Column="1" Classes="badge-neutral" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="4">
-              <Ellipse Width="7" Height="7" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
-              <Ellipse Width="7" Height="7" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
-              <TextBlock Text="{Binding DoctorSummary}" FontSize="11" />
+              <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
+              <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
+              <TextBlock Text="{Binding DoctorSummary}" Classes="meta" />
             </StackPanel>
           </Border>
           <Button
@@ -113,29 +57,21 @@
       </Grid>
     </Border>
 
-    <!-- Desktop: thin utility bar (status + environment). Search sits with catalog like TableCloth. -->
     <Border
         x:Name="DesktopHeader"
         Grid.Row="0"
-        Background="{DynamicResource SurfaceRaisedBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,0,0,1"
-        Padding="8,6">
+        Classes="chrome-bar">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-          <TextBlock Text="linuxcloth" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" />
-        </StackPanel>
-        <Border Grid.Column="1" />
+        <TextBlock Text="linuxcloth" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" />
         <Button
             x:Name="ReadinessButton"
             Grid.Column="2"
             Classes="secondary"
-            Padding="10,4"
             AutomationProperties.AutomationId="Catalog.Readiness"
             AutomationProperties.Name="실행 준비 상태">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
-              <Border Classes="card" Width="340" Padding="12">
+              <Border Classes="card" Width="340">
                 <StackPanel Spacing="10">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" VerticalAlignment="Center" />
@@ -155,10 +91,21 @@
                     <ItemsControl ItemsSource="{Binding DoctorChecks}" Margin="0,6,0,0">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Grid ColumnDefinitions="20,100,*" Margin="0,3">
-                            <TextBlock Text="{Binding Status}" FontWeight="Bold" />
-                            <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="12" />
-                            <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
+                          <Grid ColumnDefinitions="Auto,100,*" ColumnSpacing="8" Margin="0,4">
+                            <Ellipse
+                                Width="8"
+                                Height="8"
+                                VerticalAlignment="Center"
+                                Fill="{DynamicResource SuccessBrush}"
+                                IsVisible="{Binding IsAvailable}" />
+                            <Ellipse
+                                Width="8"
+                                Height="8"
+                                VerticalAlignment="Center"
+                                Fill="{DynamicResource WarningBrush}"
+                                IsVisible="{Binding !IsAvailable}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Label}" Classes="caption" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="meta" TextWrapping="Wrap" />
                           </Grid>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
@@ -171,7 +118,7 @@
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
             <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
-            <TextBlock Text="{Binding DoctorSummary}" FontSize="12" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding DoctorSummary}" Classes="caption" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
         <Button
@@ -186,7 +133,6 @@
     </Border>
 
     <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="150,*,320">
-      <!-- Category rail: RadioButton-like list -->
       <Border
           x:Name="CategoryRail"
           Grid.Column="0"
@@ -213,14 +159,14 @@
                       StrokeThickness="1"
                       Fill="Transparent"
                       VerticalAlignment="Center" />
-                  <TextBlock Classes="category-label" Text="{Binding Label}" FontSize="13" VerticalAlignment="Center" />
+                  <TextBlock Classes="category-label body" Text="{Binding Label}" VerticalAlignment="Center" />
                 </StackPanel>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
 
           <StackPanel Grid.Row="1" Margin="8,8,8,4" Spacing="6">
-            <TextBlock Text="Windows 환경" Classes="muted" FontSize="11" />
+            <TextBlock Text="Windows 환경" Classes="meta" />
             <ComboBox
                 ItemsSource="{Binding Images}"
                 SelectedItem="{Binding SelectedImage}"
@@ -245,15 +191,13 @@
         </Grid>
       </Border>
 
-      <!-- Catalog: instruction + search + icon grid -->
-      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="0">
+      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*">
         <Grid Grid.Row="0" ColumnDefinitions="*,220" MinHeight="45" Margin="8,4,8,0">
           <TextBlock
+              Classes="instruction"
               VerticalAlignment="Center"
               Margin="0,0,8,0"
-              FontWeight="Bold"
               TextWrapping="Wrap"
-              FontSize="13"
               Text="접속하려는 사이트를 선택하거나, 검색창에서 검색어를 입력하세요." />
           <Border Grid.Column="1" Classes="search-field" VerticalAlignment="Center" Margin="0,6">
             <Grid ColumnDefinitions="Auto,*" Margin="6,0">
@@ -283,7 +227,7 @@
             IsVisible="False"
             Margin="8,0,8,4"
             ColumnDefinitions="Auto,*">
-          <TextBlock Text="분류" VerticalAlignment="Center" Margin="0,0,8,0" Classes="muted" />
+          <TextBlock Text="분류" Classes="caption" VerticalAlignment="Center" Margin="0,0,8,0" />
           <ComboBox
               Grid.Column="1"
               MaxWidth="220"
@@ -317,7 +261,6 @@
           </ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <!-- Icon + caption, matching TableCloth FileItemStyle -->
               <Grid Width="64" MinHeight="88" VerticalAlignment="Top">
                 <Grid.RowDefinitions>
                   <RowDefinition Height="48" />
@@ -337,7 +280,7 @@
                     Text="{Binding DisplayName}"
                     TextAlignment="Center"
                     TextWrapping="Wrap"
-                    FontSize="11"
+                    Classes="meta"
                     MaxHeight="46"
                     TextTrimming="CharacterEllipsis"
                     VerticalAlignment="Top" />
@@ -347,7 +290,6 @@
         </ListBox>
       </Grid>
 
-      <!-- Detail inspector (TableCloth DetailPage-inspired, kept as side panel) -->
       <Border
           x:Name="WideDetailsPanel"
           Grid.Column="2"
@@ -356,50 +298,36 @@
           BorderThickness="1,0,0,0"
           Padding="12">
         <Grid>
-          <StackPanel
+          <TextBlock
+              Text="사이트를 선택하세요"
+              Classes="caption"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
-              Spacing="6"
-              Margin="12"
-              IsVisible="{Binding !HasSelectedService}">
-            <TextBlock
-                Text="사이트를 선택하세요"
-                Classes="muted"
-                FontSize="13"
-                HorizontalAlignment="Center" />
-          </StackPanel>
+              IsVisible="{Binding !HasSelectedService}" />
           <controls:ServiceDetails IsVisible="{Binding HasSelectedService}" />
         </Grid>
       </Border>
     </Grid>
 
-    <!-- Flat status strip -->
-    <Border
-        Grid.Row="2"
-        Background="{DynamicResource SurfaceBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,1,0,0"
-        Padding="8,5">
+    <Border Grid.Row="2" Classes="status-strip">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
         <ProgressBar
             Grid.Column="0"
             Width="80"
-            Height="4"
             IsIndeterminate="True"
             IsVisible="{Binding IsBusy}"
             AutomationProperties.Name="작업 진행 중" />
         <TextBlock
             Grid.Column="1"
             Text="{Binding SessionStatus}"
+            Classes="caption"
             VerticalAlignment="Center"
-            FontSize="12"
             TextTrimming="CharacterEllipsis"
             AutomationProperties.LiveSetting="Polite" />
         <TextBlock
             Grid.Column="2"
             Text="{Binding ErrorMessage}"
-            Classes="danger"
-            FontSize="12"
+            Classes="danger caption"
             IsVisible="{Binding HasError}"
             TextTrimming="CharacterEllipsis"
             MaxWidth="360"
@@ -415,7 +343,6 @@
       </Grid>
     </Border>
 
-    <!-- Details overlay for medium/compact -->
     <Border
         x:Name="DetailsOverlay"
         Grid.RowSpan="3"
@@ -429,7 +356,6 @@
           BorderThickness="1"
           Width="400"
           MaxWidth="400"
-          Margin="0"
           Padding="12"
           HorizontalAlignment="Right"
           VerticalAlignment="Stretch">

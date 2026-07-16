@@ -1,0 +1,36 @@
+<UserControl
+    x:Class="LinuxCloth.Desktop.Views.RecoveryView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{DynamicResource AppBackgroundBrush}">
+  <Border Padding="32">
+    <StackPanel
+        MaxWidth="640"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Spacing="12">
+      <TextBlock Text="이전 작업 정리가 필요합니다" Classes="dialog-title" TextWrapping="Wrap" />
+      <TextBlock
+          Text="이전 Windows 환경의 안전한 정리가 끝날 때까지 새 서비스를 열거나 환경을 만들 수 없습니다."
+          Classes="body"
+          TextWrapping="Wrap" />
+      <Expander
+          x:Name="TechnicalDetails"
+          Classes="technical"
+          Header="기술 세부정보"
+          AutomationProperties.AutomationId="Recovery.TechnicalDetails">
+        <TextBlock
+            x:Name="DetailsText"
+            Classes="caption mono"
+            TextWrapping="Wrap"
+            Margin="0,6,0,0" />
+      </Expander>
+      <Button
+          x:Name="RetryButton"
+          Classes="primary"
+          Content="복구 다시 시도"
+          HorizontalAlignment="Left"
+          AutomationProperties.AutomationId="Recovery.Retry" />
+    </StackPanel>
+  </Border>
+</UserControl>
