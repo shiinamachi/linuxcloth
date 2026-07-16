@@ -3,21 +3,23 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="linuxcloth"
-    Width="1380"
-    Height="860"
-    MinWidth="900"
-    MinHeight="700"
+    Width="1280"
+    Height="820"
+    MinWidth="720"
+    MinHeight="480"
     WindowStartupLocation="CenterScreen">
   <Grid>
     <ContentControl x:Name="ShellContent" />
-    <Border x:Name="StartupPanel" Background="#0B1020" IsVisible="True">
-      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18" MaxWidth="560">
-        <Border Width="62" Height="62" CornerRadius="18" Background="#6D5DFB">
-          <TextBlock Text="LC" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" FontWeight="Bold" />
+    <Border x:Name="StartupPanel" Background="{DynamicResource AppBackgroundBrush}" IsVisible="True" Padding="32">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" MaxWidth="520">
+        <Border Width="64" Height="64" CornerRadius="20" Background="{DynamicResource AccentBrush}">
+          <TextBlock Text="lc" Foreground="{DynamicResource TextOnAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="21" FontWeight="Bold" />
         </Border>
-        <TextBlock Text="linuxcloth를 준비하고 있습니다" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center" />
-        <TextBlock x:Name="StartupStatus" Text="이전 세션, 카탈로그, 호스트와 기준 이미지를 확인합니다…" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" />
-        <ProgressBar Width="280" IsIndeterminate="True" />
+        <StackPanel Spacing="6">
+          <TextBlock Text="linuxcloth를 준비하고 있습니다" Classes="page-title" FontSize="24" HorizontalAlignment="Center" />
+          <TextBlock x:Name="StartupStatus" Text="이전 작업과 실행 환경을 확인하고 있습니다…" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" />
+        </StackPanel>
+        <ProgressBar Width="240" IsIndeterminate="True" AutomationProperties.Name="시작 준비 진행 중" />
       </StackPanel>
     </Border>
   </Grid>

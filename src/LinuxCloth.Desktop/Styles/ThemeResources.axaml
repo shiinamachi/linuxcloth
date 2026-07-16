@@ -1,0 +1,77 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F5F6FA" />
+      <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="SurfaceSubtleBrush" Color="#EEF0F5" />
+      <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="#F9FAFC" />
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1A1D26" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#616979" />
+      <SolidColorBrush x:Key="TextDisabledBrush" Color="#9299A7" />
+      <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="BorderSubtleBrush" Color="#DEE2EA" />
+      <SolidColorBrush x:Key="BorderStrongBrush" Color="#C9CED9" />
+      <SolidColorBrush x:Key="AccentBrush" Color="#5A4BE7" />
+      <SolidColorBrush x:Key="AccentHoverBrush" Color="#4C3DD5" />
+      <SolidColorBrush x:Key="AccentPressedBrush" Color="#3F31BD" />
+      <SolidColorBrush x:Key="AccentSoftBrush" Color="#ECEAFF" />
+      <SolidColorBrush x:Key="SuccessBrush" Color="#197052" />
+      <SolidColorBrush x:Key="SuccessSoftBrush" Color="#E6F5EF" />
+      <SolidColorBrush x:Key="WarningBrush" Color="#875900" />
+      <SolidColorBrush x:Key="WarningSoftBrush" Color="#FFF3D6" />
+      <SolidColorBrush x:Key="DangerBrush" Color="#B52F43" />
+      <SolidColorBrush x:Key="DangerSoftBrush" Color="#FDE9EC" />
+      <SolidColorBrush x:Key="InfoBrush" Color="#2F5C9E" />
+      <SolidColorBrush x:Key="InfoSoftBrush" Color="#E8F0FC" />
+      <SolidColorBrush x:Key="FocusRingBrush" Color="#7668F2" />
+      <SolidColorBrush x:Key="ScrimBrush" Color="#661A1D26" />
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F1219" />
+      <SolidColorBrush x:Key="SurfaceBrush" Color="#171B24" />
+      <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1C212C" />
+      <SolidColorBrush x:Key="SurfaceSubtleBrush" Color="#222836" />
+      <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="#272E3D" />
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F3F5F9" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A9B1C0" />
+      <SolidColorBrush x:Key="TextDisabledBrush" Color="#717989" />
+      <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="BorderSubtleBrush" Color="#2C3443" />
+      <SolidColorBrush x:Key="BorderStrongBrush" Color="#3A4457" />
+      <SolidColorBrush x:Key="AccentBrush" Color="#8173F3" />
+      <SolidColorBrush x:Key="AccentHoverBrush" Color="#9387FA" />
+      <SolidColorBrush x:Key="AccentPressedBrush" Color="#6C5EE2" />
+      <SolidColorBrush x:Key="AccentSoftBrush" Color="#2B2850" />
+      <SolidColorBrush x:Key="SuccessBrush" Color="#63C89E" />
+      <SolidColorBrush x:Key="SuccessSoftBrush" Color="#18382E" />
+      <SolidColorBrush x:Key="WarningBrush" Color="#E6B85E" />
+      <SolidColorBrush x:Key="WarningSoftBrush" Color="#3B301B" />
+      <SolidColorBrush x:Key="DangerBrush" Color="#F08191" />
+      <SolidColorBrush x:Key="DangerSoftBrush" Color="#40232A" />
+      <SolidColorBrush x:Key="InfoBrush" Color="#8DB7F2" />
+      <SolidColorBrush x:Key="InfoSoftBrush" Color="#1F3049" />
+      <SolidColorBrush x:Key="FocusRingBrush" Color="#A397FF" />
+      <SolidColorBrush x:Key="ScrimBrush" Color="#99000000" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+
+  <x:Double x:Key="Space1">4</x:Double>
+  <x:Double x:Key="Space2">8</x:Double>
+  <x:Double x:Key="Space3">12</x:Double>
+  <x:Double x:Key="Space4">16</x:Double>
+  <x:Double x:Key="Space5">24</x:Double>
+  <x:Double x:Key="Space6">32</x:Double>
+  <CornerRadius x:Key="CornerSmall">8</CornerRadius>
+  <CornerRadius x:Key="CornerMedium">12</CornerRadius>
+  <CornerRadius x:Key="CornerLarge">16</CornerRadius>
+
+  <StreamGeometry x:Key="IconSearch">M9.5,3 A6.5,6.5 0 1 0 9.5,16 A6.5,6.5 0 0 0 9.5,3 M14.2,14.2 L20.2,20.2</StreamGeometry>
+  <StreamGeometry x:Key="IconCheck">M4,11 L9,16 L20,5</StreamGeometry>
+  <StreamGeometry x:Key="IconChevronRight">M8,4 L16,12 L8,20</StreamGeometry>
+  <StreamGeometry x:Key="IconRefresh">M19,7 A8,8 0 1 0 20,14 M19,3 L19,7 L15,7</StreamGeometry>
+  <StreamGeometry x:Key="IconSliders">M4,7 L20,7 M4,17 L20,17 M9,4 L9,10 M15,14 L15,20</StreamGeometry>
+</ResourceDictionary>
