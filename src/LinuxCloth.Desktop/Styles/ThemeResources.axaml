@@ -44,9 +44,9 @@
       <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF" />
       <SolidColorBrush x:Key="BorderSubtleBrush" Color="#2C3443" />
       <SolidColorBrush x:Key="BorderStrongBrush" Color="#3A4457" />
-      <SolidColorBrush x:Key="AccentBrush" Color="#8173F3" />
-      <SolidColorBrush x:Key="AccentHoverBrush" Color="#9387FA" />
-      <SolidColorBrush x:Key="AccentPressedBrush" Color="#6C5EE2" />
+      <SolidColorBrush x:Key="AccentBrush" Color="#6F61DF" />
+      <SolidColorBrush x:Key="AccentHoverBrush" Color="#8173F3" />
+      <SolidColorBrush x:Key="AccentPressedBrush" Color="#5F51CE" />
       <SolidColorBrush x:Key="AccentSoftBrush" Color="#2B2850" />
       <SolidColorBrush x:Key="SuccessBrush" Color="#63C89E" />
       <SolidColorBrush x:Key="SuccessSoftBrush" Color="#18382E" />

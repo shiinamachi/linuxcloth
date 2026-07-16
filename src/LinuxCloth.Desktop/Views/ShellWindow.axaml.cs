@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Desktop.Setup;
@@ -53,7 +55,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            StartupStatus.Text = $"시작 준비를 완료하지 못했습니다. {exception.Message}";
+            ShowStartupFailure("시작 준비를 완료하지 못했습니다. 앱을 다시 실행하거나 로그를 확인하세요.", exception);
         }
     }
 
@@ -64,6 +66,12 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
             Environment.NewLine,
             failures.Select(result =>
                 $"• {result.SessionId}: {result.Detail ?? result.Failure?.Message ?? result.Disposition.ToString()}"));
+        var technicalDetails = new Expander
+        {
+            Header = "기술 세부정보",
+            Content = new TextBlock { Text = details, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
+        };
+        AutomationProperties.SetAutomationId(technicalDetails, "Recovery.TechnicalDetails");
         ShellContent.Content = new Border
         {
             Padding = new Avalonia.Thickness(48),
@@ -75,9 +83,9 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
                 Spacing = 16,
                 Children =
                 {
-                    new TextBlock { Text = "이전 세션 복구가 필요합니다", FontSize = 26, FontWeight = Avalonia.Media.FontWeight.Bold },
-                    new TextBlock { Text = "일회용 데이터의 안전한 정리가 끝날 때까지 새 세션이나 이미지 생성을 시작할 수 없습니다.", TextWrapping = Avalonia.Media.TextWrapping.Wrap },
-                    new TextBlock { Text = details, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
+                    new TextBlock { Text = "이전 작업 정리가 필요합니다", FontSize = 26, FontWeight = Avalonia.Media.FontWeight.Bold },
+                    new TextBlock { Text = "이전 Windows 환경의 안전한 정리가 끝날 때까지 새 서비스를 열거나 환경을 만들 수 없습니다.", TextWrapping = Avalonia.Media.TextWrapping.Wrap },
+                    technicalDetails,
                     CreateRetryButton(),
                 },
             },
@@ -88,6 +96,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
     private Button CreateRetryButton()
     {
         var button = new Button { Content = "복구 다시 시도", Classes = { "primary" } };
+        AutomationProperties.SetAutomationId(button, "Recovery.Retry");
         button.Click += async (_, _) => await RouteFromCurrentStateAsync();
         return button;
     }
@@ -163,7 +172,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            StartupStatus.Text = $"초기 설정을 열지 못했습니다. {exception.Message}";
+            ShowStartupFailure("초기 설정을 열지 못했습니다. 잠시 후 다시 시도하세요.", exception);
         }
     }
 
@@ -186,7 +195,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            StartupStatus.Text = $"카탈로그 화면을 열지 못했습니다. {exception.Message}";
+            ShowStartupFailure("서비스 화면을 열지 못했습니다. 잠시 후 다시 시도하세요.", exception);
         }
     }
 
@@ -264,6 +273,12 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         await _setupViewModel.DisposeAsync();
         _setupViewModel = null;
     }
+
+    private void ShowStartupFailure(string userMessage, Exception exception)
+    {
+        Trace.TraceError("Desktop startup failure: {0}", exception);
+        StartupStatus.Text = userMessage;
+    }
 }
 
 internal sealed class ActiveOperationCloseDialog : Window
@@ -276,8 +291,10 @@ internal sealed class ActiveOperationCloseDialog : Window
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var cancel = new Button { Content = "계속 작업", Classes = { "secondary" } };
+        AutomationProperties.SetAutomationId(cancel, "ActiveOperation.KeepWorking");
         cancel.Click += (_, _) => Close(false);
         var stop = new Button { Content = "안전하게 중단하고 닫기", Classes = { "primary" } };
+        AutomationProperties.SetAutomationId(stop, "ActiveOperation.StopAndClose");
         stop.Click += (_, _) => Close(true);
         Content = new Grid
         {
@@ -298,7 +315,7 @@ internal sealed class ActiveOperationCloseDialog : Window
                         },
                         new TextBlock
                         {
-                            Text = "패키지 설치는 시스템 트랜잭션 상태를 따릅니다. 이미지 생성은 현재 단계를 안전하게 중단하고 durable 스테이징 상태를 보존한 뒤 닫습니다.",
+                            Text = "설치는 현재 시스템 상태를 따릅니다. Windows 환경 만들기는 안전하게 중단하고 나중에 다시 시작할 수 있도록 현재 상태를 보존합니다.",
                             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                         },
                     },

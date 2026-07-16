@@ -1,5 +1,6 @@
 using System.Collections;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Application.Images;
@@ -327,7 +328,7 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
             throw new InvalidOperationException(
                 IsBuilding
                     ? "이미지 생성 작업이 이미 실행 중입니다."
-                    : "새 기준 이미지 생성에 필요한 입력값을 모두 확인하세요.");
+                    : "새 Windows 환경에 필요한 입력값을 모두 확인하세요.");
         }
 
         var request = new DesktopImageBuildRequest(
@@ -354,7 +355,7 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
             throw new InvalidOperationException(
                 IsBuilding
                     ? "이미지 생성 작업이 이미 실행 중입니다."
-                    : "재개할 이미지 ID와 스테이징 디렉터리를 확인하세요.");
+                    : "계속할 이전 작업 정보를 확인하세요.");
         }
 
         var imageId = ImageId.Parse(ImageIdText);
@@ -407,18 +408,18 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
             }
 
             StagingDirectory = string.Empty;
-            BuildStatus = $"기준 이미지 '{image.ImageId.Value}' 등록을 완료했습니다.";
+            BuildStatus = $"Windows 환경 '{image.ImageId.Value}' 준비를 마쳤습니다.";
             await _onImageRegistered(CancellationToken.None).ConfigureAwait(true);
         }
         catch (WindowsImageBuildCanceledException exception)
         {
             StagingDirectory = exception.Staging.DirectoryPath;
-            BuildStatus = "이미지 생성을 취소했습니다. 아래 스테이징 경로에서 다시 시작할 수 있습니다.";
+            BuildStatus = "Windows 환경 만들기를 취소했습니다. 보존된 작업 정보로 다시 시작할 수 있습니다.";
         }
         catch (OperationCanceledException)
         {
             BuildStatus = HasStagingDirectory
-                ? "이미지 생성을 취소했습니다. 보존된 스테이징 경로에서 다시 시작할 수 있습니다."
+                ? "Windows 환경 만들기를 취소했습니다. 보존된 작업 정보로 다시 시작할 수 있습니다."
                 : "이미지 생성을 취소했습니다.";
         }
         catch (WindowsImageBuildException exception)
@@ -429,7 +430,7 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
             }
 
             ErrorMessage = HasStagingDirectory
-                ? "이미지 생성에 실패했습니다. 스테이징 데이터는 보존되었으며 다시 시작할 수 있습니다."
+                ? "Windows 환경을 만들지 못했습니다. 작업 정보는 보존되어 다시 시작할 수 있습니다."
                 : "이미지 생성 준비에 실패했습니다. 선택한 파일과 시스템 검사 결과를 확인하세요.";
             BuildStatus = "이미지 생성을 완료하지 못했습니다.";
         }
@@ -464,16 +465,16 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
     private void ShowError(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
+        Trace.TraceError("Windows environment build failed: {0}", exception);
         ErrorMessage = exception switch
         {
-            FormatException => "이미지 ID는 영문 소문자, 숫자, 내부 하이픈만 사용할 수 있습니다.",
+            FormatException => "환경 이름은 영문 소문자, 숫자, 내부 하이픈만 사용할 수 있습니다.",
             FileNotFoundException => "선택한 파일을 찾을 수 없습니다.",
             UnauthorizedAccessException => "선택한 경로에 접근할 권한이 없습니다.",
             OperationCanceledException => "작업이 취소되었습니다.",
-            InvalidOperationException or ArgumentException => exception.Message,
-            _ => "이미지 설정 작업을 완료하지 못했습니다. 입력 경로와 시스템 요구사항을 확인하세요.",
+            _ => "Windows 환경을 만들지 못했습니다. 입력 파일과 시스템 요구사항을 확인하세요.",
         };
-        BuildStatus = "이미지 설정 작업을 완료하지 못했습니다.";
+        BuildStatus = "Windows 환경 준비를 완료하지 못했습니다.";
     }
 
     private bool RequiredPathsArePresent() =>
@@ -528,7 +529,7 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
         {
             if (!ImageId.TryParse(ImageIdText, out _))
             {
-                errors.Add("이미지 ID는 영문 소문자, 숫자, 내부 하이픈만 사용할 수 있습니다.");
+                errors.Add("환경 이름은 영문 소문자, 숫자, 내부 하이픈만 사용할 수 있습니다.");
             }
         }
 
@@ -594,7 +595,7 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
         WindowsImageBuildPhase.InstallerRunning => "Windows를 설치하고 연결 구성 요소를 준비하고 있습니다. 열린 Windows 창을 닫지 마세요.",
         WindowsImageBuildPhase.ReadyToVerify => "설치가 끝났습니다. 미디어 없는 검증 부팅을 준비하고 있습니다…",
         WindowsImageBuildPhase.VerificationRunning => "Windows 환경을 확인하고 있습니다…",
-        WindowsImageBuildPhase.ReadyToFinalize => "검증을 마쳤습니다. 기준 이미지를 봉인하고 있습니다…",
+        WindowsImageBuildPhase.ReadyToFinalize => "확인을 마쳤습니다. Windows 환경을 마무리하고 있습니다…",
         _ => "이미지 생성을 준비하고 있습니다…",
     };
 

@@ -50,7 +50,7 @@ public sealed class ImageSetupViewModelTests
         Assert.Equal(1, refreshCount);
         Assert.False(viewModel.IsBuilding);
         Assert.False(viewModel.HasStagingDirectory);
-        Assert.Contains("등록을 완료", viewModel.BuildStatus, StringComparison.Ordinal);
+        Assert.Contains("준비를 마쳤", viewModel.BuildStatus, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public sealed class ImageSetupViewModelTests
         Assert.False(viewModel.CanResumeBuild);
         Assert.True(viewModel.HasErrors);
         Assert.Contains(
-            "이미지 ID",
+            "환경 이름",
             viewModel.GetErrors(nameof(ImageSetupViewModel.ImageIdText)).Cast<string>().Single(),
             StringComparison.Ordinal);
     }
@@ -175,7 +175,7 @@ public sealed class ImageSetupViewModelTests
             queuedContext.Drain();
 
             Assert.False(viewModel.HasStagingDirectory);
-            Assert.Contains("등록을 완료", viewModel.BuildStatus, StringComparison.Ordinal);
+            Assert.Contains("준비를 마쳤", viewModel.BuildStatus, StringComparison.Ordinal);
         }
         finally
         {

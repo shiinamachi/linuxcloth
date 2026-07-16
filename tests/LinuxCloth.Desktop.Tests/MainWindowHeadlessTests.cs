@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Input;
 using LinuxCloth.Desktop.Views;
 
 namespace LinuxCloth.Desktop.Tests;
@@ -61,6 +62,35 @@ public sealed class MainWindowHeadlessTests
                     Assert.Equal(720, window.ClientSize.Width);
                     Assert.Equal(480, window.ClientSize.Height);
                     Assert.True(view.FindControl<Border>("CompactHeader")!.IsVisible);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            },
+            CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ControlFMovesFocusToServiceSearch()
+    {
+        using var session = HeadlessUnitTestSession.StartNew(typeof(App));
+
+        await session.Dispatch(
+            () =>
+            {
+                var (window, view) = ShowAt(1280, 720);
+                try
+                {
+                    window.Activate();
+                    Assert.True(view.FindControl<Button>("ReadinessButton")!.Focus());
+                    window.KeyPress(
+                        Key.F,
+                        RawInputModifiers.Control,
+                        PhysicalKey.F,
+                        keySymbol: null);
+
+                    Assert.True(view.FindControl<TextBox>("DesktopSearchBox")!.IsFocused);
                 }
                 finally
                 {

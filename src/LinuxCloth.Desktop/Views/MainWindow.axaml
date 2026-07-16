@@ -92,7 +92,7 @@
           </Grid>
         </Border>
 
-        <Button Grid.Column="2" Classes="ghost" AutomationProperties.Name="실행 준비 상태">
+        <Button x:Name="ReadinessButton" Grid.Column="2" Classes="ghost" AutomationProperties.AutomationId="Catalog.Readiness" AutomationProperties.Name="실행 준비 상태">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
               <Border Classes="card" Width="360" Padding="18">
@@ -101,8 +101,8 @@
                     <TextBlock Text="{Binding DoctorSummary}" FontSize="17" FontWeight="SemiBold" />
                     <TextBlock Text="이 컴퓨터에서 Windows 서비스를 열기 위한 상태입니다." Classes="muted" TextWrapping="Wrap" />
                   </StackPanel>
-                  <Button Classes="secondary" Content="다시 확인" Command="{Binding RefreshDoctorCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-                  <Expander Classes="technical" Header="기술 세부정보">
+                  <Button Classes="secondary" Content="다시 확인" Command="{Binding RefreshDoctorCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.AutomationId="Catalog.Readiness.Refresh" />
+                  <Expander Classes="technical" Header="기술 세부정보" AutomationProperties.AutomationId="Catalog.Readiness.TechnicalDetails">
                     <ItemsControl ItemsSource="{Binding DoctorChecks}" Margin="0,8,0,0">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -169,6 +169,7 @@
               Classes="ghost icon"
               Click="OnOpenImageSetup"
               IsEnabled="{Binding CanConfigureImages}"
+              AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Compact"
               AutomationProperties.Name="Windows 환경 관리">
             <PathIcon Width="18" Height="18" Data="{StaticResource IconSliders}" />
           </Button>
@@ -227,7 +228,7 @@
           <Border Grid.Row="2" Classes="subtle-card" Padding="14" Margin="0,18,0,0">
             <StackPanel Spacing="9">
               <TextBlock Text="Windows 환경" FontWeight="SemiBold" />
-              <ComboBox ItemsSource="{Binding Images}" SelectedItem="{Binding SelectedImage}" AutomationProperties.Name="Windows 환경 선택">
+              <ComboBox ItemsSource="{Binding Images}" SelectedItem="{Binding SelectedImage}" AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Select" AutomationProperties.Name="Windows 환경 선택">
                 <ComboBox.ItemTemplate>
                   <DataTemplate><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /></DataTemplate>
                 </ComboBox.ItemTemplate>
@@ -237,6 +238,7 @@
                   Content="환경 관리"
                   Click="OnOpenImageSetup"
                   IsEnabled="{Binding CanConfigureImages}"
+                  AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Manage"
                   HorizontalAlignment="Stretch"
                   HorizontalContentAlignment="Center" />
               <TextBlock
@@ -349,6 +351,7 @@
             Content="닫고 삭제"
             Command="{Binding StopCommand}"
             IsVisible="{Binding IsSessionRunning}"
+            AutomationProperties.AutomationId="Catalog.Session.Stop"
             AutomationProperties.Name="Windows 환경 닫기 및 삭제" />
       </Grid>
     </Border>
@@ -374,6 +377,7 @@
               Classes="ghost icon"
               HorizontalAlignment="Right"
               Click="OnCloseDetails"
+              AutomationProperties.AutomationId="Catalog.Details.Close"
               AutomationProperties.Name="서비스 상세정보 닫기">
             <PathIcon Width="16" Height="16" Data="{StaticResource IconChevronRight}">
               <PathIcon.RenderTransform><RotateTransform Angle="180" /></PathIcon.RenderTransform>

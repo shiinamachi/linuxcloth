@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Desktop.Infrastructure;
 using LinuxCloth.Desktop.Services;
@@ -381,6 +382,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception exception)
         {
+            Trace.TraceError("Windows media validation failed: {0}", exception);
             WindowsMediaStatus = MediaError(exception, windows: true);
             ErrorMessage = WindowsMediaStatus;
         }
@@ -426,6 +428,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception exception)
         {
+            Trace.TraceError("Windows driver media validation failed: {0}", exception);
             VirtioMediaStatus = MediaError(exception, windows: false);
             ErrorMessage = VirtioMediaStatus;
         }
@@ -526,7 +529,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         PackageStatus = _packagePreview.IsAlreadySatisfied
             ? "필수 구성 요소가 이미 설치되어 있습니다."
             : !_packagePreview.IsPackageKitAvailable
-                ? "PackageKit을 사용할 수 없습니다. 아래 명령을 터미널에서 직접 실행한 뒤 다시 검사하세요."
+                ? "자동 설치를 사용할 수 없습니다. 아래 명령을 터미널에서 직접 실행한 뒤 다시 확인하세요."
                 : _packagePreview.UnresolvedPackages.Count > 0
                     ? "공식 저장소에서 해결하지 못한 패키지가 있습니다. 저장소 설정을 확인하세요."
                     : "필요한 구성 요소를 설치할 준비가 되었습니다. 시스템 인증이 요청될 수 있습니다.";
@@ -707,12 +710,13 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private void ShowError(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
+        Trace.TraceError("Desktop setup operation failed: {0}", exception);
         ErrorMessage = exception switch
         {
             OperationCanceledException when _shutdown.IsCancellationRequested => "앱 종료로 작업이 취소되었습니다.",
             OperationCanceledException => "작업이 취소되었습니다.",
             UnauthorizedAccessException => "현재 사용자에게 이 작업을 수행할 권한이 없습니다.",
-            _ => exception.Message,
+            _ => "설정 작업 중 오류가 발생했습니다. 다시 시도하거나 로그를 확인하세요.",
         };
     }
 
@@ -729,7 +733,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
             "Windows 11용 디스크 또는 네트워크 드라이버를 찾지 못했습니다.",
         WindowsImageBuildException when exception.Message.Contains("size", StringComparison.Ordinal) =>
             windows ? "Windows 설치 파일이 허용된 32 GiB 크기 제한을 벗어났습니다." : "드라이버 파일이 허용된 8 GiB 크기 제한을 벗어났습니다.",
-        _ => $"미디어를 검증하지 못했습니다. {exception.Message}",
+        _ => "선택한 파일을 확인하지 못했습니다. 다른 파일을 선택하거나 로그를 확인하세요.",
     };
 
     private static string DoctorLabel(string code) => code switch

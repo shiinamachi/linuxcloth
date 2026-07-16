@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Avalonia.Threading;
 using LinuxCloth.Application.Catalog;
 using LinuxCloth.Application.Images;
@@ -195,8 +196,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             _isInitialized = true;
             SessionStatus = HasImages
-                ? "서비스와 Windows 이미지를 선택하세요."
-                : "등록된 Windows 이미지가 없습니다. 먼저 Windows 11 기준 이미지를 준비하세요.";
+                ? "서비스와 Windows 환경을 선택하세요."
+                : "준비된 Windows 환경이 없습니다. 먼저 Windows 환경을 준비하세요.";
         }
         catch (Exception exception)
         {
@@ -220,8 +221,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             LoadImages(await _runtime.ListImagesAsync(_shutdown.Token));
             SessionStatus = HasImages
-                ? "서비스와 Windows 이미지를 선택하세요."
-                : "등록된 Windows 이미지가 없습니다. 기준 이미지 준비를 시작하세요.";
+                ? "서비스와 Windows 환경을 선택하세요."
+                : "준비된 Windows 환경이 없습니다. Windows 환경 준비를 시작하세요.";
         }
         catch (Exception exception)
         {
@@ -256,12 +257,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public void ShowError(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
+        Trace.TraceError("Desktop catalog operation failed: {0}", exception);
         ErrorMessage = exception switch
         {
             LaunchPrerequisiteException => "필수 가상화 구성 요소가 준비되지 않았습니다. 시스템 검사 결과를 확인하세요.",
-            ImageVerificationException => "선택한 Windows 이미지의 무결성 검사가 실패했습니다.",
+            ImageVerificationException => "선택한 Windows 환경을 확인하지 못했습니다. 환경을 다시 준비하세요.",
             OperationCanceledException => "작업이 취소되었습니다.",
-            _ => exception.Message,
+            _ => "작업 중 오류가 발생했습니다. 다시 시도하거나 로그를 확인하세요.",
         };
         SessionStatus = "작업을 완료하지 못했습니다.";
     }
@@ -314,7 +316,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await session.Completion;
-            SessionStatus = "세션이 종료되었고 일회용 데이터가 정리되었습니다.";
+            SessionStatus = "Windows 환경을 닫았고 이번 실행의 변경사항을 삭제했습니다.";
         }
         catch (Exception exception)
         {
@@ -347,7 +349,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        SessionStatus = "Windows를 종료하고 세션 데이터를 정리하고 있습니다…";
+        SessionStatus = "Windows 환경을 닫고 이번 실행의 변경사항을 삭제하고 있습니다…";
         await _runningSession.StopAsync(_shutdown.Token);
     }
 
@@ -460,9 +462,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SessionState.WaitingForGuest => "Windows 환경이 준비되기를 기다리고 있습니다…",
         SessionState.Running => "Windows에서 서비스를 열고 있습니다.",
         SessionState.Stopping => "Windows를 안전하게 종료하고 있습니다…",
-        SessionState.Cleaning => "일회용 세션 데이터를 삭제하고 있습니다…",
-        SessionState.Completed => "세션 정리가 완료되었습니다.",
-        SessionState.Failed => "세션 실행에 실패했습니다.",
+        SessionState.Cleaning => "이번 실행의 변경사항을 삭제하고 있습니다…",
+        SessionState.Completed => "Windows 환경 정리를 완료했습니다.",
+        SessionState.Failed => "서비스를 열지 못했습니다.",
         _ => "준비 중…",
     };
 

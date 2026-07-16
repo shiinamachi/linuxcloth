@@ -33,7 +33,7 @@
 
         <StackPanel Spacing="7">
           <TextBlock Text="Windows 환경" Classes="eyebrow" />
-          <ComboBox ItemsSource="{Binding Images}" SelectedItem="{Binding SelectedImage}" AutomationProperties.Name="서비스를 열 Windows 환경">
+          <ComboBox ItemsSource="{Binding Images}" SelectedItem="{Binding SelectedImage}" AutomationProperties.AutomationId="Catalog.Details.WindowsEnvironment" AutomationProperties.Name="서비스를 열 Windows 환경">
             <ComboBox.ItemTemplate>
               <DataTemplate><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /></DataTemplate>
             </ComboBox.ItemTemplate>
@@ -43,11 +43,12 @@
               Classes="secondary"
               Content="Windows 환경 준비"
               Click="OnOpenSetup"
+              AutomationProperties.AutomationId="Catalog.Details.PrepareWindowsEnvironment"
               HorizontalAlignment="Stretch"
               HorizontalContentAlignment="Center" />
         </StackPanel>
 
-        <Expander Classes="technical" Header="기술 세부정보">
+        <Expander Classes="technical" Header="기술 세부정보" AutomationProperties.AutomationId="Catalog.Details.TechnicalDetails">
           <StackPanel Spacing="12" Margin="0,10,0,0">
             <StackPanel Spacing="4">
               <TextBlock Text="공식 주소" Classes="eyebrow" />
