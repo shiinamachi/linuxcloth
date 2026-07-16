@@ -151,9 +151,9 @@ public sealed partial class SetupWizardView : UserControl
         var isCompact = width < 900;
         StepRail.IsVisible = !isCompact;
         CompactStepHeader.IsVisible = isCompact;
-        WizardBody.ColumnDefinitions[0].Width = new GridLength(isCompact ? 0 : 220);
+        WizardBody.ColumnDefinitions[0].Width = new GridLength(isCompact ? 0 : 260);
         WizardContent.Margin = isCompact
-            ? new Thickness(16, 16, 12, 12)
-            : new Thickness(28, 22);
+            ? new Thickness(16, 18, 14, 14)
+            : new Thickness(32, 28);
     }
 }

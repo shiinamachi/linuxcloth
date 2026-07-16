@@ -7,34 +7,57 @@
     Height="820"
     MinWidth="720"
     MinHeight="480"
-    WindowStartupLocation="CenterScreen">
+    WindowStartupLocation="CenterScreen"
+    Background="{DynamicResource AppBackgroundBrush}">
   <Grid>
     <ContentControl x:Name="ShellContent" />
     <Border x:Name="StartupPanel" Background="{DynamicResource AppBackgroundBrush}" IsVisible="True">
-      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="360">
-        <Border Width="56" Height="56" CornerRadius="16" Background="{DynamicResource AccentBrush}" HorizontalAlignment="Center">
-          <TextBlock
-              Text="lc"
-              Foreground="{DynamicResource TextOnAccentBrush}"
+      <Border
+          Classes="stage"
+          Background="{DynamicResource SurfaceRaisedBrush}"
+          Padding="40,36"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          MinWidth="320">
+        <StackPanel Spacing="18" HorizontalAlignment="Center">
+          <Border
+              Width="72"
+              Height="72"
+              CornerRadius="22"
+              Background="{DynamicResource AccentBrush}"
+              HorizontalAlignment="Center">
+            <TextBlock
+                Text="lc"
+                Foreground="{DynamicResource TextOnAccentBrush}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="22"
+                FontWeight="Bold" />
+          </Border>
+          <StackPanel Spacing="4" HorizontalAlignment="Center">
+            <TextBlock
+                Text="linuxcloth"
+                FontSize="20"
+                FontWeight="Bold"
+                HorizontalAlignment="Center"
+                LetterSpacing="-0.3" />
+            <TextBlock
+                x:Name="StartupStatus"
+                Text="준비 중…"
+                Classes="muted"
+                TextWrapping="Wrap"
+                TextAlignment="Center"
+                FontSize="13"
+                MaxWidth="260" />
+          </StackPanel>
+          <ProgressBar
+              Width="160"
+              Height="6"
+              IsIndeterminate="True"
               HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              FontSize="18"
-              FontWeight="Bold" />
-        </Border>
-        <TextBlock
-            x:Name="StartupStatus"
-            Text="준비 중…"
-            Classes="muted"
-            TextWrapping="Wrap"
-            TextAlignment="Center"
-            FontSize="13" />
-        <ProgressBar
-            Width="180"
-            Height="4"
-            IsIndeterminate="True"
-            HorizontalAlignment="Center"
-            AutomationProperties.Name="시작 준비 진행 중" />
-      </StackPanel>
+              AutomationProperties.Name="시작 준비 진행 중" />
+        </StackPanel>
+      </Border>
     </Border>
   </Grid>
 </Window>

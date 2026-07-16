@@ -132,20 +132,20 @@ public sealed partial class MainWindow : UserControl
         WideDetailsPanel.IsVisible = isWide;
         AdaptiveFilterBar.IsVisible = !isWide && !isCompact;
 
-        ContentGrid.ColumnDefinitions[0].Width = new GridLength(isWide ? 200 : 0);
-        ContentGrid.ColumnDefinitions[2].Width = new GridLength(isWide ? 340 : 0);
+        ContentGrid.ColumnDefinitions[0].Width = new GridLength(isWide ? 248 : 0);
+        ContentGrid.ColumnDefinitions[2].Width = new GridLength(isWide ? 380 : 0);
         ServicesContent.Margin = isWide
-            ? new Thickness(24, 20)
+            ? new Thickness(28, 24)
             : isCompact
-                ? new Thickness(12, 14)
-                : new Thickness(18, 18);
+                ? new Thickness(14, 16)
+                : new Thickness(22, 20);
 
         var hasSelectedService = _subscribedViewModel?.HasSelectedService == true;
         DetailsOverlay.IsVisible = !isWide && hasSelectedService;
-        DetailsDrawer.Width = isCompact ? double.NaN : 400;
-        DetailsDrawer.MaxWidth = isCompact ? double.PositiveInfinity : 400;
-        DetailsDrawer.Margin = isCompact ? new Thickness(0) : new Thickness(16);
-        DetailsDrawer.CornerRadius = isCompact ? new CornerRadius(0) : new CornerRadius(16);
+        DetailsDrawer.Width = isCompact ? double.NaN : 420;
+        DetailsDrawer.MaxWidth = isCompact ? double.PositiveInfinity : 420;
+        DetailsDrawer.Margin = isCompact ? new Thickness(0) : new Thickness(18);
+        DetailsDrawer.CornerRadius = isCompact ? new CornerRadius(0) : new CornerRadius(22);
         DetailsDrawer.HorizontalAlignment = isCompact
             ? HorizontalAlignment.Stretch
             : HorizontalAlignment.Right;

@@ -4,37 +4,39 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Grid RowDefinitions="*,Auto">
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-      <StackPanel Spacing="16">
-        <Grid ColumnDefinitions="64,*" ColumnSpacing="14">
+      <StackPanel Spacing="18">
+        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
           <Border
-              Width="64"
-              Height="64"
-              CornerRadius="16"
+              Width="88"
+              Height="88"
+              CornerRadius="24"
               Background="{DynamicResource CatalogLogoBackgroundBrush}"
               BorderBrush="{DynamicResource BorderSubtleBrush}"
               BorderThickness="1"
-              Padding="8"
-              HorizontalAlignment="Left">
+              Padding="12"
+              HorizontalAlignment="Center">
             <Image Source="{Binding SelectedService.Image}" Stretch="Uniform" />
           </Border>
-          <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+          <StackPanel Spacing="8" HorizontalAlignment="Stretch">
             <TextBlock
                 Text="{Binding SelectedService.DisplayName}"
-                FontSize="20"
-                FontWeight="SemiBold"
-                TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
+                FontSize="22"
+                FontWeight="Bold"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+                LetterSpacing="-0.3" />
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
               <Border Classes="badge-success" IsVisible="{Binding SelectedService.IsVerified}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource SuccessBrush}" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource SuccessBrush}" />
               </Border>
               <Border Classes="badge-warning" IsVisible="{Binding SelectedService.IsPartial}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource WarningBrush}" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource WarningBrush}" />
               </Border>
               <Border Classes="badge-danger" IsVisible="{Binding SelectedService.IsBlocked}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource DangerBrush}" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource DangerBrush}" />
               </Border>
               <Border Classes="badge-neutral" IsVisible="{Binding SelectedService.IsUnknown}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="SemiBold" FontSize="11" Classes="muted" />
+                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" FontWeight="Bold" FontSize="11" Classes="muted" />
               </Border>
               <TextBlock
                   Text="{Binding SelectedService.Category}"
@@ -43,25 +45,34 @@
                   VerticalAlignment="Center" />
             </StackPanel>
           </StackPanel>
-        </Grid>
+        </StackPanel>
 
         <TextBlock
             Text="{Binding SelectedService.CompatibilityDescription}"
             TextWrapping="Wrap"
+            TextAlignment="Center"
             Classes="muted"
             FontSize="13" />
 
-        <Border Classes="notice-warning" Padding="12,10">
-          <TextBlock
-              Text="닫으면 이번 실행의 파일과 변경사항이 삭제됩니다."
-              TextWrapping="Wrap"
-              FontSize="12"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource WarningBrush}" />
+        <Border Classes="notice-warning" Padding="14,12">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon
+                Width="16"
+                Height="16"
+                Data="{StaticResource IconAlert}"
+                Foreground="{DynamicResource WarningBrush}"
+                VerticalAlignment="Center" />
+            <TextBlock
+                Text="닫으면 이번 실행의 파일과 변경사항이 삭제됩니다."
+                TextWrapping="Wrap"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource WarningBrush}" />
+          </StackPanel>
         </Border>
 
         <StackPanel Spacing="8">
-          <TextBlock Text="Windows 환경" Classes="eyebrow" />
+          <TextBlock Text="WINDOWS 환경" Classes="eyebrow" />
           <ComboBox
               ItemsSource="{Binding Images}"
               SelectedItem="{Binding SelectedImage}"
@@ -114,8 +125,8 @@
     <Button
         Grid.Row="1"
         Classes="primary"
-        Margin="0,16,0,0"
-        MinHeight="44"
+        Margin="0,18,0,0"
+        MinHeight="48"
         Content="서비스 열기"
         Command="{Binding LaunchCommand}"
         IsEnabled="{Binding CanLaunch}"

@@ -13,56 +13,58 @@
     <Style Selector="ListBox.category-list > ListBoxItem">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Padding" Value="12,10" />
-      <Setter Property="Margin" Value="0,2" />
-      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,11" />
+      <Setter Property="Margin" Value="0,3" />
+      <Setter Property="CornerRadius" Value="14" />
     </Style>
     <Style Selector="ListBox.category-list > ListBoxItem:pointerover">
-      <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
+      <Setter Property="Background" Value="{DynamicResource NavRailHoverBrush}" />
     </Style>
     <Style Selector="ListBox.category-list > ListBoxItem:selected">
-      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="Background" Value="{DynamicResource NavRailSelectedBrush}" />
+    </Style>
+    <Style Selector="ListBox.category-list > ListBoxItem TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource NavTextMutedBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="ListBox.category-list > ListBoxItem:selected TextBlock">
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource NavTextBrush}" />
     </Style>
     <Style Selector="ListBox.service-grid">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="ListBox.service-grid > ListBoxItem">
-      <Setter Property="Width" Value="220" />
+      <Setter Property="Width" Value="156" />
       <Setter Property="Padding" Value="0" />
-      <Setter Property="Margin" Value="0,0,12,12" />
+      <Setter Property="Margin" Value="0,0,14,14" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="CornerRadius" Value="22" />
     </Style>
-    <Style Selector="ListBox.service-grid > ListBoxItem:pointerover Border.service-card">
-      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+    <Style Selector="ListBox.service-grid > ListBoxItem:pointerover Border.launcher-card">
       <Setter Property="Background" Value="{DynamicResource SurfaceOverlayBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
     </Style>
-    <Style Selector="ListBox.service-grid > ListBoxItem:selected Border.service-card">
+    <Style Selector="ListBox.service-grid > ListBoxItem:selected Border.launcher-card">
       <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="BorderThickness" Value="1.5" />
       <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
     </Style>
   </UserControl.Styles>
 
   <Grid RowDefinitions="Auto,*,Auto">
-    <!-- Desktop header -->
+    <!-- Desktop top bar: floating over canvas -->
     <Border
         x:Name="DesktopHeader"
         Grid.Row="0"
-        Padding="20,14"
-        Background="{DynamicResource SurfaceBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentBrush}">
+        Margin="18,16,18,0"
+        Padding="10,8"
+        Classes="stage"
+        Background="{DynamicResource SurfaceRaisedBrush}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" Margin="6,0,0,0">
+          <Border Width="38" Height="38" CornerRadius="12" Background="{DynamicResource AccentBrush}">
             <TextBlock
                 Text="lc"
                 Foreground="{DynamicResource TextOnAccentBrush}"
@@ -71,21 +73,25 @@
                 FontSize="13"
                 FontWeight="Bold" />
           </Border>
-          <TextBlock Text="linuxcloth" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <StackPanel Spacing="0" VerticalAlignment="Center">
+            <TextBlock Text="linuxcloth" FontSize="16" FontWeight="Bold" LetterSpacing="-0.2" />
+            <TextBlock Text="서비스 런처" Classes="muted" FontSize="11" />
+          </StackPanel>
         </StackPanel>
 
         <Border
             Grid.Column="1"
-            Margin="20,0"
-            MaxWidth="560"
+            Margin="12,0"
+            MaxWidth="520"
             HorizontalAlignment="Stretch"
-            Classes="search-field">
-          <Grid ColumnDefinitions="Auto,*" Margin="12,0">
+            Classes="search-field"
+            MinHeight="44">
+          <Grid ColumnDefinitions="Auto,*" Margin="16,0">
             <PathIcon
                 Grid.Column="0"
                 Width="16"
                 Height="16"
-                Margin="0,0,8,0"
+                Margin="0,0,10,0"
                 Foreground="{DynamicResource TextSecondaryBrush}"
                 Data="{StaticResource IconSearch}"
                 VerticalAlignment="Center" />
@@ -104,18 +110,17 @@
         <Button
             x:Name="ReadinessButton"
             Grid.Column="2"
-            Classes="ghost"
-            Padding="12,8"
+            Classes="secondary pill"
             AutomationProperties.AutomationId="Catalog.Readiness"
             AutomationProperties.Name="실행 준비 상태">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
-              <Border Classes="card" Width="340" Padding="16">
-                <StackPanel Spacing="12">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" VerticalAlignment="Center" />
-                    <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding DoctorSummary}" FontSize="15" FontWeight="SemiBold" />
+              <Border Classes="card" Width="340" Padding="18">
+                <StackPanel Spacing="14">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" VerticalAlignment="Center" />
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding DoctorSummary}" FontSize="16" FontWeight="Bold" />
                   </StackPanel>
                   <Button
                       Classes="secondary"
@@ -131,7 +136,7 @@
                     <ItemsControl ItemsSource="{Binding DoctorChecks}" Margin="0,8,0,0">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Grid ColumnDefinitions="24,100,*" Margin="0,4">
+                          <Grid ColumnDefinitions="24,100,*" Margin="0,5">
                             <TextBlock Text="{Binding Status}" FontWeight="Bold" />
                             <TextBlock Grid.Column="1" Text="{Binding Label}" FontWeight="SemiBold" FontSize="12" />
                             <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
@@ -147,39 +152,38 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
             <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
-            <TextBlock Text="{Binding DoctorSummary}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding DoctorSummary}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
 
         <Button
             Grid.Column="3"
-            Classes="secondary"
-            Padding="12,8"
+            Classes="primary pill"
             Click="OnOpenImageSetup"
             IsEnabled="{Binding CanConfigureImages}"
             AutomationProperties.AutomationId="Catalog.WindowsEnvironment"
             AutomationProperties.Name="Windows 환경 관리">
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="16" Height="16" Data="{StaticResource IconDesktop}" />
-            <TextBlock Text="환경" VerticalAlignment="Center" FontSize="13" />
+            <PathIcon Width="15" Height="15" Data="{StaticResource IconDesktop}" Foreground="{DynamicResource TextOnAccentBrush}" />
+            <TextBlock Text="환경" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextOnAccentBrush}" />
           </StackPanel>
         </Button>
       </Grid>
     </Border>
 
-    <!-- Compact header -->
+    <!-- Compact chrome -->
     <Border
         x:Name="CompactHeader"
         Grid.Row="0"
         IsVisible="False"
-        Padding="14,12"
-        Background="{DynamicResource SurfaceBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,0,0,1">
+        Margin="10,10,10,0"
+        Padding="12"
+        Classes="stage"
+        Background="{DynamicResource SurfaceRaisedBrush}">
       <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
           <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-            <Border Width="32" Height="32" CornerRadius="9" Background="{DynamicResource AccentBrush}">
+            <Border Width="32" Height="32" CornerRadius="10" Background="{DynamicResource AccentBrush}">
               <TextBlock
                   Text="lc"
                   Foreground="{DynamicResource TextOnAccentBrush}"
@@ -188,7 +192,7 @@
                   FontSize="12"
                   FontWeight="Bold" />
             </Border>
-            <TextBlock Text="linuxcloth" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Text="linuxcloth" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
           </StackPanel>
           <Border Grid.Column="1" Classes="badge-neutral" VerticalAlignment="Center" Padding="8,4">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -199,20 +203,20 @@
           </Border>
           <Button
               Grid.Column="2"
-              Classes="ghost icon"
+              Classes="primary icon"
               Click="OnOpenImageSetup"
               IsEnabled="{Binding CanConfigureImages}"
               AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Compact"
               AutomationProperties.Name="Windows 환경 관리">
-            <PathIcon Width="17" Height="17" Data="{StaticResource IconDesktop}" />
+            <PathIcon Width="16" Height="16" Data="{StaticResource IconDesktop}" Foreground="{DynamicResource TextOnAccentBrush}" />
           </Button>
         </Grid>
-        <Grid Grid.Row="1" ColumnDefinitions="*,140" ColumnSpacing="8">
-          <Border Classes="search-field">
-            <Grid ColumnDefinitions="Auto,*" Margin="10,0">
+        <Grid Grid.Row="1" ColumnDefinitions="*,132" ColumnSpacing="8">
+          <Border Classes="search-field" MinHeight="40">
+            <Grid ColumnDefinitions="Auto,*" Margin="12,0">
               <PathIcon
-                  Width="15"
-                  Height="15"
+                  Width="14"
+                  Height="14"
                   Margin="0,0,8,0"
                   Foreground="{DynamicResource TextSecondaryBrush}"
                   Data="{StaticResource IconSearch}"
@@ -244,207 +248,246 @@
       </Grid>
     </Border>
 
-    <!-- Body -->
-    <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="200,*,340">
-      <Border
-          x:Name="CategoryRail"
-          Grid.Column="0"
-          Padding="12,20"
-          Background="{DynamicResource SurfaceBrush}"
-          BorderBrush="{DynamicResource BorderSubtleBrush}"
-          BorderThickness="0,0,1,0">
-        <Grid RowDefinitions="*,Auto">
+    <!-- Body stage -->
+    <Border
+        Grid.Row="1"
+        Margin="18,14,18,8"
+        Classes="stage"
+        Padding="0"
+        ClipToBounds="True">
+      <Grid x:Name="ContentGrid" ColumnDefinitions="248,*,380">
+        <!-- Dark navigation rail -->
+        <Border
+            x:Name="CategoryRail"
+            Grid.Column="0"
+            Classes="nav-rail"
+            Padding="16,22,16,18">
+          <Grid RowDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Row="0" Spacing="14" Margin="4,0,4,18">
+              <Border Width="44" Height="44" CornerRadius="14" Background="{DynamicResource AccentBrush}" HorizontalAlignment="Left">
+                <PathIcon
+                    Width="20"
+                    Height="20"
+                    Data="{StaticResource IconGrid}"
+                    Foreground="{DynamicResource TextOnAccentBrush}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Text="분류" Classes="eyebrow-nav" />
+            </StackPanel>
+
+            <ListBox
+                Grid.Row="1"
+                Classes="category-list"
+                ItemsSource="{Binding Categories}"
+                SelectedItem="{Binding SelectedCategory}"
+                AutomationProperties.AutomationId="Catalog.Categories"
+                AutomationProperties.Name="서비스 분류">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel Grid.Row="2" Spacing="10" Margin="0,16,0,0">
+              <TextBlock Text="WINDOWS" Classes="eyebrow-nav" Margin="8,0,0,0" />
+              <Border Background="{DynamicResource NavRailElevatedBrush}" CornerRadius="16" Padding="12">
+                <StackPanel Spacing="10">
+                  <ComboBox
+                      ItemsSource="{Binding Images}"
+                      SelectedItem="{Binding SelectedImage}"
+                      HorizontalAlignment="Stretch"
+                      AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Select"
+                      AutomationProperties.Name="Windows 환경 선택">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Button
+                      Classes="nav-ghost"
+                      Content="환경 관리"
+                      Click="OnOpenImageSetup"
+                      IsEnabled="{Binding CanConfigureImages}"
+                      AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Manage"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Service launcher grid -->
+        <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="28,24">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,18">
+            <StackPanel Grid.Column="0" Spacing="4">
+              <TextBlock Text="카탈로그" Classes="eyebrow" />
+              <TextBlock
+                  Text="{Binding SelectedCategory.Label}"
+                  Classes="page-title"
+                  FontSize="30" />
+            </StackPanel>
+            <Border Grid.Column="1" Classes="badge-neutral" VerticalAlignment="Bottom" Margin="0,0,0,6">
+              <TextBlock
+                  Text="{Binding FilteredServices.Count, StringFormat={}{0}개}"
+                  FontSize="12"
+                  FontWeight="SemiBold"
+                  Classes="muted" />
+            </Border>
+          </Grid>
+
+          <Grid
+              x:Name="AdaptiveFilterBar"
+              Grid.Row="1"
+              IsVisible="False"
+              Margin="0,0,0,14">
+            <Border Classes="subtle-card" Padding="12,10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <TextBlock Text="분류" Classes="eyebrow" VerticalAlignment="Center" />
+                <ComboBox
+                    Grid.Column="1"
+                    MaxWidth="280"
+                    HorizontalAlignment="Left"
+                    ItemsSource="{Binding Categories}"
+                    SelectedItem="{Binding SelectedCategory}"
+                    AutomationProperties.AutomationId="Catalog.Category.Medium"
+                    AutomationProperties.Name="서비스 분류">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </Grid>
+            </Border>
+          </Grid>
+
           <ListBox
-              Grid.Row="0"
-              Classes="category-list"
-              ItemsSource="{Binding Categories}"
-              SelectedItem="{Binding SelectedCategory}"
-              AutomationProperties.AutomationId="Catalog.Categories"
-              AutomationProperties.Name="서비스 분류">
+              x:Name="ServicesList"
+              Grid.Row="2"
+              Classes="service-grid"
+              ItemsSource="{Binding FilteredServices}"
+              SelectedItem="{Binding SelectedService}"
+              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+              AutomationProperties.AutomationId="Catalog.Services"
+              AutomationProperties.Name="서비스 목록">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <TextBlock Text="{Binding Label}" FontSize="13" />
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-
-          <StackPanel Grid.Row="1" Spacing="8" Margin="4,16,4,0">
-            <TextBlock Text="Windows 환경" Classes="eyebrow" Margin="4,0,0,0" />
-            <ComboBox
-                ItemsSource="{Binding Images}"
-                SelectedItem="{Binding SelectedImage}"
-                HorizontalAlignment="Stretch"
-                AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Select"
-                AutomationProperties.Name="Windows 환경 선택">
-              <ComboBox.ItemTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-                </DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button
-                Classes="ghost"
-                Content="환경 관리"
-                Click="OnOpenImageSetup"
-                IsEnabled="{Binding CanConfigureImages}"
-                AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Manage"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Center" />
-          </StackPanel>
-        </Grid>
-      </Border>
-
-      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="24,20">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
-          <TextBlock
-              Grid.Column="0"
-              Text="{Binding SelectedCategory.Label}"
-              Classes="page-title"
-              FontSize="22"
-              VerticalAlignment="Bottom" />
-          <TextBlock
-              Grid.Column="1"
-              Text="{Binding FilteredServices.Count, StringFormat={}{0}}"
-              Classes="muted"
-              FontSize="13"
-              VerticalAlignment="Bottom"
-              Margin="0,0,4,4" />
-        </Grid>
-
-        <Grid
-            x:Name="AdaptiveFilterBar"
-            Grid.Row="1"
-            IsVisible="False"
-            ColumnDefinitions="Auto,*"
-            Margin="0,0,0,12">
-          <TextBlock Text="분류" Classes="eyebrow" VerticalAlignment="Center" Margin="0,0,10,0" />
-          <ComboBox
-              Grid.Column="1"
-              MaxWidth="240"
-              HorizontalAlignment="Left"
-              ItemsSource="{Binding Categories}"
-              SelectedItem="{Binding SelectedCategory}"
-              AutomationProperties.AutomationId="Catalog.Category.Medium"
-              AutomationProperties.Name="서비스 분류">
-            <ComboBox.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding Label}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-        </Grid>
-
-        <ListBox
-            x:Name="ServicesList"
-            Grid.Row="2"
-            Classes="service-grid"
-            ItemsSource="{Binding FilteredServices}"
-            SelectedItem="{Binding SelectedService}"
-            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-            AutomationProperties.AutomationId="Catalog.Services"
-            AutomationProperties.Name="서비스 목록">
-          <ListBox.ItemsPanel>
-            <ItemsPanelTemplate>
-              <WrapPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ListBox.ItemsPanel>
-          <ListBox.ItemTemplate>
-            <DataTemplate>
-              <Border Classes="card service-card" Padding="14" MinHeight="120">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-                  <Grid Grid.Row="0" ColumnDefinitions="44,*" ColumnSpacing="10">
+                <Border Classes="launcher-card" Width="148" Height="168" Padding="12">
+                  <Grid RowDefinitions="*,Auto,Auto" RowSpacing="8">
                     <Border
-                        Width="44"
-                        Height="44"
-                        CornerRadius="12"
+                        Grid.Row="0"
+                        Width="72"
+                        Height="72"
+                        CornerRadius="20"
                         Background="{DynamicResource CatalogLogoBackgroundBrush}"
                         BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
-                        Padding="5">
+                        Padding="10"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
                       <Image Source="{Binding Image}" Stretch="Uniform" />
                     </Border>
                     <TextBlock
-                        Grid.Column="1"
+                        Grid.Row="1"
                         Text="{Binding DisplayName}"
                         FontWeight="SemiBold"
-                        FontSize="13"
+                        FontSize="12"
+                        TextAlignment="Center"
                         TextWrapping="Wrap"
                         MaxLines="2"
                         TextTrimming="CharacterEllipsis"
-                        VerticalAlignment="Center" />
+                        HorizontalAlignment="Center" />
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                      <Border Classes="badge-success" IsVisible="{Binding IsVerified}" Padding="8,2">
+                        <TextBlock Text="{Binding CompatibilityLabel}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource SuccessBrush}" />
+                      </Border>
+                      <Border Classes="badge-warning" IsVisible="{Binding IsPartial}" Padding="8,2">
+                        <TextBlock Text="{Binding CompatibilityLabel}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource WarningBrush}" />
+                      </Border>
+                      <Border Classes="badge-danger" IsVisible="{Binding IsBlocked}" Padding="8,2">
+                        <TextBlock Text="{Binding CompatibilityLabel}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource DangerBrush}" />
+                      </Border>
+                      <Border Classes="badge-neutral" IsVisible="{Binding IsUnknown}" Padding="8,2">
+                        <TextBlock Text="{Binding CompatibilityLabel}" FontSize="9" FontWeight="Bold" Classes="muted" />
+                      </Border>
+                    </StackPanel>
                   </Grid>
-                  <TextBlock
-                      Grid.Row="1"
-                      Text="{Binding Category}"
-                      Classes="muted"
-                      FontSize="11"
-                      VerticalAlignment="Bottom" />
-                  <StackPanel Grid.Row="2" Orientation="Horizontal">
-                    <Border Classes="badge-success" IsVisible="{Binding IsVerified}" Padding="8,3">
-                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" />
-                    </Border>
-                    <Border Classes="badge-warning" IsVisible="{Binding IsPartial}" Padding="8,3">
-                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource WarningBrush}" />
-                    </Border>
-                    <Border Classes="badge-danger" IsVisible="{Binding IsBlocked}" Padding="8,3">
-                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource DangerBrush}" />
-                    </Border>
-                    <Border Classes="badge-neutral" IsVisible="{Binding IsUnknown}" Padding="8,3">
-                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Classes="muted" />
-                    </Border>
-                  </StackPanel>
-                </Grid>
-              </Border>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </Grid>
-
-      <Border
-          x:Name="WideDetailsPanel"
-          Grid.Column="2"
-          Margin="0,16,16,16"
-          Classes="card"
-          Padding="18">
-        <Grid>
-          <StackPanel
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              Spacing="10"
-              Margin="16"
-              IsVisible="{Binding !HasSelectedService}">
-            <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource SurfaceSubtleBrush}">
-              <PathIcon
-                  Width="18"
-                  Height="18"
-                  Data="{StaticResource IconDesktop}"
-                  Foreground="{DynamicResource TextSecondaryBrush}"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center" />
-            </Border>
-            <TextBlock
-                Text="서비스를 선택하세요"
-                Classes="muted"
-                FontSize="13"
-                HorizontalAlignment="Center" />
-          </StackPanel>
-          <controls:ServiceDetails IsVisible="{Binding HasSelectedService}" />
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
         </Grid>
-      </Border>
-    </Grid>
 
-    <!-- Status bar -->
+        <!-- Inspector panel -->
+        <Border
+            x:Name="WideDetailsPanel"
+            Grid.Column="2"
+            Margin="0,16,16,16"
+            Classes="card-flush"
+            Background="{DynamicResource SurfaceRaisedBrush}"
+            Padding="20"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="1">
+          <Grid>
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="12"
+                Margin="20"
+                IsVisible="{Binding !HasSelectedService}">
+              <Border
+                  Width="72"
+                  Height="72"
+                  CornerRadius="24"
+                  Background="{DynamicResource AccentSoftBrush}"
+                  HorizontalAlignment="Center">
+                <PathIcon
+                    Width="28"
+                    Height="28"
+                    Data="{StaticResource IconGrid}"
+                    Foreground="{DynamicResource AccentBrush}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+              </Border>
+              <TextBlock
+                  Text="서비스를 선택하세요"
+                  FontWeight="SemiBold"
+                  FontSize="14"
+                  HorizontalAlignment="Center" />
+              <TextBlock
+                  Text="지원 상태를 확인한 뒤 바로 열 수 있습니다."
+                  Classes="muted"
+                  FontSize="12"
+                  TextAlignment="Center"
+                  TextWrapping="Wrap"
+                  MaxWidth="200" />
+            </StackPanel>
+            <controls:ServiceDetails IsVisible="{Binding HasSelectedService}" />
+          </Grid>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- Floating status dock -->
     <Border
         Grid.Row="2"
-        Background="{DynamicResource SurfaceBrush}"
-        BorderBrush="{DynamicResource BorderSubtleBrush}"
-        BorderThickness="0,1,0,0"
+        Margin="18,0,18,14"
+        Classes="status-dock"
         Padding="16,10">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
         <ProgressBar
             Grid.Column="0"
-            Width="64"
-            Height="4"
+            Width="72"
+            Height="6"
             IsIndeterminate="True"
             IsVisible="{Binding IsBusy}"
             AutomationProperties.Name="작업 진행 중" />
@@ -453,6 +496,7 @@
             Text="{Binding SessionStatus}"
             VerticalAlignment="Center"
             FontSize="12"
+            FontWeight="SemiBold"
             Classes="muted"
             TextTrimming="CharacterEllipsis"
             AutomationProperties.LiveSetting="Polite" />
@@ -461,13 +505,14 @@
             Text="{Binding ErrorMessage}"
             Classes="danger"
             FontSize="12"
+            FontWeight="SemiBold"
             IsVisible="{Binding HasError}"
             TextTrimming="CharacterEllipsis"
-            MaxWidth="360"
+            MaxWidth="320"
             AutomationProperties.LiveSetting="Assertive" />
         <Button
             Grid.Column="3"
-            Classes="danger"
+            Classes="danger pill"
             Content="닫고 삭제"
             Command="{Binding StopCommand}"
             IsVisible="{Binding IsSessionRunning}"
@@ -476,7 +521,7 @@
       </Grid>
     </Border>
 
-    <!-- Details overlay / drawer -->
+    <!-- Drawer overlay -->
     <Border
         x:Name="DetailsOverlay"
         Grid.RowSpan="3"
@@ -486,22 +531,26 @@
       <Border
           x:Name="DetailsDrawer"
           Classes="card"
-          Width="400"
-          MaxWidth="400"
-          Margin="16"
-          Padding="16"
+          Width="420"
+          MaxWidth="420"
+          Margin="18"
+          Padding="18"
           HorizontalAlignment="Right"
-          VerticalAlignment="Stretch">
+          VerticalAlignment="Stretch"
+          Background="{DynamicResource SurfaceRaisedBrush}">
         <Grid RowDefinitions="Auto,*">
-          <Button
-              Grid.Row="0"
-              Classes="ghost icon-sm"
-              HorizontalAlignment="Right"
-              Click="OnCloseDetails"
-              AutomationProperties.AutomationId="Catalog.Details.Close"
-              AutomationProperties.Name="서비스 상세정보 닫기">
-            <PathIcon Width="14" Height="14" Data="{StaticResource IconClose}" />
-          </Button>
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <TextBlock Text="서비스" Classes="eyebrow" VerticalAlignment="Center" />
+            <Button
+                Grid.Column="1"
+                Classes="ghost icon-sm"
+                HorizontalAlignment="Right"
+                Click="OnCloseDetails"
+                AutomationProperties.AutomationId="Catalog.Details.Close"
+                AutomationProperties.Name="서비스 상세정보 닫기">
+              <PathIcon Width="14" Height="14" Data="{StaticResource IconClose}" />
+            </Button>
+          </Grid>
           <controls:ServiceDetails Grid.Row="1" />
         </Grid>
       </Border>
