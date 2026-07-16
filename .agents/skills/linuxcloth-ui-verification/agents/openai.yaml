@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linuxcloth UI Verification"
+  short_description: "UI 접근성, 반응형 동작과 시각 회귀를 함께 검증합니다."
+  default_prompt: "Use $linuxcloth-ui-verification to verify a linuxcloth desktop UI change before commit."

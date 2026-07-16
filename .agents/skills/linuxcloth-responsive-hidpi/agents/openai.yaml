@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linuxcloth Responsive HiDPI"
+  short_description: "반응형 레이아웃과 HiDPI 동작을 검증합니다."
+  default_prompt: "Use $linuxcloth-responsive-hidpi to review an Avalonia layout for compact and HiDPI environments."

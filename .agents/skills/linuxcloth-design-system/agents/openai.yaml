@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linuxcloth Design System"
+  short_description: "Avalonia 디자인 토큰과 공통 스타일을 적용합니다."
+  default_prompt: "Use $linuxcloth-design-system to implement a linuxcloth desktop UI component with repository design tokens."

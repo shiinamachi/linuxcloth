@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linuxcloth UI Copy"
+  short_description: "사용자 문구와 기술 세부정보 경계를 점검합니다."
+  default_prompt: "Use $linuxcloth-ui-copy to review user-facing copy in the linuxcloth desktop UI."
