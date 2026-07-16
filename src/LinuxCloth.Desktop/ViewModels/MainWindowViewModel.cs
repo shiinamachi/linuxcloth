@@ -18,7 +18,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly DesktopRuntime _runtime;
     private readonly CancellationTokenSource _shutdown = new();
     private bool _canHostLaunch;
-    private string _doctorSummary = "실행 환경 확인 중";
+    private string _doctorSummary = "확인 중";
     private string? _errorMessage;
     private bool _hasUnresolvedRecovery;
     private bool _isBusy;
@@ -28,7 +28,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private CategoryFilterViewModel? _selectedCategory;
     private ImageChoiceViewModel? _selectedImage;
     private ServiceCardViewModel? _selectedService;
-    private string _sessionStatus = "서비스를 선택해 시작하세요.";
+    private string _sessionStatus = "서비스를 선택하세요.";
 
     public MainWindowViewModel(DesktopRuntime runtime)
     {
@@ -181,7 +181,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         IsBusy = true;
         ErrorMessage = null;
-        SessionStatus = "카탈로그와 시스템 상태를 준비하고 있습니다…";
+        SessionStatus = "준비 중…";
         try
         {
             LoadCatalog(startup.Catalog.Services);
@@ -190,14 +190,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _hasUnresolvedRecovery = startup.Recovery.Any(result => !result.IsCleaned);
             if (_hasUnresolvedRecovery)
             {
-                ErrorMessage = "자동으로 정리하지 못한 이전 작업이 있습니다. 정리 상태를 확인한 뒤 다시 시도하세요.";
+                ErrorMessage = "이전 작업을 정리하지 못했습니다. 상태를 확인한 뒤 다시 시도하세요.";
                 OnPropertyChanged(nameof(IsReady));
             }
 
             _isInitialized = true;
             SessionStatus = HasImages
-                ? "서비스와 Windows 환경을 선택하세요."
-                : "준비된 Windows 환경이 없습니다. 먼저 Windows 환경을 준비하세요.";
+                ? "서비스를 선택하세요."
+                : "Windows 환경을 먼저 준비하세요.";
         }
         catch (Exception exception)
         {
@@ -221,8 +221,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             LoadImages(await _runtime.ListImagesAsync(_shutdown.Token));
             SessionStatus = HasImages
-                ? "서비스와 Windows 환경을 선택하세요."
-                : "준비된 Windows 환경이 없습니다. Windows 환경 준비를 시작하세요.";
+                ? "서비스를 선택하세요."
+                : "Windows 환경을 먼저 준비하세요.";
         }
         catch (Exception exception)
         {
@@ -260,12 +260,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Trace.TraceError("Desktop catalog operation failed: {0}", exception);
         ErrorMessage = exception switch
         {
-            LaunchPrerequisiteException => "필수 가상화 구성 요소가 준비되지 않았습니다. 시스템 검사 결과를 확인하세요.",
-            ImageVerificationException => "선택한 Windows 환경을 확인하지 못했습니다. 환경을 다시 준비하세요.",
+            LaunchPrerequisiteException => "실행 준비가 되지 않았습니다. 준비 상태를 확인하세요.",
+            ImageVerificationException => "Windows 환경을 확인하지 못했습니다. 다시 준비하세요.",
             OperationCanceledException => "작업이 취소되었습니다.",
-            _ => "작업 중 오류가 발생했습니다. 다시 시도하거나 로그를 확인하세요.",
+            _ => "작업 중 오류가 발생했습니다.",
         };
-        SessionStatus = "작업을 완료하지 못했습니다.";
+        SessionStatus = "완료하지 못했습니다.";
     }
 
     private async Task RefreshDoctorAsync()
@@ -316,7 +316,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await session.Completion;
-            SessionStatus = "Windows 환경을 닫았고 이번 실행의 변경사항을 삭제했습니다.";
+            SessionStatus = "닫았고 변경사항을 삭제했습니다.";
         }
         catch (Exception exception)
         {
@@ -349,7 +349,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        SessionStatus = "Windows 환경을 닫고 이번 실행의 변경사항을 삭제하고 있습니다…";
+        SessionStatus = "닫고 삭제하는 중…";
         await _runningSession.StopAsync(_shutdown.Token);
     }
 
@@ -417,7 +417,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _canHostLaunch = result.CanLaunch;
         var missing = result.Report.Checks.Count(check => check.IsRequired && !check.IsAvailable);
         DoctorSummary = result.CanLaunch
-            ? "실행 준비 완료"
+            ? "준비 완료"
             : $"설정 {missing}개 필요";
         OnPropertyChanged(nameof(IsReady));
         RaiseCommandState();
@@ -454,17 +454,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private static string StateText(SessionState state) => state switch
     {
-        SessionState.Validating => "카탈로그와 이미지 무결성을 확인하고 있습니다…",
-        SessionState.PreparingOverlay => "이번 실행에 사용할 Windows 환경을 만들고 있습니다…",
-        SessionState.PreparingConfigDisk => "서비스 실행 설정을 준비하고 있습니다…",
-        SessionState.StartingNetwork => "안전한 연결을 준비하고 있습니다…",
-        SessionState.StartingVm => "Windows 환경을 시작하고 있습니다…",
-        SessionState.WaitingForGuest => "Windows 환경이 준비되기를 기다리고 있습니다…",
-        SessionState.Running => "Windows에서 서비스를 열고 있습니다.",
-        SessionState.Stopping => "Windows를 안전하게 종료하고 있습니다…",
-        SessionState.Cleaning => "이번 실행의 변경사항을 삭제하고 있습니다…",
-        SessionState.Completed => "Windows 환경 정리를 완료했습니다.",
-        SessionState.Failed => "서비스를 열지 못했습니다.",
+        SessionState.Validating => "확인 중…",
+        SessionState.PreparingOverlay => "환경 준비 중…",
+        SessionState.PreparingConfigDisk => "실행 설정 준비 중…",
+        SessionState.StartingNetwork => "연결 준비 중…",
+        SessionState.StartingVm => "시작 중…",
+        SessionState.WaitingForGuest => "준비 대기 중…",
+        SessionState.Running => "서비스 실행 중",
+        SessionState.Stopping => "종료 중…",
+        SessionState.Cleaning => "삭제 중…",
+        SessionState.Completed => "정리 완료",
+        SessionState.Failed => "열지 못했습니다.",
         _ => "준비 중…",
     };
 

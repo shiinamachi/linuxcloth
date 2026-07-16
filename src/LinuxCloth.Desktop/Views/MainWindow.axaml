@@ -13,9 +13,9 @@
     <Style Selector="ListBox.category-list > ListBoxItem">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Padding" Value="10,9" />
+      <Setter Property="Padding" Value="12,10" />
       <Setter Property="Margin" Value="0,2" />
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="10" />
     </Style>
     <Style Selector="ListBox.category-list > ListBoxItem:pointerover">
       <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
@@ -24,17 +24,21 @@
       <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
+    <Style Selector="ListBox.category-list > ListBoxItem:selected TextBlock">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
     <Style Selector="ListBox.service-grid">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="ListBox.service-grid > ListBoxItem">
-      <Setter Property="Width" Value="246" />
+      <Setter Property="Width" Value="220" />
       <Setter Property="Padding" Value="0" />
-      <Setter Property="Margin" Value="6" />
+      <Setter Property="Margin" Value="0,0,12,12" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="CornerRadius" Value="14" />
     </Style>
     <Style Selector="ListBox.service-grid > ListBoxItem:pointerover Border.service-card">
       <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
@@ -42,41 +46,46 @@
     </Style>
     <Style Selector="ListBox.service-grid > ListBoxItem:selected Border.service-card">
       <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
     </Style>
   </UserControl.Styles>
 
   <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Desktop header -->
     <Border
         x:Name="DesktopHeader"
         Grid.Row="0"
-        Padding="24,15"
+        Padding="20,14"
         Background="{DynamicResource SurfaceBrush}"
         BorderBrush="{DynamicResource BorderSubtleBrush}"
         BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <Border Width="40" Height="40" CornerRadius="12" Background="{DynamicResource AccentBrush}">
-            <TextBlock Text="lc" Foreground="{DynamicResource TextOnAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" />
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentBrush}">
+            <TextBlock
+                Text="lc"
+                Foreground="{DynamicResource TextOnAccentBrush}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="13"
+                FontWeight="Bold" />
           </Border>
-          <TextBlock Text="linuxcloth" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+          <TextBlock Text="linuxcloth" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
         </StackPanel>
 
         <Border
             Grid.Column="1"
-            Margin="24,0"
-            MaxWidth="600"
+            Margin="20,0"
+            MaxWidth="560"
             HorizontalAlignment="Stretch"
-            CornerRadius="12"
-            Background="{DynamicResource AppBackgroundBrush}"
-            BorderBrush="{DynamicResource BorderSubtleBrush}"
-            BorderThickness="1">
-          <Grid ColumnDefinitions="Auto,*" Margin="14,0">
+            Classes="search-field">
+          <Grid ColumnDefinitions="Auto,*" Margin="12,0">
             <PathIcon
                 Grid.Column="0"
-                Width="18"
-                Height="18"
-                Margin="0,0,10,0"
+                Width="16"
+                Height="16"
+                Margin="0,0,8,0"
                 Foreground="{DynamicResource TextSecondaryBrush}"
                 Data="{StaticResource IconSearch}"
                 VerticalAlignment="Center" />
@@ -92,23 +101,39 @@
           </Grid>
         </Border>
 
-        <Button x:Name="ReadinessButton" Grid.Column="2" Classes="ghost" AutomationProperties.AutomationId="Catalog.Readiness" AutomationProperties.Name="실행 준비 상태">
+        <Button
+            x:Name="ReadinessButton"
+            Grid.Column="2"
+            Classes="ghost"
+            Padding="12,8"
+            AutomationProperties.AutomationId="Catalog.Readiness"
+            AutomationProperties.Name="실행 준비 상태">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
-              <Border Classes="card" Width="360" Padding="18">
+              <Border Classes="card" Width="340" Padding="16">
                 <StackPanel Spacing="12">
-                  <StackPanel Spacing="3">
-                    <TextBlock Text="{Binding DoctorSummary}" FontSize="17" FontWeight="SemiBold" />
-                    <TextBlock Text="이 컴퓨터에서 Windows 서비스를 열기 위한 상태입니다." Classes="muted" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" VerticalAlignment="Center" />
+                    <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding DoctorSummary}" FontSize="15" FontWeight="SemiBold" />
                   </StackPanel>
-                  <Button Classes="secondary" Content="다시 확인" Command="{Binding RefreshDoctorCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.AutomationId="Catalog.Readiness.Refresh" />
-                  <Expander Classes="technical" Header="기술 세부정보" AutomationProperties.AutomationId="Catalog.Readiness.TechnicalDetails">
+                  <Button
+                      Classes="secondary"
+                      Content="다시 확인"
+                      Command="{Binding RefreshDoctorCommand}"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      AutomationProperties.AutomationId="Catalog.Readiness.Refresh" />
+                  <Expander
+                      Classes="technical"
+                      Header="기술 세부정보"
+                      AutomationProperties.AutomationId="Catalog.Readiness.TechnicalDetails">
                     <ItemsControl ItemsSource="{Binding DoctorChecks}" Margin="0,8,0,0">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Grid ColumnDefinitions="24,110,*" Margin="0,5">
+                          <Grid ColumnDefinitions="24,100,*" Margin="0,4">
                             <TextBlock Text="{Binding Status}" FontWeight="Bold" />
-                            <TextBlock Grid.Column="1" Text="{Binding Label}" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="{Binding Label}" FontWeight="SemiBold" FontSize="12" />
                             <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
                           </Grid>
                         </DataTemplate>
@@ -122,45 +147,53 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
             <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
-            <TextBlock Text="{Binding DoctorSummary}" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding DoctorSummary}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
 
         <Button
             Grid.Column="3"
             Classes="secondary"
+            Padding="12,8"
             Click="OnOpenImageSetup"
             IsEnabled="{Binding CanConfigureImages}"
             AutomationProperties.AutomationId="Catalog.WindowsEnvironment"
             AutomationProperties.Name="Windows 환경 관리">
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="17" Height="17" Data="{StaticResource IconSliders}" />
-            <TextBlock Text="Windows 환경" VerticalAlignment="Center" />
+            <PathIcon Width="16" Height="16" Data="{StaticResource IconDesktop}" />
+            <TextBlock Text="환경" VerticalAlignment="Center" FontSize="13" />
           </StackPanel>
         </Button>
       </Grid>
     </Border>
 
+    <!-- Compact header -->
     <Border
         x:Name="CompactHeader"
         Grid.Row="0"
         IsVisible="False"
-        Padding="16,12"
+        Padding="14,12"
         Background="{DynamicResource SurfaceBrush}"
         BorderBrush="{DynamicResource BorderSubtleBrush}"
         BorderThickness="0,0,0,1">
-      <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+      <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-          <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
-            <Border Width="34" Height="34" CornerRadius="10" Background="{DynamicResource AccentBrush}">
-              <TextBlock Text="lc" Foreground="{DynamicResource TextOnAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Border Width="32" Height="32" CornerRadius="9" Background="{DynamicResource AccentBrush}">
+              <TextBlock
+                  Text="lc"
+                  Foreground="{DynamicResource TextOnAccentBrush}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  FontSize="12"
+                  FontWeight="Bold" />
             </Border>
-            <TextBlock Text="linuxcloth" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
+            <TextBlock Text="linuxcloth" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
           </StackPanel>
-          <Border Grid.Column="1" Classes="badge" VerticalAlignment="Center">
+          <Border Grid.Column="1" Classes="badge-neutral" VerticalAlignment="Center" Padding="8,4">
             <StackPanel Orientation="Horizontal" Spacing="6">
-              <Ellipse Width="7" Height="7" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
-              <Ellipse Width="7" Height="7" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
+              <Ellipse Width="6" Height="6" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
+              <Ellipse Width="6" Height="6" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
               <TextBlock Text="{Binding DoctorSummary}" FontSize="11" FontWeight="SemiBold" />
             </StackPanel>
           </Border>
@@ -171,19 +204,25 @@
               IsEnabled="{Binding CanConfigureImages}"
               AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Compact"
               AutomationProperties.Name="Windows 환경 관리">
-            <PathIcon Width="18" Height="18" Data="{StaticResource IconSliders}" />
+            <PathIcon Width="17" Height="17" Data="{StaticResource IconDesktop}" />
           </Button>
         </Grid>
-        <Grid Grid.Row="1" ColumnDefinitions="*,150" ColumnSpacing="8">
-          <Border CornerRadius="12" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
-            <Grid ColumnDefinitions="Auto,*" Margin="12,0">
-              <PathIcon Width="17" Height="17" Margin="0,0,8,0" Foreground="{DynamicResource TextSecondaryBrush}" Data="{StaticResource IconSearch}" VerticalAlignment="Center" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,140" ColumnSpacing="8">
+          <Border Classes="search-field">
+            <Grid ColumnDefinitions="Auto,*" Margin="10,0">
+              <PathIcon
+                  Width="15"
+                  Height="15"
+                  Margin="0,0,8,0"
+                  Foreground="{DynamicResource TextSecondaryBrush}"
+                  Data="{StaticResource IconSearch}"
+                  VerticalAlignment="Center" />
               <TextBox
                   x:Name="CompactSearchBox"
                   Grid.Column="1"
                   Classes="search"
                   Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                  PlaceholderText="서비스 검색"
+                  PlaceholderText="검색"
                   AutomationProperties.AutomationId="Catalog.Search.Compact"
                   AutomationProperties.Name="서비스 검색" />
             </Grid>
@@ -196,83 +235,101 @@
               AutomationProperties.AutomationId="Catalog.Category.Compact"
               AutomationProperties.Name="서비스 분류">
             <ComboBox.ItemTemplate>
-              <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
         </Grid>
       </Grid>
     </Border>
 
-    <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="208,*,360">
+    <!-- Body -->
+    <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="200,*,340">
       <Border
           x:Name="CategoryRail"
           Grid.Column="0"
-          Padding="18,24"
+          Padding="12,20"
           Background="{DynamicResource SurfaceBrush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
           BorderThickness="0,0,1,0">
-        <Grid RowDefinitions="Auto,*,Auto">
-          <TextBlock Grid.Row="0" Text="서비스" Classes="eyebrow" Margin="10,0,0,10" />
+        <Grid RowDefinitions="*,Auto">
           <ListBox
-              Grid.Row="1"
+              Grid.Row="0"
               Classes="category-list"
               ItemsSource="{Binding Categories}"
               SelectedItem="{Binding SelectedCategory}"
               AutomationProperties.AutomationId="Catalog.Categories"
               AutomationProperties.Name="서비스 분류">
             <ListBox.ItemTemplate>
-              <DataTemplate><TextBlock Text="{Binding Label}" FontWeight="SemiBold" /></DataTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Label}" FontSize="13" />
+              </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
 
-          <Border Grid.Row="2" Classes="subtle-card" Padding="14" Margin="0,18,0,0">
-            <StackPanel Spacing="9">
-              <TextBlock Text="Windows 환경" FontWeight="SemiBold" />
-              <ComboBox ItemsSource="{Binding Images}" SelectedItem="{Binding SelectedImage}" AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Select" AutomationProperties.Name="Windows 환경 선택">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /></DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-              <Button
-                  Classes="secondary"
-                  Content="환경 관리"
-                  Click="OnOpenImageSetup"
-                  IsEnabled="{Binding CanConfigureImages}"
-                  AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Manage"
-                  HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Center" />
-              <TextBlock
-                  IsVisible="{Binding !HasImages}"
-                  Text="서비스를 열려면 먼저 Windows 환경을 준비하세요."
-                  TextWrapping="Wrap"
-                  Classes="muted"
-                  FontSize="11" />
-            </StackPanel>
-          </Border>
+          <StackPanel Grid.Row="1" Spacing="8" Margin="4,16,4,0">
+            <TextBlock Text="Windows 환경" Classes="eyebrow" Margin="4,0,0,0" />
+            <ComboBox
+                ItemsSource="{Binding Images}"
+                SelectedItem="{Binding SelectedImage}"
+                HorizontalAlignment="Stretch"
+                AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Select"
+                AutomationProperties.Name="Windows 환경 선택">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button
+                Classes="ghost"
+                Content="환경 관리"
+                Click="OnOpenImageSetup"
+                IsEnabled="{Binding CanConfigureImages}"
+                AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Manage"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center" />
+          </StackPanel>
         </Grid>
       </Border>
 
-      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="24">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="6,0,6,18">
-          <StackPanel Grid.Column="0" Spacing="4">
-            <TextBlock Text="서비스 찾기" Classes="page-title" FontSize="25" />
-            <TextBlock Classes="muted" Text="필요한 서비스를 선택하면 별도의 Windows 환경에서 안전하게 열립니다." TextWrapping="Wrap" />
-          </StackPanel>
-          <TextBlock Grid.Column="1" Text="{Binding FilteredServices.Count, StringFormat={}{0}개}" Classes="muted" VerticalAlignment="Bottom" />
+      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="24,20">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+          <TextBlock
+              Grid.Column="0"
+              Text="{Binding SelectedCategory.Label}"
+              Classes="page-title"
+              FontSize="22"
+              VerticalAlignment="Bottom" />
+          <TextBlock
+              Grid.Column="1"
+              Text="{Binding FilteredServices.Count, StringFormat={}{0}}"
+              Classes="muted"
+              FontSize="13"
+              VerticalAlignment="Bottom"
+              Margin="0,0,4,4" />
         </Grid>
 
-        <Grid x:Name="AdaptiveFilterBar" Grid.Row="1" IsVisible="False" ColumnDefinitions="Auto,*" Margin="6,0,6,12">
+        <Grid
+            x:Name="AdaptiveFilterBar"
+            Grid.Row="1"
+            IsVisible="False"
+            ColumnDefinitions="Auto,*"
+            Margin="0,0,0,12">
           <TextBlock Text="분류" Classes="eyebrow" VerticalAlignment="Center" Margin="0,0,10,0" />
           <ComboBox
               Grid.Column="1"
-              MaxWidth="260"
+              MaxWidth="240"
               HorizontalAlignment="Left"
               ItemsSource="{Binding Categories}"
               SelectedItem="{Binding SelectedCategory}"
               AutomationProperties.AutomationId="Catalog.Category.Medium"
               AutomationProperties.Name="서비스 분류">
             <ComboBox.ItemTemplate>
-              <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
         </Grid>
@@ -287,28 +344,55 @@
             AutomationProperties.AutomationId="Catalog.Services"
             AutomationProperties.Name="서비스 목록">
           <ListBox.ItemsPanel>
-            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
           </ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <Border Classes="card service-card" MinHeight="148" Padding="16">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="13">
-                  <Grid Grid.Row="0" ColumnDefinitions="46,*">
-                    <Border Grid.Column="0" Width="42" Height="42" CornerRadius="11" Background="{DynamicResource CatalogLogoBackgroundBrush}" Padding="5">
+              <Border Classes="card service-card" Padding="14" MinHeight="120">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+                  <Grid Grid.Row="0" ColumnDefinitions="44,*" ColumnSpacing="10">
+                    <Border
+                        Width="44"
+                        Height="44"
+                        CornerRadius="12"
+                        Background="{DynamicResource CatalogLogoBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
+                        BorderThickness="1"
+                        Padding="5">
                       <Image Source="{Binding Image}" Stretch="Uniform" />
                     </Border>
-                    <StackPanel Grid.Column="1" Margin="10,1,0,0" Spacing="2">
-                      <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Text="{Binding Category}" Classes="muted" FontSize="11" />
-                    </StackPanel>
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{Binding DisplayName}"
+                        FontWeight="SemiBold"
+                        FontSize="13"
+                        TextWrapping="Wrap"
+                        MaxLines="2"
+                        TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center" />
                   </Grid>
-                  <TextBlock Grid.Row="1" Text="{Binding ServiceSummary}" Classes="muted" FontSize="12" TextWrapping="Wrap" MaxLines="2" />
-                  <Grid Grid.Row="2" ColumnDefinitions="Auto,*">
-                    <Border Classes="badge" Padding="8,4">
-                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" />
+                  <TextBlock
+                      Grid.Row="1"
+                      Text="{Binding Category}"
+                      Classes="muted"
+                      FontSize="11"
+                      VerticalAlignment="Bottom" />
+                  <StackPanel Grid.Row="2" Orientation="Horizontal">
+                    <Border Classes="badge-success" IsVisible="{Binding IsVerified}" Padding="8,3">
+                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" />
                     </Border>
-                    <PathIcon Grid.Column="1" Width="16" Height="16" HorizontalAlignment="Right" Foreground="{DynamicResource TextSecondaryBrush}" Data="{StaticResource IconChevronRight}" />
-                  </Grid>
+                    <Border Classes="badge-warning" IsVisible="{Binding IsPartial}" Padding="8,3">
+                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource WarningBrush}" />
+                    </Border>
+                    <Border Classes="badge-danger" IsVisible="{Binding IsBlocked}" Padding="8,3">
+                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource DangerBrush}" />
+                    </Border>
+                    <Border Classes="badge-neutral" IsVisible="{Binding IsUnknown}" Padding="8,3">
+                      <TextBlock Text="{Binding CompatibilityLabel}" FontSize="10" FontWeight="SemiBold" Classes="muted" />
+                    </Border>
+                  </StackPanel>
                 </Grid>
               </Border>
             </DataTemplate>
@@ -319,35 +403,71 @@
       <Border
           x:Name="WideDetailsPanel"
           Grid.Column="2"
-          Margin="0,24,24,24"
+          Margin="0,16,16,16"
           Classes="card"
-          Padding="22">
+          Padding="18">
         <Grid>
-          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" Margin="18" IsVisible="{Binding !HasSelectedService}">
-            <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource AccentSoftBrush}">
-              <PathIcon Width="18" Height="18" Data="{StaticResource IconChevronRight}" Foreground="{DynamicResource AccentBrush}" />
+          <StackPanel
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Spacing="10"
+              Margin="16"
+              IsVisible="{Binding !HasSelectedService}">
+            <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource SurfaceSubtleBrush}">
+              <PathIcon
+                  Width="18"
+                  Height="18"
+                  Data="{StaticResource IconDesktop}"
+                  Foreground="{DynamicResource TextSecondaryBrush}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center" />
             </Border>
-            <TextBlock Text="서비스를 선택하세요" FontWeight="SemiBold" HorizontalAlignment="Center" />
-            <TextBlock Text="지원 상태와 이용 안내를 확인할 수 있습니다." Classes="muted" TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock
+                Text="서비스를 선택하세요"
+                Classes="muted"
+                FontSize="13"
+                HorizontalAlignment="Center" />
           </StackPanel>
           <controls:ServiceDetails IsVisible="{Binding HasSelectedService}" />
         </Grid>
       </Border>
     </Grid>
 
+    <!-- Status bar -->
     <Border
         Grid.Row="2"
         Background="{DynamicResource SurfaceBrush}"
         BorderBrush="{DynamicResource BorderSubtleBrush}"
         BorderThickness="0,1,0,0"
-        Padding="20,11">
+        Padding="16,10">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
-        <ProgressBar Grid.Column="0" Width="72" IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="작업 진행 중" />
-        <TextBlock Grid.Column="1" Text="{Binding SessionStatus}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite" />
-        <TextBlock Grid.Column="2" Text="{Binding ErrorMessage}" Classes="danger" IsVisible="{Binding HasError}" TextTrimming="CharacterEllipsis" MaxWidth="420" AutomationProperties.LiveSetting="Assertive" />
+        <ProgressBar
+            Grid.Column="0"
+            Width="64"
+            Height="4"
+            IsIndeterminate="True"
+            IsVisible="{Binding IsBusy}"
+            AutomationProperties.Name="작업 진행 중" />
+        <TextBlock
+            Grid.Column="1"
+            Text="{Binding SessionStatus}"
+            VerticalAlignment="Center"
+            FontSize="12"
+            Classes="muted"
+            TextTrimming="CharacterEllipsis"
+            AutomationProperties.LiveSetting="Polite" />
+        <TextBlock
+            Grid.Column="2"
+            Text="{Binding ErrorMessage}"
+            Classes="danger"
+            FontSize="12"
+            IsVisible="{Binding HasError}"
+            TextTrimming="CharacterEllipsis"
+            MaxWidth="360"
+            AutomationProperties.LiveSetting="Assertive" />
         <Button
             Grid.Column="3"
-            Classes="secondary"
+            Classes="danger"
             Content="닫고 삭제"
             Command="{Binding StopCommand}"
             IsVisible="{Binding IsSessionRunning}"
@@ -356,6 +476,7 @@
       </Grid>
     </Border>
 
+    <!-- Details overlay / drawer -->
     <Border
         x:Name="DetailsOverlay"
         Grid.RowSpan="3"
@@ -365,23 +486,21 @@
       <Border
           x:Name="DetailsDrawer"
           Classes="card"
-          Width="420"
-          MaxWidth="420"
-          Margin="24"
-          Padding="20"
+          Width="400"
+          MaxWidth="400"
+          Margin="16"
+          Padding="16"
           HorizontalAlignment="Right"
           VerticalAlignment="Stretch">
         <Grid RowDefinitions="Auto,*">
           <Button
               Grid.Row="0"
-              Classes="ghost icon"
+              Classes="ghost icon-sm"
               HorizontalAlignment="Right"
               Click="OnCloseDetails"
               AutomationProperties.AutomationId="Catalog.Details.Close"
               AutomationProperties.Name="서비스 상세정보 닫기">
-            <PathIcon Width="16" Height="16" Data="{StaticResource IconChevronRight}">
-              <PathIcon.RenderTransform><RotateTransform Angle="180" /></PathIcon.RenderTransform>
-            </PathIcon>
+            <PathIcon Width="14" Height="14" Data="{StaticResource IconClose}" />
           </Button>
           <controls:ServiceDetails Grid.Row="1" />
         </Grid>
