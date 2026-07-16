@@ -46,10 +46,10 @@ public sealed class ServiceCardViewModel : ObservableObject, IDisposable
 
     public string CompatibilityLabel => _entry.Compatibility.Status switch
     {
-        CompatibilityStatus.Verified => "Linux 검증됨",
+        CompatibilityStatus.Verified => "실행 확인됨",
         CompatibilityStatus.Partial => "부분 지원",
-        CompatibilityStatus.Blocked => "현재 차단됨",
-        _ => "미검증",
+        CompatibilityStatus.Blocked => "현재 이용 불가",
+        _ => "확인 필요",
     };
 
     public bool IsBlocked => _entry.Compatibility.Status == CompatibilityStatus.Blocked;
@@ -59,6 +59,25 @@ public sealed class ServiceCardViewModel : ObservableObject, IDisposable
         new[] { _entry.Service.CompatNotes }
             .Concat(_entry.Compatibility.KnownIssues)
             .Where(static value => !string.IsNullOrWhiteSpace(value)));
+
+    public string CompatibilityDescription => string.IsNullOrWhiteSpace(CompatibilityNotes)
+        ? _entry.Compatibility.Status switch
+        {
+            CompatibilityStatus.Verified => "이 컴퓨터에서 실행할 수 있는 서비스입니다.",
+            CompatibilityStatus.Partial => "일부 기능에 제한이 있을 수 있습니다."
+                + " 이용 전에 기술 세부정보를 확인하세요.",
+            CompatibilityStatus.Blocked => "현재 환경에서는 이 서비스를 열 수 없습니다.",
+            _ => "아직 이 환경에서의 실행 상태가 확인되지 않았습니다.",
+        }
+        : CompatibilityNotes;
+
+    public string ServiceSummary => _entry.Compatibility.Status switch
+    {
+        CompatibilityStatus.Verified => "별도의 Windows 환경에서 이용할 수 있습니다.",
+        CompatibilityStatus.Partial => "일부 기능에 제한이 있을 수 있습니다.",
+        CompatibilityStatus.Blocked => "현재 환경에서는 이용할 수 없습니다.",
+        _ => "이용 전에 실행 상태를 확인하세요.",
+    };
 
     public string PackageSummary =>
         $"설치 패키지 {_entry.Service.Packages.Count}개 · Edge 확장 {_entry.Service.EdgeExtensions.Count}개";

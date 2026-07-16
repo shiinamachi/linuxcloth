@@ -17,7 +17,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly DesktopRuntime _runtime;
     private readonly CancellationTokenSource _shutdown = new();
     private bool _canHostLaunch;
-    private string _doctorSummary = "시스템 검사 대기 중";
+    private string _doctorSummary = "실행 환경 확인 중";
     private string? _errorMessage;
     private bool _hasUnresolvedRecovery;
     private bool _isBusy;
@@ -27,7 +27,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private CategoryFilterViewModel? _selectedCategory;
     private ImageChoiceViewModel? _selectedImage;
     private ServiceCardViewModel? _selectedService;
-    private string _sessionStatus = "일회용 Windows 세션을 시작할 준비가 되었습니다.";
+    private string _sessionStatus = "서비스를 선택해 시작하세요.";
 
     public MainWindowViewModel(DesktopRuntime runtime)
     {
@@ -131,6 +131,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public bool IsSessionRunning => _runningSession is not null;
 
+    public bool IsReady => _canHostLaunch && !_hasUnresolvedRecovery;
+
     public bool CanConfigureImages => !IsBusy && !IsSessionRunning;
 
     public bool CanLaunch =>
@@ -187,7 +189,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _hasUnresolvedRecovery = startup.Recovery.Any(result => !result.IsCleaned);
             if (_hasUnresolvedRecovery)
             {
-                ErrorMessage = "자동 복구하지 못한 이전 세션이 있습니다. CLI cleanup 결과를 확인한 뒤 실행하세요.";
+                ErrorMessage = "자동으로 정리하지 못한 이전 작업이 있습니다. 정리 상태를 확인한 뒤 다시 시도하세요.";
+                OnPropertyChanged(nameof(IsReady));
             }
 
             _isInitialized = true;
@@ -412,8 +415,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _canHostLaunch = result.CanLaunch;
         var missing = result.Report.Checks.Count(check => check.IsRequired && !check.IsAvailable);
         DoctorSummary = result.CanLaunch
-            ? "KVM 일회용 Windows 실행 준비 완료"
-            : $"필수 항목 {missing}개를 준비해야 합니다";
+            ? "실행 준비 완료"
+            : $"설정 {missing}개 필요";
+        OnPropertyChanged(nameof(IsReady));
         RaiseCommandState();
     }
 
@@ -434,7 +438,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         SelectedService = selected is not null && FilteredServices.Contains(selected)
             ? selected
-            : FilteredServices.FirstOrDefault();
+            : null;
     }
 
     private void RaiseCommandState()
@@ -449,12 +453,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private static string StateText(SessionState state) => state switch
     {
         SessionState.Validating => "카탈로그와 이미지 무결성을 확인하고 있습니다…",
-        SessionState.PreparingOverlay => "일회용 Windows 디스크를 만들고 있습니다…",
-        SessionState.PreparingConfigDisk => "공식 TableCloth 실행 설정을 준비하고 있습니다…",
-        SessionState.StartingNetwork => "격리된 네트워크를 시작하고 있습니다…",
-        SessionState.StartingVm => "Windows를 시작하고 있습니다…",
-        SessionState.WaitingForGuest => "Windows와 GuestBridge 준비를 기다리고 있습니다…",
-        SessionState.Running => "Windows에서 TableCloth 실행 준비를 시작했습니다.",
+        SessionState.PreparingOverlay => "이번 실행에 사용할 Windows 환경을 만들고 있습니다…",
+        SessionState.PreparingConfigDisk => "서비스 실행 설정을 준비하고 있습니다…",
+        SessionState.StartingNetwork => "안전한 연결을 준비하고 있습니다…",
+        SessionState.StartingVm => "Windows 환경을 시작하고 있습니다…",
+        SessionState.WaitingForGuest => "Windows 환경이 준비되기를 기다리고 있습니다…",
+        SessionState.Running => "Windows에서 서비스를 열고 있습니다.",
         SessionState.Stopping => "Windows를 안전하게 종료하고 있습니다…",
         SessionState.Cleaning => "일회용 세션 데이터를 삭제하고 있습니다…",
         SessionState.Completed => "세션 정리가 완료되었습니다.",
@@ -464,12 +468,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private static string CheckLabel(string code) => code switch
     {
-        QemuDoctorCheckCodes.Platform => "Linux x86_64",
-        QemuDoctorCheckCodes.Kvm => "KVM 접근",
-        QemuDoctorCheckCodes.Firmware => "Secure Boot OVMF",
-        QemuDoctorCheckCodes.RuntimeDirectory => "런타임 소켓",
-        QemuDoctorCheckCodes.RemoteViewer => "SPICE 뷰어",
-        QemuDoctorCheckCodes.Bubblewrap => "QEMU 격리",
+        QemuDoctorCheckCodes.Platform => "운영체제",
+        QemuDoctorCheckCodes.Kvm => "가상화",
+        QemuDoctorCheckCodes.Firmware => "Windows 시작",
+        QemuDoctorCheckCodes.RuntimeDirectory => "작업 공간",
+        QemuDoctorCheckCodes.RemoteViewer => "Windows 화면",
+        QemuDoctorCheckCodes.Bubblewrap => "프로세스 격리",
         _ => code,
     };
 }

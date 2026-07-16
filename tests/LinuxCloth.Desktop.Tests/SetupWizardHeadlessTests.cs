@@ -6,6 +6,7 @@ using LinuxCloth.Desktop.Views;
 
 namespace LinuxCloth.Desktop.Tests;
 
+[Collection(HeadlessUiTestGroup.Name)]
 public sealed class SetupWizardHeadlessTests
 {
     [Fact]
