@@ -21,6 +21,11 @@ public sealed record WindowsImageBuildToolchain(
     string Xorriso,
     string Bubblewrap);
 
+public sealed record WindowsInstallationSelection(
+    int ImageIndex,
+    string EditionId,
+    string DisplayName);
+
 public sealed record WindowsImageBuildRequest(
     ImageId ImageId,
     string WindowsIsoPath,
@@ -31,7 +36,8 @@ public sealed record WindowsImageBuildRequest(
     WindowsImageBuildToolchain Toolchain,
     int DiskSizeGiB = 96,
     int CpuCount = 4,
-    int MemoryMiB = 6144);
+    int MemoryMiB = 6144,
+    WindowsInstallationSelection? Installation = null);
 
 public sealed record ImageBuildFileFingerprint(
     string Path,
@@ -62,6 +68,7 @@ public sealed record WindowsImageBuildState(
     ImageBuildFileFingerprint OvmfCode,
     ImageBuildFileFingerprint OvmfVariablesSource,
     WindowsImageBuildToolchain Toolchain,
+    WindowsInstallationSelection Installation,
     int DiskSizeGiB,
     int CpuCount,
     int MemoryMiB,
@@ -73,7 +80,7 @@ public sealed record WindowsImageBuildState(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt)
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 }
 
 public sealed record WindowsImageBuildWorkspace(

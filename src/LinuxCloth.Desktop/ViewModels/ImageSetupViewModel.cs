@@ -23,6 +23,7 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
     private string? _errorMessage;
     private string _guestBridgeExecutablePath = string.Empty;
     private string _imageIdText = "windows-11";
+    private WindowsInstallationSelection? _installation;
     private bool _isBuilding;
     private bool _isInitialized;
     private int _memoryMiB = 6144;
@@ -175,6 +176,18 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
         }
     }
 
+    public WindowsInstallationSelection? Installation
+    {
+        get => _installation;
+        private set
+        {
+            if (SetProperty(ref _installation, value))
+            {
+                RaiseCommandState();
+            }
+        }
+    }
+
     public bool IsBuilding
     {
         get => _isBuilding;
@@ -191,6 +204,7 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
         !IsBuilding &&
         ImageId.TryParse(ImageIdText, out _) &&
         RequiredPathsArePresent() &&
+        Installation is not null &&
         DiskSizeGiB is >= 64 and <= 1024 &&
         CpuCount is >= 2 and <= 32 &&
         MemoryMiB is >= 4096 and <= 131072;
@@ -294,6 +308,16 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
         RaiseResourceWarning();
     }
 
+    public void ApplyInstallationSelection(WindowsInstallationSelection? installation)
+    {
+        if (IsBuilding)
+        {
+            return;
+        }
+
+        Installation = installation;
+    }
+
     public async Task CancelAndWaitAsync()
     {
         _operationCancellation?.Cancel();
@@ -340,7 +364,8 @@ public sealed class ImageSetupViewModel : ObservableObject, INotifyDataErrorInfo
             RequireAbsolutePath(OvmfVariablesTemplatePath, "OVMF 변수 템플릿"),
             DiskSizeGiB,
             CpuCount,
-            MemoryMiB);
+            MemoryMiB,
+            Installation!);
         await RunBuildOperationAsync(
             (progress, cancellationToken) => _imageBuildService.BuildImageAsync(
                 request,

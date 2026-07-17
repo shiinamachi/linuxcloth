@@ -116,6 +116,7 @@ public sealed class CliParserTests
             "--disk-gib", "128",
             "--cpus", "8",
             "--memory-mib", "12288",
+            "--windows-image-index", "6",
         ]);
 
         var command = Assert.IsType<ImageBuildStartCommand>(result.Command);
@@ -128,6 +129,7 @@ public sealed class CliParserTests
         Assert.Equal(128, command.DiskSizeGiB);
         Assert.Equal(8, command.CpuCount);
         Assert.Equal(12288, command.MemoryMiB);
+        Assert.Equal(6, command.WindowsImageIndex);
     }
 
     [Fact]

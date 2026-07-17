@@ -67,6 +67,27 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task MultipleWindowsEditionsRequireAnExplicitSelection()
+    {
+        var runtime = new FakeSetupService { MultipleWindowsEditions = true };
+        await using var viewModel = CreateViewModel(
+            runtime,
+            new FakeStateStore(SetupState.Default with { LastStep = SetupStep.WindowsMedia }),
+            CreateFirstRun());
+        await viewModel.InitializeAsync();
+
+        await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        viewModel.IsLicenseConfirmed = true;
+
+        Assert.True(viewModel.HasMultipleWindowsEditions);
+        Assert.Null(viewModel.SelectedWindowsEdition);
+        Assert.False(viewModel.CanContinue);
+        viewModel.SelectedWindowsEdition = viewModel.WindowsEditions.Single(image => image.Index == 6);
+        Assert.True(viewModel.CanContinue);
+        Assert.Equal(6, viewModel.Build.Installation?.ImageIndex);
+    }
+
+    [Fact]
     public async Task PackageKitAbsenceExposesOnlyACopyableManualCommand()
     {
         var state = new FakeStateStore(SetupState.Default with { LastStep = SetupStep.Components });
@@ -219,6 +240,8 @@ public sealed class SetupWizardViewModelTests : IDisposable
     {
         public bool WaitForMediaCancellation { get; init; }
 
+        public bool MultipleWindowsEditions { get; init; }
+
         public bool MediaCancellationObserved { get; private set; }
 
         public TaskCompletionSource MediaValidationStarted { get; } =
@@ -249,6 +272,20 @@ public sealed class SetupWizardViewModelTests : IDisposable
             return WaitForCancellationAsync(cancellationToken);
         }
 
+        public Task<DesktopWindowsMediaAnalysis> AnalyzeWindowsMediaAsync(
+            string path,
+            CancellationToken cancellationToken = default)
+        {
+            WindowsValidationCount++;
+            if (!WaitForMediaCancellation)
+            {
+                return Task.FromResult(CreateAnalysis(path));
+            }
+
+            MediaValidationStarted.TrySetResult();
+            return WaitForAnalysisCancellationAsync(cancellationToken);
+        }
+
         public Task<ImageBuildFileFingerprint> ValidateVirtioMediaAsync(
             string path,
             CancellationToken cancellationToken = default)
@@ -273,6 +310,20 @@ public sealed class SetupWizardViewModelTests : IDisposable
         private static ImageBuildFileFingerprint Fingerprint(string path) =>
             new(Path.GetFullPath(path), new string('a', 64), 1024, 1);
 
+        private DesktopWindowsMediaAnalysis CreateAnalysis(string path)
+        {
+            var images = MultipleWindowsEditions
+                ? new[]
+                {
+                    new WindowsInstallationImage(1, "Windows 11 Home", "Core", "amd64", 26100),
+                    new WindowsInstallationImage(6, "Windows 11 Pro", "Professional", "amd64", 26100),
+                }
+                : [new WindowsInstallationImage(6, "Windows 11 Pro", "Professional", "amd64", 26100)];
+            return new DesktopWindowsMediaAnalysis(
+                Fingerprint(path),
+                new WindowsInstallationCatalog(images, MultipleWindowsEditions ? null : 6));
+        }
+
         private async Task<ImageBuildFileFingerprint> WaitForCancellationAsync(
             CancellationToken cancellationToken)
         {
@@ -280,6 +331,21 @@ public sealed class SetupWizardViewModelTests : IDisposable
             {
                 await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
                 throw new InvalidOperationException("미디어 검증이 취소되지 않았습니다.");
+            }
+            catch (OperationCanceledException)
+            {
+                MediaCancellationObserved = true;
+                throw;
+            }
+        }
+
+        private async Task<DesktopWindowsMediaAnalysis> WaitForAnalysisCancellationAsync(
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                throw new InvalidOperationException("미디어 분석이 취소되지 않았습니다.");
             }
             catch (OperationCanceledException)
             {

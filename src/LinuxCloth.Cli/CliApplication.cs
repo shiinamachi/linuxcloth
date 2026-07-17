@@ -243,8 +243,8 @@ public sealed class CliApplication
         ImageBuildStartCommand command,
         CancellationToken cancellationToken)
     {
-        _output.WriteLine("사용자가 제공한 Windows와 virtio-win ISO를 검증한 뒤 격리된 설치 창을 엽니다.");
-        _output.WriteLine("Windows 에디션과 설치 디스크를 선택하면 로컬 linuxcloth 계정, GuestBridge, virtio 드라이버를 자동 구성하고 종료합니다.");
+        _output.WriteLine("사용자가 제공한 Windows와 virtio-win ISO를 검증한 뒤 Windows를 자동으로 설치합니다.");
+        _output.WriteLine("선택한 Windows 버전과 빈 설치 디스크를 사용해 로컬 linuxcloth 계정과 장치 드라이버를 자동 구성합니다.");
         _output.WriteLine("설치 미디어가 없는 두 번째 부팅에서 GuestBridge 자기보고와 디스크 구조를 검사한 뒤에만 이미지를 봉인합니다.");
         _output.WriteLine("Windows 미디어와 생성한 이미지는 linuxcloth 배포물에 포함되지 않습니다.");
         var image = await _services.BuildImageAsync(
@@ -438,7 +438,7 @@ public sealed class CliApplication
             writer.WriteLine("  linuxcloth image verify <IMAGE_ID>");
             writer.WriteLine(
                 "  linuxcloth image build start <IMAGE_ID> --windows-iso PATH --virtio-win-iso PATH --guest-bridge PATH " +
-                "[--disk-gib N] [--cpus N] [--memory-mib N]");
+                "[--windows-image-index N] [--disk-gib N] [--cpus N] [--memory-mib N]");
             writer.WriteLine("  linuxcloth image build resume <IMAGE_ID> --staging PATH");
             writer.WriteLine("  linuxcloth image build recover <IMAGE_ID> --staging PATH");
             return;

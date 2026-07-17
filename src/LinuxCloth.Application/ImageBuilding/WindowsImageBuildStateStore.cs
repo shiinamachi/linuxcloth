@@ -186,6 +186,7 @@ public static partial class WindowsImageBuildStateStore
         ValidateFingerprint(state.OvmfCode, "OVMF code");
         ValidateFingerprint(state.OvmfVariablesSource, "OVMF variables source");
         ValidateToolchain(state.Toolchain);
+        ValidateInstallation(state.Installation);
         ValidateActiveProcessState(state);
         ValidateVerifiedGuestEnvironment(state);
 
@@ -378,6 +379,17 @@ public static partial class WindowsImageBuildStateStore
         }
     }
 
+    private static void ValidateInstallation(WindowsInstallationSelection installation)
+    {
+        ArgumentNullException.ThrowIfNull(installation);
+        if (installation.ImageIndex <= 0 ||
+            !IsBoundedText(installation.EditionId, 128) ||
+            !IsBoundedText(installation.DisplayName, 256))
+        {
+            throw new WindowsImageBuildException("The Windows installation selection is invalid.");
+        }
+    }
+
     private static bool IsLowercaseSha256(string value)
     {
         if (value.Length != 64)
@@ -419,6 +431,12 @@ public static partial class WindowsImageBuildStateStore
                 RemoteViewer = state.Toolchain.RemoteViewer,
                 Xorriso = state.Toolchain.Xorriso,
                 Bubblewrap = state.Toolchain.Bubblewrap,
+            },
+            Installation = new InstallationDto
+            {
+                ImageIndex = state.Installation.ImageIndex,
+                EditionId = state.Installation.EditionId,
+                DisplayName = state.Installation.DisplayName,
             },
             DiskSizeGiB = state.DiskSizeGiB,
             CpuCount = state.CpuCount,
@@ -471,6 +489,10 @@ public static partial class WindowsImageBuildStateStore
                 dto.Toolchain.RemoteViewer,
                 dto.Toolchain.Xorriso,
                 dto.Toolchain.Bubblewrap),
+            new WindowsInstallationSelection(
+                dto.Installation.ImageIndex,
+                dto.Installation.EditionId,
+                dto.Installation.DisplayName),
             dto.DiskSizeGiB,
             dto.CpuCount,
             dto.MemoryMiB,
@@ -590,6 +612,7 @@ public static partial class WindowsImageBuildStateStore
         public required FileFingerprintDto OvmfCode { get; init; }
         public required FileFingerprintDto OvmfVariablesSource { get; init; }
         public required ToolchainDto Toolchain { get; init; }
+        public required InstallationDto Installation { get; init; }
         public required int DiskSizeGiB { get; init; }
         public required int CpuCount { get; init; }
         public required int MemoryMiB { get; init; }
@@ -620,6 +643,14 @@ public static partial class WindowsImageBuildStateStore
         public required string RemoteViewer { get; init; }
         public required string Xorriso { get; init; }
         public required string Bubblewrap { get; init; }
+    }
+
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    private sealed class InstallationDto
+    {
+        public required int ImageIndex { get; init; }
+        public required string EditionId { get; init; }
+        public required string DisplayName { get; init; }
     }
 
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

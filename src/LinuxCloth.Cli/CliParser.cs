@@ -200,6 +200,7 @@ public static class CliParser
         var diskSizeGiB = 96;
         var cpuCount = 4;
         var memoryMiB = 6144;
+        int? windowsImageIndex = null;
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
         for (var index = 4; index < arguments.Count; index++)
@@ -280,6 +281,20 @@ public static class CliParser
                     }
 
                     break;
+                case "--windows-image-index":
+                    if (!TryReadValue(arguments, ref index, option, out value, out error))
+                    {
+                        return CliParseResult.Failure(error!);
+                    }
+
+                    if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsedIndex) ||
+                        parsedIndex <= 0)
+                    {
+                        return CliParseResult.Failure("--windows-image-index는 1 이상의 정수여야 합니다.");
+                    }
+
+                    windowsImageIndex = parsedIndex;
+                    break;
                 default:
                     return CliParseResult.Failure($"알 수 없는 옵션입니다: {SafeArgument(option)}");
             }
@@ -298,7 +313,8 @@ public static class CliParser
             guestBridgeExecutablePath,
             diskSizeGiB,
             cpuCount,
-            memoryMiB));
+            memoryMiB,
+            windowsImageIndex));
     }
 
     private static CliParseResult ParseImageBuildResume(IReadOnlyList<string> arguments)

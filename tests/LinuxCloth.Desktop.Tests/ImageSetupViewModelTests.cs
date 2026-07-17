@@ -46,6 +46,7 @@ public sealed class ImageSetupViewModelTests
         Assert.Equal("windows-11", request.ImageId.Value);
         Assert.Equal("/media/windows.iso", request.WindowsIsoPath);
         Assert.Equal("/media/virtio.iso", request.VirtioWinIsoPath);
+        Assert.Equal(new WindowsInstallationSelection(6, "Professional", "Windows 11 Pro"), request.Installation);
         Assert.Equal(96, request.DiskSizeGiB);
         Assert.Equal(1, refreshCount);
         Assert.False(viewModel.IsBuilding);
@@ -185,8 +186,9 @@ public sealed class ImageSetupViewModelTests
 
     private static ImageSetupViewModel CreateReadyViewModel(
         IDesktopImageBuildService service,
-        Func<CancellationToken, Task> onRegistered) =>
-        new(service, onRegistered)
+        Func<CancellationToken, Task> onRegistered)
+    {
+        var viewModel = new ImageSetupViewModel(service, onRegistered)
         {
             ImageIdText = "windows-11",
             WindowsIsoPath = "/media/windows.iso",
@@ -195,6 +197,10 @@ public sealed class ImageSetupViewModelTests
             OvmfCodePath = "/usr/share/edk2/ovmf-code.fd",
             OvmfVariablesTemplatePath = "/usr/share/edk2/ovmf-vars.fd",
         };
+        viewModel.ApplyInstallationSelection(
+            new WindowsInstallationSelection(6, "Professional", "Windows 11 Pro"));
+        return viewModel;
+    }
 
     private sealed class FakeImageBuildService : IDesktopImageBuildService
     {

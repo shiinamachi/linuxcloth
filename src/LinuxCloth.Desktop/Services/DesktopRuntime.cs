@@ -137,6 +137,28 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         CancellationToken cancellationToken = default) =>
         ValidateMediaAsync(path, validateWindows: true, cancellationToken);
 
+    public async Task<DesktopWindowsMediaAnalysis> AnalyzeWindowsMediaAsync(
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
+        var xorriso = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Xorriso);
+        var bubblewrap = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Bubblewrap);
+        var wimlib = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.WimlibImagex);
+        var runner = new SystemProcessRunner();
+        var fingerprint = await new XorrisoInstallationMediaValidator(runner)
+            .ValidateWindowsAsync(path, xorriso, bubblewrap, cancellationToken)
+            .ConfigureAwait(false);
+        var catalog = await new WindowsInstallationPlanner(
+                runner,
+                Path.Combine(_paths.RuntimeDirectory, "windows-media-analysis"))
+            .AnalyzeAsync(path, xorriso, wimlib, bubblewrap, cancellationToken)
+            .ConfigureAwait(false);
+        return new DesktopWindowsMediaAnalysis(fingerprint, catalog);
+    }
+
     public Task<ImageBuildFileFingerprint> ValidateVirtioMediaAsync(
         string path,
         CancellationToken cancellationToken = default) =>
@@ -225,7 +247,8 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
                     toolchain,
                     request.DiskSizeGiB,
                     request.CpuCount,
-                    request.MemoryMiB),
+                    request.MemoryMiB,
+                    request.Installation),
                 cancellationToken)
             .ConfigureAwait(false);
         return await CompleteImageBuildAsync(builder, workspace, progress, cancellationToken)

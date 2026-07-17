@@ -12,7 +12,9 @@ namespace LinuxCloth.Application.ImageBuilding;
 public sealed class WindowsImageBuilder
 {
     private static readonly TimeSpan EndpointTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan InstallationVmTimeout = TimeSpan.FromHours(4);
     private static readonly TimeSpan ProcessStopTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan VerificationVmTimeout = TimeSpan.FromMinutes(30);
     private readonly ManagedImageRegistry _registry;
     private readonly IProcessRunner _processRunner;
     private readonly IProcessLauncher _processLauncher;
@@ -121,6 +123,7 @@ public sealed class WindowsImageBuilder
                 ovmfCode,
                 ovmfVariables,
                 normalized.Toolchain,
+                normalized.Installation!,
                 normalized.DiskSizeGiB,
                 normalized.CpuCount,
                 normalized.MemoryMiB,
@@ -281,10 +284,11 @@ public sealed class WindowsImageBuilder
         };
         await WindowsImageBuildStateStore.WriteAsync(running.Staging, running.State, cancellationToken)
             .ConfigureAwait(false);
-        running = await ExecuteInteractiveVmAsync(
+        running = await ExecuteVmAsync(
                 running,
                 ImageBuilderCommandFactory.BuildQemu,
                 WindowsImageBuildPhase.Prepared,
+                InstallationVmTimeout,
                 cancellationToken)
             .ConfigureAwait(false);
         try
@@ -384,10 +388,11 @@ public sealed class WindowsImageBuilder
         };
         await WindowsImageBuildStateStore.WriteAsync(running.Staging, running.State, cancellationToken)
             .ConfigureAwait(false);
-        running = await ExecuteInteractiveVmAsync(
+        running = await ExecuteVmAsync(
                 running,
                 ImageBuilderCommandFactory.BuildVerificationQemu,
                 WindowsImageBuildPhase.ReadyToVerify,
+                VerificationVmTimeout,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -583,7 +588,10 @@ public sealed class WindowsImageBuilder
             Path.Combine(
                 workspace.ProvisioningSourceDirectory,
                 GuestBridgeProvisioningContract.AutounattendFileName),
-            CreateAutounattend(CreateLocalAdministratorPassword()));
+            CreateAutounattend(
+                CreateLocalAdministratorPassword(),
+                workspace.State.Installation,
+                workspace.State.DiskSizeGiB));
         WritePrivateTextFile(
             Path.Combine(
                 workspace.ProvisioningSourceDirectory,
@@ -619,15 +627,15 @@ public sealed class WindowsImageBuilder
         SetPrivateFileMode(provisioningIso);
     }
 
-    private async Task<WindowsImageBuildWorkspace> ExecuteInteractiveVmAsync(
+    private async Task<WindowsImageBuildWorkspace> ExecuteVmAsync(
         WindowsImageBuildWorkspace running,
         Func<WindowsImageBuildWorkspace, ProcessSpec> qemuFactory,
         WindowsImageBuildPhase retryPhase,
+        TimeSpan timeout,
         CancellationToken cancellationToken)
     {
         IManagedProcess? swtpm = null;
         IManagedProcess? qemu = null;
-        IManagedProcess? viewer = null;
         Exception? operationFailure = null;
         try
         {
@@ -663,25 +671,9 @@ public sealed class WindowsImageBuilder
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            (running, viewer) = await StartTrackedProcessAsync(
-                    running,
-                    WindowsImageBuildProcessNames.Viewer,
-                    ImageBuilderCommandFactory.BuildViewer(running),
-                    cancellationToken)
+            var exitCode = await qemu.WaitForExitAsync(cancellationToken)
+                .WaitAsync(timeout, cancellationToken)
                 .ConfigureAwait(false);
-
-            var qemuExit = qemu.WaitForExitAsync(cancellationToken);
-            var viewerExit = viewer.WaitForExitAsync(cancellationToken);
-            var firstExit = await Task.WhenAny(qemuExit, viewerExit).ConfigureAwait(false);
-            if (firstExit == viewerExit && !qemuExit.IsCompleted)
-            {
-                var viewerExitCode = await viewerExit.ConfigureAwait(false);
-                throw new WindowsImageBuildException(
-                    $"The SPICE viewer exited with code {viewerExitCode} while the Windows VM was still running.",
-                    running.Staging);
-            }
-
-            var exitCode = await qemuExit.ConfigureAwait(false);
             if (exitCode != 0)
             {
                 throw new WindowsImageBuildException(
@@ -691,11 +683,16 @@ public sealed class WindowsImageBuilder
         }
         catch (Exception exception)
         {
-            operationFailure = exception;
+            operationFailure = exception is TimeoutException
+                ? new WindowsImageBuildException(
+                    $"The Windows virtual machine did not finish within {timeout.TotalMinutes:0} minutes.",
+                    exception,
+                    running.Staging)
+                : exception;
             await TryQuitQemuAsync(running.QmpSocketPath, qemu).ConfigureAwait(false);
         }
 
-        var cleanupFailures = await StopProcessesAsync(viewer, qemu, swtpm).ConfigureAwait(false);
+        var cleanupFailures = await StopProcessesAsync(null, qemu, swtpm).ConfigureAwait(false);
         if (operationFailure is not null || cleanupFailures.Count > 0)
         {
             if (cleanupFailures.Count == 0 && operationFailure is not UnsafeProcessCleanupException)
@@ -1041,6 +1038,10 @@ public sealed class WindowsImageBuilder
                 !properties["windowsBuild"].TryGetInt32(out var windowsBuild) ||
                 windowsBuild < 22000 ||
                 !TryReadBoundedJsonText(properties, "windowsEditionId", 128, out var windowsEditionId) ||
+                !string.Equals(
+                    windowsEditionId,
+                    workspace.State.Installation.EditionId,
+                    StringComparison.Ordinal) ||
                 !TryReadBoundedJsonText(properties, "windowsDisplayVersion", 64, out var windowsDisplayVersion))
             {
                 throw new JsonException("The verification result does not match the pinned probe.");
@@ -1254,6 +1255,13 @@ public sealed class WindowsImageBuilder
         $marker = Join-Path $env:ProgramData 'linuxcloth\guest-bridge-installed-v1'
         New-Item -ItemType Directory -Path ([System.IO.Path]::GetDirectoryName($marker)) -Force | Out-Null
         Set-Content -LiteralPath $marker -Value $expectedHash -Encoding ASCII
+        $winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+        Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultPassword','AutoAdminLogon','AutoLogonCount' -ErrorAction SilentlyContinue
+        @(
+          (Join-Path $env:WINDIR 'Panther\unattend.xml'),
+          (Join-Path $env:WINDIR 'Panther\unattend-original.xml'),
+          (Join-Path $env:WINDIR 'Panther\Unattend\unattend.xml')
+        ) | ForEach-Object { Remove-Item -LiteralPath $_ -Force -ErrorAction SilentlyContinue }
         Write-Host 'linuxcloth GuestBridge and Windows 11 virtio drivers were installed successfully.' -ForegroundColor Green
         Write-Host 'Windows will shut down to continue with the base-only verification boot.' -ForegroundColor Yellow
         & shutdown.exe /s /t 10 /c "linuxcloth provisioning completed"
@@ -1267,10 +1275,64 @@ public sealed class WindowsImageBuilder
         return $"Lc!{Convert.ToHexString(random)}";
     }
 
-    private static string CreateAutounattend(string password) =>
+    internal static string CreateAutounattend(
+        string password,
+        WindowsInstallationSelection installation,
+        int diskSizeGiB)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+        ValidateInstallationSelection(installation);
+        WindowsImageBuildStateStore.ValidateResources(diskSizeGiB, 2, 4096);
+        var windowsPartitionSizeMiB = checked(diskSizeGiB * 1024 - 260 - 16 - 1536);
+        return
         $$"""
         <?xml version="1.0" encoding="utf-8"?>
         <unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+          <settings pass="windowsPE">
+            <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+              <DriverPaths>
+                <PathAndCredentials wcm:action="add" wcm:keyValue="1">
+                  <Path>E:\vioscsi\w11\amd64</Path>
+                </PathAndCredentials>
+              </DriverPaths>
+            </component>
+            <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+              <DiskConfiguration>
+                <Disk wcm:action="add">
+                  <DiskID>0</DiskID>
+                  <WillWipeDisk>true</WillWipeDisk>
+                  <CreatePartitions>
+                    <CreatePartition wcm:action="add"><Order>1</Order><Type>EFI</Type><Size>260</Size></CreatePartition>
+                    <CreatePartition wcm:action="add"><Order>2</Order><Type>MSR</Type><Size>16</Size></CreatePartition>
+                    <CreatePartition wcm:action="add"><Order>3</Order><Type>Primary</Type><Size>{{windowsPartitionSizeMiB}}</Size></CreatePartition>
+                    <CreatePartition wcm:action="add"><Order>4</Order><Type>Primary</Type><Extend>true</Extend></CreatePartition>
+                  </CreatePartitions>
+                  <ModifyPartitions>
+                    <ModifyPartition wcm:action="add"><Order>1</Order><PartitionID>1</PartitionID><Format>FAT32</Format><Label>System</Label></ModifyPartition>
+                    <ModifyPartition wcm:action="add"><Order>2</Order><PartitionID>2</PartitionID></ModifyPartition>
+                    <ModifyPartition wcm:action="add"><Order>3</Order><PartitionID>3</PartitionID><Format>NTFS</Format><Label>Windows</Label><Letter>C</Letter></ModifyPartition>
+                    <ModifyPartition wcm:action="add"><Order>4</Order><PartitionID>4</PartitionID><Format>NTFS</Format><Label>Recovery</Label><TypeID>de94bba4-06d1-4d40-a16a-bfd50179d6ac</TypeID></ModifyPartition>
+                  </ModifyPartitions>
+                </Disk>
+                <WillShowUI>OnError</WillShowUI>
+              </DiskConfiguration>
+              <DynamicUpdate><Enable>false</Enable><WillShowUI>OnError</WillShowUI></DynamicUpdate>
+              <ImageInstall>
+                <OSImage>
+                  <InstallFrom>
+                    <MetaData wcm:action="add"><Key>/IMAGE/INDEX</Key><Value>{{installation.ImageIndex}}</Value></MetaData>
+                  </InstallFrom>
+                  <InstallTo><DiskID>0</DiskID><PartitionID>3</PartitionID></InstallTo>
+                  <WillShowUI>OnError</WillShowUI>
+                </OSImage>
+              </ImageInstall>
+              <UserData>
+                <AcceptEula>true</AcceptEula>
+                <FullName>linuxcloth</FullName>
+                <Organization>linuxcloth</Organization>
+              </UserData>
+            </component>
+          </settings>
           <settings pass="oobeSystem">
             <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
               <OOBE>
@@ -1299,7 +1361,7 @@ public sealed class WindowsImageBuilder
                   <PlainText>true</PlainText>
                 </Password>
                 <Enabled>true</Enabled>
-                <LogonCount>999</LogonCount>
+                <LogonCount>1</LogonCount>
                 <Username>linuxcloth</Username>
               </AutoLogon>
               <FirstLogonCommands>
@@ -1314,6 +1376,7 @@ public sealed class WindowsImageBuilder
           </settings>
         </unattend>
         """;
+    }
 
     private static string CreateProvisioningCommand() =>
         """
@@ -1332,14 +1395,14 @@ public sealed class WindowsImageBuilder
         """
         linuxcloth Windows 11 base image setup
 
-        1. Install Windows 11 to the blank virtual disk.
-        2. If the disk is not visible, load vioscsi\w11\amd64 from the virtio-win CD.
-        3. Continue Windows setup. The bundled answer file creates a unique local linuxcloth
-           administrator and signs it in without requiring a network connection.
-        4. First sign-in automatically installs the pinned GuestBridge and virtio drivers,
+        Windows Setup selects the approved edition, prepares the blank virtual disk, and loads
+        the Windows 11 storage driver without user input. First sign-in creates a unique local
+        linuxcloth administrator and continues without requiring a network connection.
+
+        1. First sign-in automatically installs the pinned GuestBridge and virtio drivers,
            then shuts Windows down. If automatic provisioning reports an error, open the
            LINUXCLOTH CD and run Install-LinuxCloth.cmd manually.
-        5. linuxcloth will boot the disk again without any installation media. Sign in once if asked.
+        2. linuxcloth will boot the disk again without any installation media. Sign in once if asked.
            The pinned GuestBridge will answer the one-time probe and shut Windows down automatically.
 
         The image is not promoted unless that second-boot handshake succeeds.
@@ -1481,6 +1544,10 @@ public sealed class WindowsImageBuilder
             request.OvmfVariablesTemplatePath,
             "OVMF variables template");
         var toolchain = NormalizeToolchain(request.Toolchain);
+        var installation = request.Installation ??
+                           throw new WindowsImageBuildException(
+                               "A reviewed Windows installation image selection is required.");
+        ValidateInstallationSelection(installation);
 
         var resources = new[] { windowsIso, virtioWinIso, guestBridge, ovmfCode, ovmfVariables };
         if (resources.Distinct(StringComparer.Ordinal).Count() != resources.Length)
@@ -1505,7 +1572,23 @@ public sealed class WindowsImageBuilder
             OvmfCodePath = ovmfCode,
             OvmfVariablesTemplatePath = ovmfVariables,
             Toolchain = toolchain,
+            Installation = installation,
         };
+    }
+
+    private static void ValidateInstallationSelection(WindowsInstallationSelection installation)
+    {
+        ArgumentNullException.ThrowIfNull(installation);
+        if (installation.ImageIndex <= 0 ||
+            string.IsNullOrWhiteSpace(installation.EditionId) ||
+            installation.EditionId.Length > 128 ||
+            installation.EditionId.Any(char.IsControl) ||
+            string.IsNullOrWhiteSpace(installation.DisplayName) ||
+            installation.DisplayName.Length > 256 ||
+            installation.DisplayName.Any(char.IsControl))
+        {
+            throw new WindowsImageBuildException("The Windows installation image selection is invalid.");
+        }
     }
 
     private static WindowsImageBuildToolchain NormalizeToolchain(WindowsImageBuildToolchain toolchain) =>

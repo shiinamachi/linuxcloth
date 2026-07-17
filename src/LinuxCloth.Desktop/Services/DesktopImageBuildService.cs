@@ -18,7 +18,8 @@ public sealed record DesktopImageBuildRequest(
     string OvmfVariablesTemplatePath,
     int DiskSizeGiB,
     int CpuCount,
-    int MemoryMiB);
+    int MemoryMiB,
+    WindowsInstallationSelection Installation);
 
 public sealed record DesktopImageBuildProgress(
     WindowsImageBuildPhase Phase,

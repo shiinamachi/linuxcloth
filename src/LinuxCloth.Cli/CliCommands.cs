@@ -44,7 +44,8 @@ public sealed record ImageBuildStartCommand(
     string GuestBridgeExecutablePath,
     int DiskSizeGiB,
     int CpuCount,
-    int MemoryMiB) : CliCommand;
+    int MemoryMiB,
+    int? WindowsImageIndex = null) : CliCommand;
 
 public sealed record ImageBuildResumeCommand(
     ImageId ImageId,

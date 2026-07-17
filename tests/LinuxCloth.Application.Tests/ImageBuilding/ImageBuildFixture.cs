@@ -80,7 +80,8 @@ internal sealed class ImageBuildFixture : IDisposable
             Toolchain,
             DiskSizeGiB: 96,
             CpuCount: 4,
-            MemoryMiB: 6144);
+            MemoryMiB: 6144,
+            Installation: new WindowsInstallationSelection(6, "Professional", "Windows 11 Pro"));
 
     public async Task<WindowsImageBuildWorkspace> BeginAsync(string imageId = "windows-11") =>
         await Builder.BeginAsync(CreateRequest(imageId));

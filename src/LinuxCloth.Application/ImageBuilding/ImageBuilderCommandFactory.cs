@@ -140,6 +140,7 @@ public static class ImageBuilderCommandFactory
             "-audiodev", "none,id=audio0",
             "-sandbox", "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny",
         };
+        ValidateInstallerStorageInvariant(workspace, arguments);
 
         return new ProcessSpec(
             state.Toolchain.QemuSystem,
@@ -475,6 +476,57 @@ public static class ImageBuilderCommandFactory
         actual.InheritEnvironment == expected.InheritEnvironment;
 
     private static string Drive(string prefix, string path) => prefix + Escape(path);
+
+    private static void ValidateInstallerStorageInvariant(
+        WindowsImageBuildWorkspace workspace,
+        IReadOnlyList<string> arguments)
+    {
+        var stagingRoot = Path.GetFullPath(workspace.Staging.DirectoryPath)
+            .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var baseImage = Path.GetFullPath(workspace.Staging.BaseImagePath);
+        if (!baseImage.StartsWith(stagingRoot, StringComparison.Ordinal))
+        {
+            throw new WindowsImageBuildException(
+                "The writable installer disk must be owned by the image-build staging area.",
+                workspace.Staging);
+        }
+
+        var blockDrives = arguments
+            .Where(static argument => argument.StartsWith("if=none,id=", StringComparison.Ordinal))
+            .ToArray();
+        if (blockDrives.Length != 4)
+        {
+            throw new WindowsImageBuildException(
+                "The installer must expose exactly one operating-system disk and three read-only media drives.",
+                workspace.Staging);
+        }
+
+        var os = blockDrives.SingleOrDefault(
+            static argument => argument.StartsWith("if=none,id=os,", StringComparison.Ordinal));
+        if (os is null ||
+            os.Contains("readonly=on", StringComparison.Ordinal) ||
+            !os.Contains($"file={Escape(baseImage)}", StringComparison.Ordinal))
+        {
+            throw new WindowsImageBuildException(
+                "The installer operating-system disk is not the owned writable qcow2 image.",
+                workspace.Staging);
+        }
+
+        foreach (var mediaId in new[] { "windows-install", "virtio-drivers", "linuxcloth-provisioning" })
+        {
+            var prefix = $"if=none,id={mediaId},";
+            var media = blockDrives.SingleOrDefault(
+                argument => argument.StartsWith(prefix, StringComparison.Ordinal));
+            if (media is null ||
+                !media.Contains("media=cdrom", StringComparison.Ordinal) ||
+                !media.Contains("readonly=on", StringComparison.Ordinal))
+            {
+                throw new WindowsImageBuildException(
+                    $"The installer {mediaId} media must be read-only.",
+                    workspace.Staging);
+            }
+        }
+    }
 
     private static string Escape(string value) => QemuOptionEscaper.Escape(value);
 

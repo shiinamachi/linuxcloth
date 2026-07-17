@@ -39,6 +39,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private string _virtioMediaStatus = "Windows 장치 드라이버 파일을 선택하세요.";
     private string _windowsMediaPath = string.Empty;
     private string _windowsMediaStatus = "Windows 11 x64 ISO를 선택하세요.";
+    private WindowsInstallationImage? _selectedWindowsEdition;
 
     public SetupWizardViewModel(
         IDesktopSetupService runtime,
@@ -101,6 +102,8 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<DoctorCheckViewModel> HostChecks { get; } = [];
 
     public ObservableCollection<PackageChange> PackageChanges { get; } = [];
+
+    public ObservableCollection<WindowsInstallationImage> WindowsEditions { get; } = [];
 
     public ImageSetupViewModel Build { get; }
 
@@ -179,7 +182,8 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     {
         SetupStep.HostInspection => IsDoctorAvailable(QemuDoctorCheckCodes.Platform),
         SetupStep.Components => _readiness.CanBuildImage,
-        SetupStep.WindowsMedia => _windowsFingerprint is not null && IsLicenseConfirmed,
+        SetupStep.WindowsMedia =>
+            _windowsFingerprint is not null && SelectedWindowsEdition is not null && IsLicenseConfirmed,
         SetupStep.VirtioMedia => _virtioFingerprint is not null,
         SetupStep.ImageBuild => false,
         _ => false,
@@ -228,6 +232,21 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     public bool IsWindowsMediaValid => _windowsFingerprint is not null;
 
     public string WindowsMediaHash => _windowsFingerprint?.Sha256 ?? string.Empty;
+
+    public WindowsInstallationImage? SelectedWindowsEdition
+    {
+        get => _selectedWindowsEdition;
+        set
+        {
+            if (SetProperty(ref _selectedWindowsEdition, value))
+            {
+                Build.ApplyInstallationSelection(value?.ToSelection());
+                RaiseNavigationState();
+            }
+        }
+    }
+
+    public bool HasMultipleWindowsEditions => WindowsEditions.Count > 1;
 
     public string VirtioMediaPath
     {
@@ -366,18 +385,32 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         IsBusy = true;
         WindowsMediaPath = Path.GetFullPath(path);
         _windowsFingerprint = null;
+        WindowsEditions.Clear();
+        SelectedWindowsEdition = null;
         Build.WindowsIsoPath = string.Empty;
         ErrorMessage = null;
         WindowsMediaStatus = "x64 부팅 파일, Windows 설치 이미지와 SHA-256을 확인하고 있습니다…";
         RaiseMediaState();
         try
         {
-            var fingerprint = await _runtime
-                .ValidateWindowsMediaAsync(WindowsMediaPath, validation.Token)
+            var analysis = await _runtime
+                .AnalyzeWindowsMediaAsync(WindowsMediaPath, validation.Token)
                 .ConfigureAwait(true);
+            var fingerprint = analysis.Fingerprint;
             _windowsFingerprint = fingerprint;
             Build.WindowsIsoPath = fingerprint.Path;
-            WindowsMediaStatus = $"사용 가능 · {FormatBytes((ulong)fingerprint.Length)} · SHA-256 계산 완료";
+            foreach (var image in analysis.Catalog.SupportedImages)
+            {
+                WindowsEditions.Add(image);
+            }
+
+            OnPropertyChanged(nameof(HasMultipleWindowsEditions));
+            SelectedWindowsEdition = analysis.Catalog.SuggestedImageIndex is int suggested
+                ? WindowsEditions.Single(image => image.Index == suggested)
+                : null;
+            WindowsMediaStatus = SelectedWindowsEdition is null
+                ? $"사용 가능 · {FormatBytes((ulong)fingerprint.Length)} · 설치할 Windows 버전을 선택하세요."
+                : $"사용 가능 · {SelectedWindowsEdition.DisplayName} · SHA-256 계산 완료";
             await SaveStateAsync().ConfigureAwait(true);
         }
         catch (Exception exception)

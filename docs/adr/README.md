@@ -16,3 +16,4 @@ ADRs are immutable once accepted. A later decision supersedes an earlier ADR ins
 12. [Confine generated session helpers](0012-confine-session-helpers.md)
 13. [Derive first-run setup from verified readiness](0013-derive-first-run-setup-from-readiness.md)
 14. [Adopt an adaptive desktop design system](0014-adopt-adaptive-desktop-design-system.md)
+15. [Automate Windows image installation](0015-automate-windows-image-installation.md)

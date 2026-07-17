@@ -100,15 +100,29 @@ public sealed class WindowsImageBuilderTests
             GuestBridgeProvisioningContract.AutounattendFileName];
         Assert.NotNull(System.Xml.Linq.XDocument.Parse(autounattend).Root);
         Assert.Contains("<HideOnlineAccountScreens>true</HideOnlineAccountScreens>", autounattend);
+        Assert.Contains("<WillWipeDisk>true</WillWipeDisk>", autounattend);
+        Assert.Contains("<Key>/IMAGE/INDEX</Key><Value>6</Value>", autounattend);
+        Assert.Contains("<Path>E:\\vioscsi\\w11\\amd64</Path>", autounattend);
+        Assert.Contains("<InstallTo><DiskID>0</DiskID><PartitionID>3</PartitionID></InstallTo>", autounattend);
         Assert.Contains("<Name>linuxcloth</Name>", autounattend);
         Assert.Contains("<AutoLogon>", autounattend);
+        Assert.Contains("<LogonCount>1</LogonCount>", autounattend);
+        Assert.DoesNotContain("<LogonCount>999</LogonCount>", autounattend);
         Assert.Contains(GuestBridgeProvisioningContract.InstallScriptFileName, autounattend);
         var installScript = fixture.Runner.ProvisioningFiles[
             GuestBridgeProvisioningContract.InstallScriptFileName];
         Assert.Contains("Register-ScheduledTask -TaskName 'linuxcloth GuestBridge'", installScript);
         Assert.DoesNotContain("-TaskPath", installScript, StringComparison.Ordinal);
         Assert.Contains("shutdown.exe /s", installScript);
-        Assert.Equal(6, fixture.Launcher.Specs.Count);
+        Assert.Contains("Panther\\Unattend\\unattend.xml", installScript);
+        Assert.Contains("DefaultPassword", installScript);
+        Assert.Equal(4, fixture.Launcher.Specs.Count);
+        Assert.DoesNotContain(
+            fixture.Launcher.Specs,
+            spec => string.Equals(
+                spec.IdentityExecutablePath ?? spec.FileName,
+                fixture.Toolchain.RemoteViewer,
+                StringComparison.Ordinal));
         Assert.All(fixture.Launcher.Processes, process => Assert.True(process.WasDisposed));
     }
 
@@ -136,7 +150,33 @@ public sealed class WindowsImageBuilderTests
     }
 
     [Fact]
-    public async Task ViewerExitStopsVmAndDoesNotPromoteOrHang()
+    public async Task VerificationRejectsAGuestEditionDifferentFromTheApprovedSelection()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        using var fixture = new ImageBuildFixture();
+        var prepared = await fixture.Builder.BeginAsync(
+            fixture.CreateRequest() with
+            {
+                Installation = new WindowsInstallationSelection(1, "Core", "Windows 11 Home"),
+            });
+        var installed = await fixture.Builder.RunInstallerAsync(prepared);
+
+        var failure = await Assert.ThrowsAsync<WindowsImageBuildException>(
+            () => fixture.Builder.RunVerificationAsync(installed));
+
+        Assert.Contains("readiness handshake", failure.Message, StringComparison.OrdinalIgnoreCase);
+        var resumed = await fixture.Builder.ResumeAsync(
+            installed.Staging.ImageId,
+            installed.Staging.DirectoryPath);
+        Assert.Equal(WindowsImageBuildPhase.ReadyToVerify, resumed.State.Phase);
+    }
+
+    [Fact]
+    public async Task InstallerRunsHeadlessWithoutLaunchingViewer()
     {
         if (!OperatingSystem.IsLinux())
         {
@@ -145,18 +185,16 @@ public sealed class WindowsImageBuilderTests
 
         using var fixture = new ImageBuildFixture();
         var prepared = await fixture.BeginAsync();
-        fixture.Launcher.BlockQemuExit = true;
-        fixture.Launcher.ViewerExitsImmediately = true;
 
-        var failure = await Assert.ThrowsAsync<WindowsImageBuildException>(
-                () => fixture.Builder.RunInstallerAsync(prepared))
-            .WaitAsync(TimeSpan.FromSeconds(5));
-        var resumed = await fixture.Builder.ResumeAsync(
-            prepared.Staging.ImageId,
-            prepared.Staging.DirectoryPath);
+        var installed = await fixture.Builder.RunInstallerAsync(prepared);
 
-        Assert.Contains("viewer", failure.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(WindowsImageBuildPhase.Prepared, resumed.State.Phase);
+        Assert.Equal(WindowsImageBuildPhase.ReadyToVerify, installed.State.Phase);
+        Assert.DoesNotContain(
+            fixture.Launcher.Specs,
+            spec => string.Equals(
+                spec.IdentityExecutablePath ?? spec.FileName,
+                fixture.Toolchain.RemoteViewer,
+                StringComparison.Ordinal));
     }
 
     [Fact]
@@ -170,11 +208,16 @@ public sealed class WindowsImageBuilderTests
         using var fixture = new ImageBuildFixture();
         var prepared = await fixture.BeginAsync();
         fixture.Launcher.BlockQemuExit = true;
-        fixture.Launcher.ViewerExitsImmediately = true;
         fixture.Launcher.FailQemuTerminate = true;
+        using var cancellation = new CancellationTokenSource();
+        var run = fixture.Builder.RunInstallerAsync(prepared, cancellation.Token);
+        await WaitUntilAsync(
+            () => fixture.Launcher.Processes.Any(
+                process => process.Identity.ExecutablePath == fixture.Toolchain.QemuSystem),
+            TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
 
-        await Assert.ThrowsAsync<WindowsImageBuildException>(
-            () => fixture.Builder.RunInstallerAsync(prepared));
+        await Assert.ThrowsAsync<WindowsImageBuildException>(() => run);
         var state = await WindowsImageBuildStateStore.ReadAsync(prepared.Staging);
 
         Assert.Equal(WindowsImageBuildPhase.InstallerRunning, state.Phase);

@@ -70,6 +70,26 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
         var environment = await ResolveImageBuildEnvironmentAsync(cancellationToken)
             .ConfigureAwait(false);
         var builder = CreateImageBuilder();
+        var catalog = await new WindowsInstallationPlanner(
+                new SystemProcessRunner(),
+                Path.Combine(_paths.RuntimeDirectory, "windows-media-analysis"))
+            .AnalyzeAsync(
+                command.WindowsIsoPath,
+                environment.Toolchain.Xorriso,
+                environment.WimlibImagex,
+                environment.Toolchain.Bubblewrap,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var selectedIndex = command.WindowsImageIndex ?? catalog.SuggestedImageIndex;
+        if (selectedIndex is null)
+        {
+            throw new WindowsImageBuildException(
+                "Windows ISO에 설치 가능한 버전이 여러 개 있습니다. --windows-image-index로 하나를 선택하세요.");
+        }
+
+        var selectedImage = catalog.SupportedImages.SingleOrDefault(image => image.Index == selectedIndex) ??
+                            throw new WindowsImageBuildException(
+                                "선택한 Windows 이미지 인덱스는 지원되는 Windows 11 amd64 버전이 아닙니다.");
         progress.Report(new ImageBuildProgress(
             WindowsImageBuildPhase.Preparing,
             StagingDirectory: null));
@@ -83,7 +103,8 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
             environment.Toolchain,
             command.DiskSizeGiB,
             command.CpuCount,
-            command.MemoryMiB);
+            command.MemoryMiB,
+            selectedImage.ToSelection());
         var workspace = await builder.BeginAsync(request, cancellationToken).ConfigureAwait(false);
         return await CompleteImageBuildAsync(builder, workspace, progress, cancellationToken)
             .ConfigureAwait(false);
@@ -266,6 +287,7 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
             QemuDoctorCheckCodes.Bubblewrap,
             QemuDoctorCheckCodes.Firmware,
             QemuDoctorCheckCodes.RuntimeDirectory,
+            QemuDoctorCheckCodes.WimlibImagex,
             QemuDoctorCheckCodes.Xorriso,
         };
         var unavailable = result.Report.Checks
@@ -292,7 +314,10 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
             RequirePath(report, QemuDoctorCheckCodes.RemoteViewer),
             RequirePath(report, QemuDoctorCheckCodes.Xorriso),
             RequirePath(report, QemuDoctorCheckCodes.Bubblewrap));
-        return new ImageBuildEnvironment(toolchain, firmware);
+        return new ImageBuildEnvironment(
+            toolchain,
+            firmware,
+            RequirePath(report, QemuDoctorCheckCodes.WimlibImagex));
     }
 
     private static async Task<ManagedWindowsImage> CompleteImageBuildAsync(
@@ -345,7 +370,8 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
 
     private sealed record ImageBuildEnvironment(
         WindowsImageBuildToolchain Toolchain,
-        FirmwarePair Firmware);
+        FirmwarePair Firmware,
+        string WimlibImagex);
 
     private sealed record ResolvedCatalogWorkspace(
         CatalogWorkspace Workspace,
