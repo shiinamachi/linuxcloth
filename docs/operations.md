@@ -14,7 +14,8 @@ The supported target is x86_64 Linux with:
 - `passt` for network-enabled sessions and `xorriso` while building an image;
 - unprivileged user namespaces or the distribution's supported Bubblewrap setup;
 - enough memory and storage for Windows 11 and a sparse base image;
-- a user-provided Windows 11 x64 ISO and virtio-win ISO while building an image.
+- a user-provided Windows 11 x64 ISO and either network access to the pinned
+  virtio-win artifact or a local Windows 11 amd64 virtio-win ISO fallback.
 
 linuxcloth does not require libvirt, a TAP interface, a bridge, root execution,
 or a setuid application binary. Never work around `/dev/kvm` access by running the
@@ -30,33 +31,38 @@ Bubblewrap, passt, swtpm, and viewer features because package contents vary.
 
 The desktop evaluates recovery, Doctor, registered-image verification, packaged
 GuestBridge availability, compatible OVMF descriptors, and durable image-build
-state on every start. It opens the five-step setup or environment-repair flow
+state on every start. It opens one preparation flow or a focused repair action
 when those facts require it; there is no authoritative “setup complete” flag.
 
-On supported Debian- and Fedora-family systems, **필수 구성 요소** shows the
-PackageKit simulation including versions, repositories, dependency changes, and
-download size. **필수 구성 요소 설치** starts the PackageKit transaction, which
-requests polkit authorization, and then runs Doctor again. Do not launch the
-desktop as root. If PackageKit is unavailable, copy the displayed `apt` or `dnf`
-command into a terminal, run it yourself, and choose **다시 검사**. The desktop
-never executes that command or adds a repository.
+On supported Debian- and Fedora-family systems, **Windows 환경 준비하기**
+resolves the packaged dependency plan, starts its PackageKit transaction,
+requests polkit authorization, and then runs Doctor again before continuing.
+Do not launch the desktop as root. If PackageKit is unavailable, copy the one
+displayed `apt` or `dnf` command into a terminal, run it yourself, and choose
+**다시 확인**. The desktop never executes that command or adds a repository.
 
-Only two local files are selected in the normal setup flow:
+Only one local file is selected in the normal setup flow:
 
-1. a licensed Microsoft Windows 11 x64 ISO;
-2. a Windows 11 amd64 virtio-win ISO containing `vioscsi` and `NetKVM`.
+1. a licensed Microsoft Windows 11 x64 ISO.
 
-Selection immediately performs bounded, Bubblewrap-confined ISO inspection and
-SHA-256 hashing. linuxcloth does not upload either file. The packaged
-GuestBridge and the QEMU descriptor-selected Secure Boot OVMF pair are displayed
-as automatically managed checks, not file pickers. Automatic virtio download is
-disabled until the release includes a reviewed immutable artifact manifest.
+Selection immediately performs bounded, network-disabled, Bubblewrap-confined
+ISO inspection, WIM/ESD edition analysis, and SHA-256 hashing. linuxcloth does
+not upload the file. At start, the desktop downloads virtio-win `0.1.285-1` from
+its immutable Fedora People archive URL and accepts it only after the
+release-bundled exact length and SHA-256 match. The versioned XDG cache is mode
+0600, invalid or partial files are not promoted, and a local ISO containing
+`vioscsi` and `NetKVM` remains available as the offline fallback. The packaged
+GuestBridge and descriptor-selected Secure Boot OVMF pair are also managed
+automatically.
 
-The wizard can remember the two media paths only when the user opts in.
+The wizard can remember the Windows ISO and an optional local driver ISO path
+only when the user opts in.
 `$XDG_CONFIG_HOME/linuxcloth/setup-state.json` is mode 0600 in a mode-0700
-directory and is atomically replaced. Durable staging metadata under the image
-registry always takes precedence over this UI state, and the file never stores
-keys, accounts, passwords, or other credentials.
+directory and is atomically replaced. The separate private, atomic
+`setup-run.json` records restartable operation state and removes media paths at
+completion. Durable staging metadata under the image registry always takes
+precedence over both UI files, and neither stores keys, accounts, passwords, or
+other credentials.
 
 ## Build and package entry points
 
@@ -122,27 +128,32 @@ application directories are rejected.
 
 ## Image lifecycle
 
-The operator supplies licensed Windows installation media and a Windows 11
-amd64 virtio-win ISO. The desktop first-run wizard detects the exact Q35 Secure
-Boot OVMF code/variables pair and packaged GuestBridge, accepts and immediately
-validates only the two ISOs, and supports safe cancellation and resume from a
-preserved staging directory. From the catalog, **기준 이미지 준비** reopens the
-same wizard. The equivalent expert CLI flow is:
+The operator supplies licensed Windows installation media. The desktop detects
+the exact Q35 Secure Boot OVMF code/variables pair and packaged GuestBridge,
+prepares the pinned virtio-win artifact or validates an explicit local fallback,
+and supports safe cancellation and resume from a preserved staging directory.
+From the catalog, **기준 이미지 준비** reopens the same flow. The equivalent
+expert CLI flow continues to require a local virtio ISO:
 
 ```text
 linuxcloth doctor
 linuxcloth image build start windows-11 \
   --windows-iso /absolute/path/Windows11.iso \
   --virtio-win-iso /absolute/path/virtio-win.iso \
+  --windows-image-index 6 \
   --guest-bridge /usr/lib/linuxcloth/guest/linuxcloth-guest-bridge.exe
 ```
 
-The image builder validates bounded ISO contents with confined `xorriso`, then
-opens an interactive SPICE Windows installer. Select the desired Windows edition
-and blank virtio disk; load the Windows 11 amd64 `vioscsi` driver from the
-virtio-win media if Setup does not show the disk. The generated answer file
-creates a unique local administrator, and first logon verifies and installs the
-pinned GuestBridge plus virtio drivers before shutting down.
+`--windows-image-index` is needed only when the ISO contains multiple supported
+editions without a unique suggested image. The image builder validates bounded
+ISO contents with confined `xorriso`, analyzes WIM/ESD metadata with confined
+`wimlib-imagex`, and starts Windows Setup without opening a viewer. Its complete
+`windowsPE` answer file selects the reviewed edition, loads `vioscsi`, and
+creates a deterministic UEFI/GPT disk layout. **설치 화면 보기** explicitly
+connects the unconfined diagnostic SPICE viewer while the VM is active. The
+generated answer file creates a per-run local administrator, and first logon
+verifies and installs the pinned GuestBridge plus virtio drivers, removes
+answer-file and AutoLogon secrets, and shuts down.
 
 linuxcloth then boots the base without installation media and supplies a
 one-time nonce/hash probe. The image is promoted only when GuestBridge reports
@@ -261,8 +272,6 @@ image, overlay, TPM state, or config disk.
   guest execution cannot yet be proven to use identical catalog bytes.
 - A crash before a newly started process identity is journaled can leave a
   permanently ambiguous session that fail-closed recovery cannot remove.
-- Image creation still requires interactive Windows edition/disk selection; it
-  is not the originally proposed unattended WinPE/DISM pipeline.
 - The bundled catalog is digest-pinned, but network catalog updates remain
   disabled and packages still require release-operator signing.
 - A Windows 11 KVM end-to-end run has not yet been recorded.

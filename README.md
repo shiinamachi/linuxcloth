@@ -9,7 +9,7 @@ linuxcloth는 공식 TableCloth 카탈로그와 Spork 실행 계약을 사용해
 - 공식 카탈로그 커밋과 `Catalog.xml`/이미지 트리 digest를 고정하고, 원본 XML을 재직렬화하지 않은 채 last-known-good 스냅샷으로 관리합니다.
 - Avalonia 데스크톱에서 카탈로그 검색, 호스트 검사, 기준 이미지 생성·재개, 일회용 세션 실행을 제공합니다.
 - CLI에서 `doctor`, `catalog`, `image build`, `image verify`, `cleanup`, `run`을 제공합니다.
-- 사용자 제공 Windows 11/virtio-win ISO로 대화형 Windows 설치를 진행하고, 설치 미디어 없는 자동 두 번째 부팅에서 GuestBridge 자기보고를 확인한 뒤에만 기준 qcow2를 봉인합니다.
+- 사용자가 Windows 11 ISO와 라이선스를 확인하면 고정·검증된 virtio-win 미디어 준비, 무인 Windows 설치, GuestBridge 검증, 기준 qcow2 봉인을 한 흐름으로 진행하며 중단된 작업을 안전하게 재개합니다.
 - 일반 세션은 검증된 기준 이미지에서 qcow2 overlay를 만들고, QEMU·`swtpm`·`passt`·overlay 생성용 `qemu-img`를 Bubblewrap 경계 안에서 실행합니다.
 - Windows GuestBridge는 Spork `v1.20.5`의 고정된 Bootstrap을 크기, SHA-256, Authenticode 신뢰 체인, 서명자 인증서 fingerprint로 검증합니다.
 - GuestBridge가 config를 검증하면 세션 UUID가 포함된 고정 형식 메시지를 virtio-serial로 보내며, 호스트는 일치하는 메시지를 받아야 세션을 `Running`으로 전환합니다.
@@ -32,7 +32,7 @@ linuxcloth는 공식 TableCloth 카탈로그와 Spork 실행 계약을 사용해
 - QEMU/KVM, Q35 Secure Boot OVMF, swtpm, Bubblewrap, virt-viewer
 - 네트워크 세션용 `passt`, 이미지 생성용 `xorriso`
 - Windows 11 x64 ISO와 유효한 라이선스(사용자 제공)
-- Windows 11 amd64 드라이버가 포함된 virtio-win ISO(사용자 제공)
+- 고정 virtio-win ISO를 처음 받을 네트워크 연결 또는 Windows 11 amd64 virtio-win ISO(선택적 로컬 대체 파일)
 
 처음 체크아웃한 뒤 공식 카탈로그 submodule을 가져옵니다.
 
