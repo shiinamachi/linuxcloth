@@ -98,6 +98,29 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task ViewerOpensOnlyOnExplicitActionDuringLiveBuild()
+    {
+        var runtime = new FakeSetupService { WaitDuringInstall = true };
+        await using var viewModel = CreateViewModel(runtime, new FakeRunStore());
+        await viewModel.InitializeAsync();
+        await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        viewModel.IsLicenseConfirmed = true;
+
+        var preparation = viewModel.PrepareAsync();
+        await runtime.BuildDisplayStarted.Task;
+        await WaitUntilAsync(() => viewModel.CanViewInstaller);
+        Assert.Equal(0, runtime.ViewerCount);
+
+        await viewModel.ViewInstallerAsync();
+
+        Assert.Equal(1, runtime.ViewerCount);
+        Assert.Equal("/data/images/.staging-windows-11", runtime.ViewerStagingDirectory);
+        runtime.ContinueBuild.TrySetResult();
+        await preparation;
+        Assert.False(viewModel.CanViewInstaller);
+    }
+
+    [Fact]
     public async Task PackageKitAbsenceProducesOneManualRecoveryAction()
     {
         var runtime = new FakeSetupService { DependenciesReady = false };
@@ -154,6 +177,15 @@ public sealed class SetupWizardViewModelTests : IDisposable
                 16L * 1024 * 1024 * 1024,
                 128L * 1024 * 1024 * 1024,
                 8));
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        while (!condition())
+        {
+            await Task.Delay(10, timeout.Token);
+        }
     }
 
     private static FirstRunSnapshot CreateFirstRun(bool dependenciesReady)
@@ -283,9 +315,17 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
         public bool WaitForMediaCancellation { get; init; }
 
+        public bool WaitDuringInstall { get; init; }
+
         public bool MediaCancellationObserved { get; private set; }
 
         public TaskCompletionSource MediaValidationStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource BuildDisplayStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource ContinueBuild { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public int BuildCount { get; private set; }
@@ -293,6 +333,10 @@ public sealed class SetupWizardViewModelTests : IDisposable
         public int ResumeCount { get; private set; }
 
         public int PinnedVirtioPrepareCount { get; private set; }
+
+        public int ViewerCount { get; private set; }
+
+        public string? ViewerStagingDirectory { get; private set; }
 
         public DesktopImageBuildRequest? LastBuildRequest { get; private set; }
 
@@ -318,6 +362,18 @@ public sealed class SetupWizardViewModelTests : IDisposable
             var fingerprint = Fingerprint("/cache/virtio-win.iso", 'b');
             progress?.Report(new VirtioMediaDownloadProgress("ready", fingerprint.Length, fingerprint.Length));
             return Task.FromResult(fingerprint);
+        }
+
+        public Task ViewImageBuildAsync(
+            ImageId imageId,
+            string stagingDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            _ = imageId;
+            cancellationToken.ThrowIfCancellationRequested();
+            ViewerCount++;
+            ViewerStagingDirectory = stagingDirectory;
+            return Task.CompletedTask;
         }
 
         public Task<bool> HasVerifiedImageAsync(
@@ -382,7 +438,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
             CancellationToken cancellationToken = default) =>
             Task.FromResult(Fingerprint(path, 'b'));
 
-        public Task<ManagedWindowsImage> BuildImageAsync(
+        public async Task<ManagedWindowsImage> BuildImageAsync(
             DesktopImageBuildRequest request,
             IProgress<DesktopImageBuildProgress> progress,
             CancellationToken cancellationToken = default)
@@ -394,12 +450,18 @@ public sealed class SetupWizardViewModelTests : IDisposable
                 new DesktopImageBuildProgress(
                     WindowsImageBuildPhase.InstallerRunning,
                     "/data/images/.staging-windows-11"));
+            if (WaitDuringInstall)
+            {
+                BuildDisplayStarted.TrySetResult();
+                await ContinueBuild.Task.WaitAsync(cancellationToken);
+            }
+
             progress.Report(
                 new DesktopImageBuildProgress(
                     WindowsImageBuildPhase.VerificationRunning,
                     "/data/images/.staging-windows-11"));
             _verified = true;
-            return Task.FromResult(CreateImage(request.ImageId));
+            return CreateImage(request.ImageId);
         }
 
         public Task<ManagedWindowsImage> ResumeImageBuildAsync(

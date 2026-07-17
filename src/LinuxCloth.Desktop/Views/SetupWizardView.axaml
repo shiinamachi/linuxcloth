@@ -231,12 +231,21 @@
                   TextWrapping="Wrap"
                   AutomationProperties.Name="Windows 환경 준비 상태"
                   AutomationProperties.LiveSetting="Polite" />
-              <Button
-                  Classes="secondary"
-                  Content="안전하게 중단"
-                  Command="{Binding CancelCommand}"
-                  HorizontalAlignment="Right"
-                  AutomationProperties.AutomationId="Setup.Cancel" />
+              <WrapPanel HorizontalAlignment="Right">
+                <Button
+                    Classes="ghost"
+                    Content="설치 화면 보기"
+                    Command="{Binding ViewInstallerCommand}"
+                    IsEnabled="{Binding CanViewInstaller}"
+                    Margin="0,0,6,0"
+                    AutomationProperties.AutomationId="Setup.ViewInstaller"
+                    AutomationProperties.HelpText="문제를 확인할 때만 Windows 설치 화면을 엽니다." />
+                <Button
+                    Classes="secondary"
+                    Content="안전하게 중단"
+                    Command="{Binding CancelCommand}"
+                    AutomationProperties.AutomationId="Setup.Cancel" />
+              </WrapPanel>
             </StackPanel>
           </Border>
         </StackPanel>

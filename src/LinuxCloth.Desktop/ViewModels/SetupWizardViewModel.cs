@@ -22,7 +22,10 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private TaskCompletionSource? _mediaFinished;
     private CancellationTokenSource? _operationCancellation;
     private Task? _operationTask;
+    private Task? _viewerTask;
     private SetupBlocker? _blocker;
+    private string? _currentBuildStagingDirectory;
+    private bool _hasLiveBuildDisplay;
     private int _cpuCount = 4;
     private int _diskSizeGiB = 96;
     private string? _errorMessage;
@@ -33,6 +36,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private bool _isDisposed;
     private bool _isLicenseConfirmed;
     private bool _isRunning;
+    private bool _isViewerOpen;
     private int _memoryMiB = 6144;
     private bool _rememberMediaPaths;
     private WindowsInstallationImage? _selectedWindowsEdition;
@@ -89,6 +93,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         PrepareCommand = new AsyncCommand(PrepareAsync, () => CanPrepare, ShowError);
         RetryCommand = new AsyncCommand(RetryAsync, () => CanRetry, ShowError);
         CancelCommand = new AsyncCommand(CancelAsync, () => IsRunning, ShowError);
+        ViewInstallerCommand = new AsyncCommand(ViewInstallerAsync, () => CanViewInstaller, ShowError);
         ReinspectCommand = new AsyncCommand(RefreshHostAsync, () => !HasActiveOperation, ShowError);
         LaterCommand = new AsyncCommand(RequestLaterAsync, () => !HasActiveOperation, ShowError);
     }
@@ -108,6 +113,8 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     public AsyncCommand RetryCommand { get; }
 
     public AsyncCommand CancelCommand { get; }
+
+    public AsyncCommand ViewInstallerCommand { get; }
 
     public AsyncCommand ReinspectCommand { get; }
 
@@ -156,6 +163,25 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         MemoryMiB is >= 4096 and <= 131072;
 
     public bool CanRetry => IsBlocked && !HasActiveOperation;
+
+    public bool IsViewerOpen
+    {
+        get => _isViewerOpen;
+        private set
+        {
+            if (SetProperty(ref _isViewerOpen, value))
+            {
+                OnPropertyChanged(nameof(CanViewInstaller));
+                ViewInstallerCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool CanViewInstaller =>
+        IsRunning &&
+        !IsViewerOpen &&
+        _hasLiveBuildDisplay &&
+        !string.IsNullOrWhiteSpace(_currentBuildStagingDirectory);
 
     public string HostStatus
     {
@@ -538,6 +564,17 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         _shutdown.Cancel();
         await CancelMediaValidationAndWaitAsync().ConfigureAwait(true);
         await CancelAndWaitAsync().ConfigureAwait(true);
+        if (_viewerTask is not null)
+        {
+            try
+            {
+                await _viewerTask.ConfigureAwait(true);
+            }
+            catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+            {
+            }
+        }
+
         await SavePreferencesAsync(CancellationToken.None).ConfigureAwait(true);
         if (_packageInstaller is IAsyncDisposable asyncDisposable)
         {
@@ -584,6 +621,38 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         };
         await _runStore.SaveAsync(updated, _shutdown.Token).ConfigureAwait(true);
         await RunOrchestratorAsync(resume: true).ConfigureAwait(true);
+    }
+
+    public async Task ViewInstallerAsync()
+    {
+        if (!CanViewInstaller)
+        {
+            return;
+        }
+
+        var staging = _currentBuildStagingDirectory!;
+        IsViewerOpen = true;
+        var viewerTask = _runtime.ViewImageBuildAsync(
+            ImageId.Parse(ImageIdText),
+            staging,
+            _shutdown.Token);
+        _viewerTask = viewerTask;
+        try
+        {
+            await viewerTask.ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_viewerTask, viewerTask))
+            {
+                _viewerTask = null;
+            }
+
+            IsViewerOpen = false;
+        }
     }
 
     private Task CancelAsync() => CancelAndWaitAsync();
@@ -785,6 +854,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     private void ApplyImageBuildProgress(DesktopImageBuildProgress progress)
     {
+        _currentBuildStagingDirectory = progress.StagingDirectory ?? _currentBuildStagingDirectory;
+        _hasLiveBuildDisplay = progress.Phase is WindowsImageBuildPhase.InstallerRunning or
+            WindowsImageBuildPhase.VerificationRunning;
+        OnPropertyChanged(nameof(CanViewInstaller));
+        ViewInstallerCommand.RaiseCanExecuteChanged();
         var phaseIndex = progress.Phase switch
         {
             WindowsImageBuildPhase.Preparing or WindowsImageBuildPhase.Prepared => 2,
@@ -854,6 +928,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         PrepareCommand.RaiseCanExecuteChanged();
         RetryCommand.RaiseCanExecuteChanged();
         CancelCommand.RaiseCanExecuteChanged();
+        ViewInstallerCommand.RaiseCanExecuteChanged();
         ReinspectCommand.RaiseCanExecuteChanged();
         LaterCommand.RaiseCanExecuteChanged();
     }

@@ -148,6 +148,43 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         CancellationToken cancellationToken = default) =>
         _pinnedVirtioMedia.PrepareAsync(progress, cancellationToken);
 
+    public async Task ViewImageBuildAsync(
+        ImageId imageId,
+        string stagingDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var staging = _images.OpenStaging(imageId, stagingDirectory);
+        var state = await WindowsImageBuildStateStore.ReadAsync(staging, cancellationToken)
+            .ConfigureAwait(false);
+        if (state.Phase is not WindowsImageBuildPhase.InstallerRunning and
+            not WindowsImageBuildPhase.VerificationRunning)
+        {
+            throw new InvalidOperationException("현재 Windows 설치 화면에 연결할 수 없습니다.");
+        }
+
+        var workspace = new WindowsImageBuildWorkspace(
+            staging,
+            state,
+            Path.Combine(
+                _paths.RuntimeDirectory,
+                "image-build",
+                state.MachineId.ToString("N")[..12]));
+        if (!File.Exists(workspace.SpiceSocketPath))
+        {
+            throw new IOException("Windows 설치 화면 연결 소켓이 준비되지 않았습니다.");
+        }
+
+        await using var viewer = await new SystemProcessLauncher()
+            .StartAsync(ImageBuilderCommandFactory.BuildViewer(workspace), cancellationToken)
+            .ConfigureAwait(false);
+        var exitCode = await viewer.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        if (exitCode != 0)
+        {
+            throw new InvalidOperationException($"Windows 설치 화면이 종료 코드 {exitCode}로 끝났습니다.");
+        }
+    }
+
     public Task<IReadOnlyList<ManagedWindowsImage>> ListImagesAsync(
         CancellationToken cancellationToken = default) =>
         _images.ListAsync(cancellationToken);

@@ -35,6 +35,11 @@ public interface IDesktopSetupService : IDesktopImageBuildService, IDesktopMedia
         IProgress<VirtioMediaDownloadProgress>? progress = null,
         CancellationToken cancellationToken = default);
 
+    Task ViewImageBuildAsync(
+        ImageId imageId,
+        string stagingDirectory,
+        CancellationToken cancellationToken = default);
+
     Task<bool> HasVerifiedImageAsync(
         ImageId imageId,
         CancellationToken cancellationToken = default);

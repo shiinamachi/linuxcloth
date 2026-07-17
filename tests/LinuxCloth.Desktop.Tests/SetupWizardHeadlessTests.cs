@@ -47,6 +47,9 @@ public sealed class SetupWizardHeadlessTests
                     Assert.Contains(
                         buttons,
                         button => AutomationProperties.GetAutomationId(button) == "Setup.Prepare");
+                    Assert.Contains(
+                        buttons,
+                        button => AutomationProperties.GetAutomationId(button) == "Setup.ViewInstaller");
 
                     var imageId = view.GetLogicalDescendants()
                         .OfType<TextBox>()
