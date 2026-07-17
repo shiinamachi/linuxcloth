@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Avalonia.Controls;
+using LinuxCloth.Application.Setup;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Desktop.Setup;
 using LinuxCloth.Desktop.ViewModels;
@@ -91,6 +92,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
             _runtime,
             firstRun,
             new SetupStateStore(_runtime.Paths),
+            new JsonSetupRunStore(_runtime.Paths.ConfigDirectory),
             new DistributionInfoReader(),
             new PackagePlanResolver(),
             new PackageKitPackageInstaller(new PackageKitDbusClient()),

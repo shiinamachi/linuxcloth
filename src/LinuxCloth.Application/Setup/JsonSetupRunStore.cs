@@ -149,6 +149,7 @@ public sealed partial class JsonSetupRunStore : ISetupRunStore
         }
 
         ValidateText(run.Inputs.WindowsEdition, 256, "Windows edition");
+        ValidateText(run.Inputs.WindowsEditionId, 128, "Windows edition ID");
         ValidateText(run.Inputs.PackagePlanDigest, 128, "package plan digest");
         ValidateFingerprint(run.Inputs.WindowsIsoFingerprint, "Windows ISO fingerprint");
         ValidateFingerprint(run.Inputs.VirtioIsoFingerprint, "virtio ISO fingerprint");

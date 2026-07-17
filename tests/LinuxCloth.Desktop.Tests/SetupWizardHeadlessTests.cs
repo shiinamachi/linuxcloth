@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -10,7 +11,7 @@ namespace LinuxCloth.Desktop.Tests;
 public sealed class SetupWizardHeadlessTests
 {
     [Fact]
-    public async Task RendersKeyboardAccessibleWizardWithoutManagedComponentPickers()
+    public async Task RendersSinglePreparationActionWithAccessibleFilePickers()
     {
         using var session = HeadlessUnitTestSession.StartNew(typeof(App));
 
@@ -31,15 +32,20 @@ public sealed class SetupWizardHeadlessTests
                     var labels = buttons
                         .Select(button => button.Content?.ToString() ?? string.Empty)
                         .ToArray();
-                    Assert.Contains("ISO 파일 선택", labels);
-                    Assert.Contains("드라이버 ISO 선택", labels);
+                    Assert.Equal(2, labels.Count(label => label == "파일 선택"));
+                    Assert.Contains("Windows 환경 준비하기", labels);
+                    Assert.DoesNotContain("뒤로", labels);
+                    Assert.DoesNotContain("계속", labels);
                     Assert.DoesNotContain(labels, label => label.Contains("OVMF", StringComparison.Ordinal));
                     Assert.DoesNotContain(labels, label => label.Contains("GuestBridge", StringComparison.Ordinal));
 
-                    var mediaButtons = buttons.Where(button =>
-                        (button.Content?.ToString() ?? string.Empty).Contains("ISO 선택", StringComparison.Ordinal));
-                    Assert.All(mediaButtons, button =>
+                    var fileButtons = buttons.Where(button =>
+                        (button.Content?.ToString() ?? string.Empty) == "파일 선택");
+                    Assert.All(fileButtons, button =>
                         Assert.False(string.IsNullOrWhiteSpace(AutomationProperties.GetName(button))));
+                    Assert.Contains(
+                        buttons,
+                        button => AutomationProperties.GetAutomationId(button) == "Setup.Prepare");
 
                     var imageId = view.GetLogicalDescendants()
                         .OfType<TextBox>()
@@ -47,8 +53,7 @@ public sealed class SetupWizardHeadlessTests
                     Assert.True(imageId.Focusable);
                     Assert.Equal(980, window.ClientSize.Width);
                     Assert.Equal(760, window.ClientSize.Height);
-                    Assert.True(view.FindControl<Border>("StepRail")!.IsVisible);
-                    Assert.False(view.FindControl<Border>("CompactStepHeader")!.IsVisible);
+                    Assert.Equal(new Thickness(20, 16), view.FindControl<Grid>("ContentFrame")!.Margin);
                 }
                 finally
                 {
@@ -59,7 +64,7 @@ public sealed class SetupWizardHeadlessTests
     }
 
     [Fact]
-    public async Task UsesCompactProgressAtMinimumSupportedSize()
+    public async Task KeepsAllContentScrollableAtMinimumSizeAndTwoHundredPercentScaling()
     {
         using var session = HeadlessUnitTestSession.StartNew(typeof(App));
 
@@ -76,8 +81,8 @@ public sealed class SetupWizardHeadlessTests
                 window.Show();
                 try
                 {
-                    Assert.False(view.FindControl<Border>("StepRail")!.IsVisible);
-                    Assert.True(view.FindControl<Border>("CompactStepHeader")!.IsVisible);
+                    Assert.Equal(new Thickness(12, 10), view.FindControl<Grid>("ContentFrame")!.Margin);
+                    Assert.NotNull(view.GetLogicalDescendants().OfType<ScrollViewer>().SingleOrDefault());
                     window.SetRenderScaling(2);
                     Assert.Equal(2, window.RenderScaling);
                     Assert.Equal(720, window.ClientSize.Width);

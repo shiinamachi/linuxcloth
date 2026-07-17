@@ -1,5 +1,6 @@
 using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Application.Images;
+using LinuxCloth.Application.Setup;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Desktop.Setup;
 using LinuxCloth.Desktop.ViewModels;
@@ -12,102 +13,118 @@ public sealed class SetupWizardViewModelTests : IDisposable
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"lcw{Guid.NewGuid():N}"[..9]);
 
     [Fact]
-    public async Task GatesMediaStepsOnImmediateValidationAndLicenseConfirmation()
+    public async Task OnePreparationActionIsGatedByValidatedInputsAndLicense()
     {
         var runtime = new FakeSetupService();
-        var state = new FakeStateStore(SetupState.Default);
-        await using var viewModel = CreateViewModel(runtime, state, CreateFirstRun());
+        await using var viewModel = CreateViewModel(runtime, new FakeRunStore());
+
         await viewModel.InitializeAsync();
 
-        await viewModel.ContinueAsync();
-        Assert.Equal(SetupStep.Components, viewModel.CurrentStep);
-        Assert.True(viewModel.CanContinue);
-
-        await viewModel.ContinueAsync();
-        Assert.Equal(SetupStep.WindowsMedia, viewModel.CurrentStep);
-        Assert.False(viewModel.CanContinue);
-
+        Assert.True(viewModel.IsReady);
+        Assert.False(viewModel.CanPrepare);
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
-        Assert.True(viewModel.IsWindowsMediaValid);
-        Assert.False(viewModel.CanContinue);
-        viewModel.IsLicenseConfirmed = true;
-        Assert.True(viewModel.CanContinue);
-
-        await viewModel.ContinueAsync();
         await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
-        Assert.Equal(1, runtime.WindowsValidationCount);
-        Assert.Equal(1, runtime.VirtioValidationCount);
-        Assert.True(viewModel.CanContinue);
+        Assert.False(viewModel.CanPrepare);
+        viewModel.IsLicenseConfirmed = true;
+        Assert.True(viewModel.CanPrepare);
     }
 
     [Fact]
-    public async Task DurableBuildStateOverridesSavedWizardStep()
-    {
-        var resume = new ResumableImageBuild(
-            ImageId.Parse("resume-image"),
-            "/data/images/.staging-resume",
-            WindowsImageBuildPhase.ReadyToVerify,
-            DateTimeOffset.UtcNow);
-        var firstRun = CreateFirstRun() with
-        {
-            Startup = CreateFirstRun().Startup with { ResumableBuilds = [resume] },
-        };
-        firstRun = firstRun with { Readiness = SetupReadinessEvaluator.Evaluate(firstRun.Startup) };
-        var state = SetupState.Default with { LastStep = SetupStep.WindowsMedia };
-        await using var viewModel = CreateViewModel(
-            new FakeSetupService(),
-            new FakeStateStore(state),
-            firstRun);
-
-        await viewModel.InitializeAsync();
-
-        Assert.Equal(SetupStep.ImageBuild, viewModel.CurrentStep);
-        Assert.Equal("resume-image", viewModel.Build.ImageIdText);
-        Assert.Equal("/data/images/.staging-resume", viewModel.Build.StagingDirectory);
-    }
-
-    [Fact]
-    public async Task MultipleWindowsEditionsRequireAnExplicitSelection()
+    public async Task MultipleWindowsEditionsRequireOneExplicitLinuxSideSelection()
     {
         var runtime = new FakeSetupService { MultipleWindowsEditions = true };
-        await using var viewModel = CreateViewModel(
-            runtime,
-            new FakeStateStore(SetupState.Default with { LastStep = SetupStep.WindowsMedia }),
-            CreateFirstRun());
+        await using var viewModel = CreateViewModel(runtime, new FakeRunStore());
         await viewModel.InitializeAsync();
 
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
         viewModel.IsLicenseConfirmed = true;
 
         Assert.True(viewModel.HasMultipleWindowsEditions);
         Assert.Null(viewModel.SelectedWindowsEdition);
-        Assert.False(viewModel.CanContinue);
+        Assert.False(viewModel.CanPrepare);
         viewModel.SelectedWindowsEdition = viewModel.WindowsEditions.Single(image => image.Index == 6);
-        Assert.True(viewModel.CanContinue);
-        Assert.Equal(6, viewModel.Build.Installation?.ImageIndex);
+        Assert.True(viewModel.CanPrepare);
     }
 
     [Fact]
-    public async Task PackageKitAbsenceExposesOnlyACopyableManualCommand()
+    public async Task PrepareRunsThroughImageRegistrationAndCompletesDurableRun()
     {
-        var state = new FakeStateStore(SetupState.Default with { LastStep = SetupStep.Components });
-        await using var viewModel = CreateViewModel(
-            new FakeSetupService(),
-            state,
-            CreateFirstRun());
+        var runtime = new FakeSetupService();
+        var runStore = new FakeRunStore();
+        await using var viewModel = CreateViewModel(runtime, runStore);
+        await viewModel.InitializeAsync();
+        await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
+        viewModel.IsLicenseConfirmed = true;
+        var completed = 0;
+        viewModel.Completed += (_, _) => completed++;
+
+        await viewModel.PrepareAsync();
+
+        Assert.Equal(1, runtime.BuildCount);
+        Assert.Equal(1, completed);
+        Assert.False(viewModel.IsRunning);
+        Assert.Equal(SetupPhase.Completed, runStore.Run?.Phase);
+        Assert.Null(runStore.Run?.Inputs.WindowsIsoPath);
+        Assert.All(viewModel.Phases, phase => Assert.True(phase.IsComplete));
+    }
+
+    [Fact]
+    public async Task ActiveDurableRunResumesAutomaticallyOnInitialization()
+    {
+        var runtime = new FakeSetupService();
+        var now = DateTimeOffset.UtcNow;
+        var inputs = CreateInputs();
+        var runStore = new FakeRunStore
+        {
+            Run = new SetupRun(
+                SetupRun.CurrentSchemaVersion,
+                Guid.NewGuid(),
+                SetupPhase.BuildingImage,
+                inputs,
+                "/data/images/.staging-windows-11",
+                null,
+                2,
+                now,
+                now),
+        };
+        await using var viewModel = CreateViewModel(runtime, runStore);
 
         await viewModel.InitializeAsync();
 
-        Assert.True(viewModel.ShowManualCommand);
-        Assert.StartsWith("sudo apt install -- ", viewModel.ManualInstallCommand, StringComparison.Ordinal);
-        Assert.False(viewModel.CanInstallPackages);
+        Assert.Equal(1, runtime.ResumeCount);
+        Assert.Equal(SetupPhase.Completed, runStore.Run?.Phase);
     }
 
     [Fact]
-    public async Task DisposalCancelsAndWaitsForActiveMediaValidation()
+    public async Task PackageKitAbsenceProducesOneManualRecoveryAction()
+    {
+        var runtime = new FakeSetupService { DependenciesReady = false };
+        var runStore = new FakeRunStore();
+        await using var viewModel = CreateViewModel(runtime, runStore);
+        await viewModel.InitializeAsync();
+        await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
+        viewModel.IsLicenseConfirmed = true;
+
+        Assert.True(viewModel.CanPrepare);
+        await viewModel.PrepareAsync();
+
+        Assert.True(
+            viewModel.IsBlocked,
+            $"phase={runStore.Run?.Phase}; code={runStore.Run?.Blocker?.Code}; error={viewModel.ErrorMessage}");
+        Assert.True(viewModel.ShowManualCommand);
+        Assert.StartsWith("sudo apt install -- ", viewModel.ManualInstallCommand, StringComparison.Ordinal);
+        Assert.Equal("SETUP-PKG-MANUAL", viewModel.BlockerCode);
+        Assert.Equal(0, runtime.BuildCount);
+    }
+
+    [Fact]
+    public async Task DisposalCancelsAndWaitsForActiveMediaAnalysis()
     {
         var runtime = new FakeSetupService { WaitForMediaCancellation = true };
-        var viewModel = CreateViewModel(runtime, new FakeStateStore(SetupState.Default), CreateFirstRun());
+        var viewModel = CreateViewModel(runtime, new FakeRunStore());
         await viewModel.InitializeAsync();
         var validation = viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
         await runtime.MediaValidationStarted.Task;
@@ -119,28 +136,18 @@ public sealed class SetupWizardViewModelTests : IDisposable
         Assert.False(viewModel.HasActiveOperation);
     }
 
-    public void Dispose()
-    {
-        if (Directory.Exists(_root))
-        {
-            Directory.Delete(_root, recursive: true);
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
     private SetupWizardViewModel CreateViewModel(
-        IDesktopSetupService runtime,
-        ISetupStateStore stateStore,
-        FirstRunSnapshot firstRun)
+        FakeSetupService runtime,
+        ISetupRunStore runStore)
     {
         Directory.CreateDirectory(_root);
         var osRelease = Path.Combine(_root, "os-release");
         File.WriteAllText(osRelease, "ID=debian\nNAME=Debian\nVERSION_ID=12\n");
         return new SetupWizardViewModel(
             runtime,
-            firstRun,
-            stateStore,
+            CreateFirstRun(runtime.DependenciesReady),
+            new FakeStateStore(SetupState.Default),
+            runStore,
             new DistributionInfoReader(osRelease),
             new PackagePlanResolver(new FakeManifestSource()),
             new ManualOnlyPackageInstaller(),
@@ -150,28 +157,9 @@ public sealed class SetupWizardViewModelTests : IDisposable
                 8));
     }
 
-    private static FirstRunSnapshot CreateFirstRun()
+    private static FirstRunSnapshot CreateFirstRun(bool dependenciesReady)
     {
-        string[] codes =
-        [
-            QemuDoctorCheckCodes.Platform,
-            QemuDoctorCheckCodes.Kvm,
-            QemuDoctorCheckCodes.QemuSystem,
-            QemuDoctorCheckCodes.QemuImg,
-            QemuDoctorCheckCodes.Swtpm,
-            QemuDoctorCheckCodes.RemoteViewer,
-            QemuDoctorCheckCodes.Passt,
-            QemuDoctorCheckCodes.Bubblewrap,
-            QemuDoctorCheckCodes.WimlibImagex,
-            QemuDoctorCheckCodes.Xorriso,
-            QemuDoctorCheckCodes.Firmware,
-            QemuDoctorCheckCodes.RuntimeDirectory,
-        ];
-        var doctor = new QemuDoctorResult(
-            new DoctorReport(codes.Select(code => new DoctorCheck(code, true, true, "ready")).ToArray()),
-            null,
-            null,
-            null);
+        var doctor = FakeSetupService.CreateDoctor(dependenciesReady);
         var startup = new DesktopStartupSnapshot(
             null!,
             [],
@@ -186,6 +174,31 @@ public sealed class SetupWizardViewModelTests : IDisposable
             [],
             []);
         return new FirstRunSnapshot(startup, SetupReadinessEvaluator.Evaluate(startup));
+    }
+
+    private static SetupInputSnapshot CreateInputs() => new(
+        "/media/windows.iso",
+        new SetupFileFingerprint(1024, DateTimeOffset.UtcNow, new string('a', 64)),
+        "/media/virtio.iso",
+        new SetupFileFingerprint(1024, DateTimeOffset.UtcNow, new string('b', 64)),
+        6,
+        "Professional",
+        "Windows 11 Pro",
+        null,
+        ImageId.Parse("windows-11"),
+        96,
+        4,
+        6144,
+        true);
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+
+        GC.SuppressFinalize(this);
     }
 
     private sealed class FakeManifestSource : IPackageManifestSource
@@ -236,108 +249,180 @@ public sealed class SetupWizardViewModelTests : IDisposable
         }
     }
 
+    private sealed class FakeRunStore : ISetupRunStore
+    {
+        public SetupRun? Run { get; set; }
+
+        public Task<SetupRun?> LoadAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Run);
+        }
+
+        public Task SaveAsync(SetupRun run, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Run = run;
+            return Task.CompletedTask;
+        }
+
+        public Task ClearAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Run = null;
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed class FakeSetupService : IDesktopSetupService
     {
-        public bool WaitForMediaCancellation { get; init; }
+        private bool _verified;
+
+        public bool DependenciesReady { get; init; } = true;
 
         public bool MultipleWindowsEditions { get; init; }
+
+        public bool WaitForMediaCancellation { get; init; }
 
         public bool MediaCancellationObserved { get; private set; }
 
         public TaskCompletionSource MediaValidationStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public int WindowsValidationCount { get; private set; }
+        public int BuildCount { get; private set; }
 
-        public int VirtioValidationCount { get; private set; }
+        public int ResumeCount { get; private set; }
 
-        public Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(CreateFirstRun().Startup.Doctor);
+        public Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(CreateDoctor(DependenciesReady));
+        }
+
+        public Task<bool> HasVerifiedImageAsync(
+            ImageId imageId,
+            CancellationToken cancellationToken = default)
+        {
+            _ = imageId;
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_verified);
+        }
+
+        public Task<(
+            IReadOnlyList<ResumableImageBuild> Builds,
+            IReadOnlyList<ImageBuildRecoveryIssue> Issues)> FindResumableBuildsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<(
+                IReadOnlyList<ResumableImageBuild>,
+                IReadOnlyList<ImageBuildRecoveryIssue>)>(([], []));
+        }
 
         public Task<DesktopImageBuildDefaults> GetImageBuildDefaultsAsync(
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(CreateFirstRun().Startup.ImageBuildDefaults);
+            Task.FromResult(
+                new DesktopImageBuildDefaults(
+                    "/usr/lib/linuxcloth/guest/linuxcloth-guest-bridge.exe",
+                    true,
+                    "/usr/share/OVMF_CODE.fd",
+                    "/usr/share/OVMF_VARS.fd"));
 
         public Task<ImageBuildFileFingerprint> ValidateWindowsMediaAsync(
             string path,
-            CancellationToken cancellationToken = default)
-        {
-            WindowsValidationCount++;
-            if (!WaitForMediaCancellation)
-            {
-                return Task.FromResult(Fingerprint(path));
-            }
-
-            MediaValidationStarted.TrySetResult();
-            return WaitForCancellationAsync(cancellationToken);
-        }
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Fingerprint(path, 'a'));
 
         public Task<DesktopWindowsMediaAnalysis> AnalyzeWindowsMediaAsync(
             string path,
             CancellationToken cancellationToken = default)
         {
-            WindowsValidationCount++;
-            if (!WaitForMediaCancellation)
+            if (WaitForMediaCancellation)
             {
-                return Task.FromResult(CreateAnalysis(path));
+                MediaValidationStarted.TrySetResult();
+                return WaitForAnalysisCancellationAsync(cancellationToken);
             }
 
-            MediaValidationStarted.TrySetResult();
-            return WaitForAnalysisCancellationAsync(cancellationToken);
+            WindowsInstallationImage[] images = MultipleWindowsEditions
+                ?
+                [
+                    new WindowsInstallationImage(1, "Windows 11 Home", "Core", "amd64", 26100),
+                    new WindowsInstallationImage(6, "Windows 11 Pro", "Professional", "amd64", 26100),
+                ]
+                : [new WindowsInstallationImage(6, "Windows 11 Pro", "Professional", "amd64", 26100)];
+            return Task.FromResult(
+                new DesktopWindowsMediaAnalysis(
+                    Fingerprint(path, 'a'),
+                    new WindowsInstallationCatalog(images, MultipleWindowsEditions ? null : 6)));
         }
 
         public Task<ImageBuildFileFingerprint> ValidateVirtioMediaAsync(
             string path,
-            CancellationToken cancellationToken = default)
-        {
-            VirtioValidationCount++;
-            return Task.FromResult(Fingerprint(path));
-        }
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Fingerprint(path, 'b'));
 
         public Task<ManagedWindowsImage> BuildImageAsync(
             DesktopImageBuildRequest request,
             IProgress<DesktopImageBuildProgress> progress,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            BuildCount++;
+            progress.Report(
+                new DesktopImageBuildProgress(
+                    WindowsImageBuildPhase.InstallerRunning,
+                    "/data/images/.staging-windows-11"));
+            progress.Report(
+                new DesktopImageBuildProgress(
+                    WindowsImageBuildPhase.VerificationRunning,
+                    "/data/images/.staging-windows-11"));
+            _verified = true;
+            return Task.FromResult(CreateImage(request.ImageId));
+        }
 
         public Task<ManagedWindowsImage> ResumeImageBuildAsync(
             ImageId imageId,
             string stagingDirectory,
             IProgress<DesktopImageBuildProgress> progress,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-
-        private static ImageBuildFileFingerprint Fingerprint(string path) =>
-            new(Path.GetFullPath(path), new string('a', 64), 1024, 1);
-
-        private DesktopWindowsMediaAnalysis CreateAnalysis(string path)
+            CancellationToken cancellationToken = default)
         {
-            var images = MultipleWindowsEditions
-                ? new[]
-                {
-                    new WindowsInstallationImage(1, "Windows 11 Home", "Core", "amd64", 26100),
-                    new WindowsInstallationImage(6, "Windows 11 Pro", "Professional", "amd64", 26100),
-                }
-                : [new WindowsInstallationImage(6, "Windows 11 Pro", "Professional", "amd64", 26100)];
-            return new DesktopWindowsMediaAnalysis(
-                Fingerprint(path),
-                new WindowsInstallationCatalog(images, MultipleWindowsEditions ? null : 6));
+            _ = stagingDirectory;
+            cancellationToken.ThrowIfCancellationRequested();
+            ResumeCount++;
+            progress.Report(
+                new DesktopImageBuildProgress(
+                    WindowsImageBuildPhase.VerificationRunning,
+                    stagingDirectory));
+            _verified = true;
+            return Task.FromResult(CreateImage(imageId));
         }
 
-        private async Task<ImageBuildFileFingerprint> WaitForCancellationAsync(
-            CancellationToken cancellationToken)
+        public static QemuDoctorResult CreateDoctor(bool dependenciesReady)
         {
-            try
-            {
-                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-                throw new InvalidOperationException("미디어 검증이 취소되지 않았습니다.");
-            }
-            catch (OperationCanceledException)
-            {
-                MediaCancellationObserved = true;
-                throw;
-            }
+            string[] codes =
+            [
+                QemuDoctorCheckCodes.Platform,
+                QemuDoctorCheckCodes.Kvm,
+                QemuDoctorCheckCodes.QemuSystem,
+                QemuDoctorCheckCodes.QemuImg,
+                QemuDoctorCheckCodes.Swtpm,
+                QemuDoctorCheckCodes.RemoteViewer,
+                QemuDoctorCheckCodes.Bubblewrap,
+                QemuDoctorCheckCodes.WimlibImagex,
+                QemuDoctorCheckCodes.Xorriso,
+                QemuDoctorCheckCodes.Firmware,
+                QemuDoctorCheckCodes.RuntimeDirectory,
+            ];
+            var checks = codes.Select(code => new DoctorCheck(
+                code,
+                true,
+                code is QemuDoctorCheckCodes.Platform or QemuDoctorCheckCodes.Kvm || dependenciesReady,
+                "ready")).ToArray();
+            return new QemuDoctorResult(new DoctorReport(checks), null, null, null);
         }
+
+        private static ImageBuildFileFingerprint Fingerprint(string path, char hashCharacter) =>
+            new(Path.GetFullPath(path), new string(hashCharacter, 64), 1024, 1);
 
         private async Task<DesktopWindowsMediaAnalysis> WaitForAnalysisCancellationAsync(
             CancellationToken cancellationToken)
@@ -352,6 +437,26 @@ public sealed class SetupWizardViewModelTests : IDisposable
                 MediaCancellationObserved = true;
                 throw;
             }
+        }
+
+        private static ManagedWindowsImage CreateImage(ImageId imageId)
+        {
+            var metadata = new ManagedImageMetadata(
+                ManagedImageMetadata.CurrentSchemaVersion,
+                imageId,
+                Guid.NewGuid(),
+                DateTimeOffset.UtcNow,
+                new ManagedImageFileMetadata("base", 1, 1),
+                new ExternalImageFileMetadata("/firmware/code.fd", "code", 1, 1),
+                new ManagedImageFileMetadata("vars", 1, 1),
+                new ManagedImageTreeMetadata("tpm", 1, 1, 1),
+                null);
+            return new ManagedWindowsImage(
+                metadata,
+                "/images/test",
+                "/images/test/base.qcow2",
+                "/images/test/ovmf-vars.template.fd",
+                "/images/test/swtpm-state.template");
         }
     }
 }

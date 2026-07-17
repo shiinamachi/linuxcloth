@@ -109,6 +109,7 @@ public sealed class SetupOrchestratorTests
         null,
         null,
         null,
+        null,
         ImageId.Parse("windows-11"),
         80,
         4,

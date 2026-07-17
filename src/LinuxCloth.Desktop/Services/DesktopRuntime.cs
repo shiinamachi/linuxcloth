@@ -132,6 +132,15 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         CancellationToken cancellationToken = default) =>
         _images.ListAsync(cancellationToken);
 
+    public async Task<bool> HasVerifiedImageAsync(
+        ImageId imageId,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var result = await _images.VerifyAsync(imageId, cancellationToken).ConfigureAwait(false);
+        return result.IsValid;
+    }
+
     public Task<ImageBuildFileFingerprint> ValidateWindowsMediaAsync(
         string path,
         CancellationToken cancellationToken = default) =>

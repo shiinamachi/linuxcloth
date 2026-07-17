@@ -76,6 +76,7 @@ public sealed class JsonSetupRunStoreTests : IDisposable
                 "/media/virtio.iso",
                 new SetupFileFingerprint(2048, now, new string('b', 64)),
                 6,
+                "Professional",
                 "Windows 11 Pro",
                 new string('c', 64),
                 ImageId.Parse("windows-11"),

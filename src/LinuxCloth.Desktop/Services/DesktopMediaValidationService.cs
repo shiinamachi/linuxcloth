@@ -1,4 +1,6 @@
 using LinuxCloth.Application.ImageBuilding;
+using LinuxCloth.Application.Images;
+using LinuxCloth.Desktop.Setup;
 using LinuxCloth.Runtime.Qemu.Doctor;
 
 namespace LinuxCloth.Desktop.Services;
@@ -25,4 +27,13 @@ public interface IDesktopMediaValidationService
 public interface IDesktopSetupService : IDesktopImageBuildService, IDesktopMediaValidationService
 {
     Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> HasVerifiedImageAsync(
+        ImageId imageId,
+        CancellationToken cancellationToken = default);
+
+    Task<(
+        IReadOnlyList<ResumableImageBuild> Builds,
+        IReadOnlyList<ImageBuildRecoveryIssue> Issues)> FindResumableBuildsAsync(
+        CancellationToken cancellationToken = default);
 }

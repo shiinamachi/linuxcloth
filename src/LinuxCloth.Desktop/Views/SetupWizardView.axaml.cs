@@ -26,11 +26,9 @@ public sealed partial class SetupWizardView : UserControl
     {
         DataContext = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        viewModel.Build.PropertyChanged += OnBuildPropertyChanged;
         DetachedFromVisualTree += (_, _) =>
         {
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-            viewModel.Build.PropertyChanged -= OnBuildPropertyChanged;
         };
     }
 
@@ -136,24 +134,12 @@ public sealed partial class SetupWizardView : UserControl
         }
     }
 
-    private void OnBuildPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs eventArgs)
-    {
-        _ = sender;
-        if (eventArgs.PropertyName == nameof(ImageSetupViewModel.ErrorMessage) && ViewModel.Build.HasError)
-        {
-            Dispatcher.UIThread.Post(() => BuildErrorSummary.Focus());
-        }
-    }
-
     private void ApplyResponsiveLayout()
     {
         var width = Bounds.Width > 0 ? Bounds.Width : 980;
         var isCompact = width < 900;
-        StepRail.IsVisible = !isCompact;
-        CompactStepHeader.IsVisible = isCompact;
-        WizardBody.ColumnDefinitions[0].Width = new GridLength(isCompact ? 0 : 200);
-        WizardContent.Margin = isCompact
+        ContentFrame.Margin = isCompact
             ? new Thickness(12, 10)
-            : new Thickness(16, 12);
+            : new Thickness(20, 16);
     }
 }

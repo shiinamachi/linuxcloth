@@ -34,6 +34,7 @@ public sealed record SetupInputSnapshot(
     string? VirtioIsoPath,
     SetupFileFingerprint? VirtioIsoFingerprint,
     int? WindowsImageIndex,
+    string? WindowsEditionId,
     string? WindowsEdition,
     string? PackagePlanDigest,
     ImageId ImageId,

@@ -1,50 +1,55 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using LinuxCloth.Application.ImageBuilding;
+using LinuxCloth.Application.Images;
+using LinuxCloth.Application.Setup;
 using LinuxCloth.Desktop.Infrastructure;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Desktop.Setup;
-using LinuxCloth.Runtime.Qemu.Doctor;
 
 namespace LinuxCloth.Desktop.ViewModels;
 
 public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly CancellationTokenSource _shutdown = new();
-    private readonly DistributionInfoReader _distributionReader;
-    private readonly IPackageInstaller _packageInstaller;
-    private readonly PackagePlanResolver _packagePlanResolver;
-    private readonly IDesktopSetupService _runtime;
-    private readonly ISetupStateStore _stateStore;
     private readonly HostCapacitySnapshot _hostCapacity;
-    private DesktopStartupSnapshot _startup;
-    private SetupReadiness _readiness;
-    private CancellationTokenSource? _mediaValidation;
-    private TaskCompletionSource? _mediaValidationFinished;
-    private SetupState _state = SetupState.Default;
-    private PackageInstallPreview? _packagePreview;
-    private PackagePlan? _packagePlan;
-    private ImageBuildFileFingerprint? _virtioFingerprint;
-    private ImageBuildFileFingerprint? _windowsFingerprint;
-    private SetupStep _currentStep;
-    private string _distributionLabel = "배포판 확인 대기 중";
+    private readonly IPackageInstaller _packageInstaller;
+    private readonly IDesktopSetupService _runtime;
+    private readonly ISetupRunStore _runStore;
+    private readonly ISetupStateStore _stateStore;
+    private readonly SetupOrchestrator _orchestrator;
+    private CancellationTokenSource? _mediaCancellation;
+    private TaskCompletionSource? _mediaFinished;
+    private CancellationTokenSource? _operationCancellation;
+    private Task? _operationTask;
+    private SetupBlocker? _blocker;
+    private int _cpuCount = 4;
+    private int _diskSizeGiB = 96;
     private string? _errorMessage;
+    private bool _hostInspected;
+    private string _hostStatus = "자동 확인을 시작합니다.";
+    private string _imageIdText = "windows-11";
     private bool _isBusy;
-    private bool _disposed;
-    private bool _isInitialized;
+    private bool _isDisposed;
     private bool _isLicenseConfirmed;
+    private bool _isRunning;
+    private int _memoryMiB = 6144;
     private bool _rememberMediaPaths;
-    private string _packageStatus = "설치 계획을 준비하지 않았습니다.";
+    private WindowsInstallationImage? _selectedWindowsEdition;
+    private string _statusText = "Windows 설치 파일과 장치 드라이버를 선택하세요.";
+    private SetupState _state = SetupState.Default;
     private string _virtioMediaPath = string.Empty;
+    private SetupFileFingerprint? _virtioFingerprint;
     private string _virtioMediaStatus = "Windows 장치 드라이버 파일을 선택하세요.";
     private string _windowsMediaPath = string.Empty;
-    private string _windowsMediaStatus = "Windows 11 x64 ISO를 선택하세요.";
-    private WindowsInstallationImage? _selectedWindowsEdition;
+    private SetupFileFingerprint? _windowsFingerprint;
+    private string _windowsMediaStatus = "Windows 11 설치 파일을 선택하세요.";
 
     public SetupWizardViewModel(
         IDesktopSetupService runtime,
         FirstRunSnapshot firstRun,
         ISetupStateStore stateStore,
+        ISetupRunStore runStore,
         DistributionInfoReader distributionReader,
         PackagePlanResolver packagePlanResolver,
         IPackageInstaller packageInstaller,
@@ -52,32 +57,40 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     {
         _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         ArgumentNullException.ThrowIfNull(firstRun);
-        _startup = firstRun.Startup;
-        _readiness = firstRun.Readiness;
         _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
-        _distributionReader = distributionReader ?? throw new ArgumentNullException(nameof(distributionReader));
-        _packagePlanResolver = packagePlanResolver ?? throw new ArgumentNullException(nameof(packagePlanResolver));
+        _runStore = runStore ?? throw new ArgumentNullException(nameof(runStore));
+        ArgumentNullException.ThrowIfNull(distributionReader);
+        ArgumentNullException.ThrowIfNull(packagePlanResolver);
         _packageInstaller = packageInstaller ?? throw new ArgumentNullException(nameof(packageInstaller));
         _hostCapacity = hostCapacity ?? throw new ArgumentNullException(nameof(hostCapacity));
-        _currentStep = SetupStep.HostInspection;
 
-        foreach (var (step, title) in StepDefinitions)
+        foreach (var title in new[]
+                 {
+                     "시스템 확인",
+                     "필수 구성 요소",
+                     "설치 파일 확인",
+                     "Windows 설치",
+                     "환경 확인",
+                     "마무리",
+                 })
         {
-            Steps.Add(new SetupStepItemViewModel(step, title));
+            Phases.Add(new SetupFlowPhaseItemViewModel(title));
         }
 
-        Build = new ImageSetupViewModel(_runtime, OnImageRegisteredAsync, _shutdown.Token);
-        Build.ApplyHostCapacity(_hostCapacity);
-        BackCommand = new AsyncCommand(GoBackAsync, () => CanGoBack, ShowError);
-        ContinueCommand = new AsyncCommand(ContinueAsync, () => CanContinue, ShowError);
-        ReinspectCommand = new AsyncCommand(RefreshHostAsync, () => !IsBusy, ShowError);
-        InstallPackagesCommand = new AsyncCommand(
-            InstallPackagesAsync,
-            () => CanInstallPackages,
-            ShowError);
-        LaterCommand = new AsyncCommand(SaveAndRequestLaterAsync, () => !IsBusy, ShowError);
-        ApplySnapshot(_startup);
-        UpdateStepState();
+        var imageProgress = new Progress<DesktopImageBuildProgress>(ApplyImageBuildProgress);
+        _orchestrator = new SetupOrchestrator(
+            _runStore,
+            DesktopSetupOperationFactory.Create(
+                _runtime,
+                distributionReader,
+                packagePlanResolver,
+                packageInstaller,
+                imageProgress));
+        PrepareCommand = new AsyncCommand(PrepareAsync, () => CanPrepare, ShowError);
+        RetryCommand = new AsyncCommand(RetryAsync, () => CanRetry, ShowError);
+        CancelCommand = new AsyncCommand(CancelAsync, () => IsRunning, ShowError);
+        ReinspectCommand = new AsyncCommand(RefreshHostAsync, () => !HasActiveOperation, ShowError);
+        LaterCommand = new AsyncCommand(RequestLaterAsync, () => !HasActiveOperation, ShowError);
     }
 
     public event EventHandler? Completed;
@@ -88,79 +101,19 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public static Uri VirtioDownloadUri { get; } = new("https://github.com/virtio-win/virtio-win-pkg-scripts/blob/master/README.md");
 
-    private static (SetupStep Step, string Title)[] StepDefinitions { get; } =
-    [
-        (SetupStep.HostInspection, "시스템 확인"),
-        (SetupStep.Components, "필수 구성 요소"),
-        (SetupStep.WindowsMedia, "Windows 설치 파일"),
-        (SetupStep.VirtioMedia, "Windows 드라이버"),
-        (SetupStep.ImageBuild, "Windows 환경 만들기"),
-    ];
-
-    public ObservableCollection<SetupStepItemViewModel> Steps { get; } = [];
-
-    public ObservableCollection<DoctorCheckViewModel> HostChecks { get; } = [];
-
-    public ObservableCollection<PackageChange> PackageChanges { get; } = [];
-
     public ObservableCollection<WindowsInstallationImage> WindowsEditions { get; } = [];
 
-    public ImageSetupViewModel Build { get; }
+    public ObservableCollection<SetupFlowPhaseItemViewModel> Phases { get; } = [];
 
-    public AsyncCommand BackCommand { get; }
+    public AsyncCommand PrepareCommand { get; }
 
-    public AsyncCommand ContinueCommand { get; }
+    public AsyncCommand RetryCommand { get; }
+
+    public AsyncCommand CancelCommand { get; }
 
     public AsyncCommand ReinspectCommand { get; }
 
-    public AsyncCommand InstallPackagesCommand { get; }
-
     public AsyncCommand LaterCommand { get; }
-
-    public SetupStep CurrentStep
-    {
-        get => _currentStep;
-        private set
-        {
-            if (SetProperty(ref _currentStep, value))
-            {
-                OnPropertyChanged(nameof(IsHostInspectionStep));
-                OnPropertyChanged(nameof(IsComponentsStep));
-                OnPropertyChanged(nameof(IsWindowsMediaStep));
-                OnPropertyChanged(nameof(IsVirtioMediaStep));
-                OnPropertyChanged(nameof(IsImageBuildStep));
-                OnPropertyChanged(nameof(CurrentTitle));
-                OnPropertyChanged(nameof(CurrentDescription));
-                OnPropertyChanged(nameof(StepProgressText));
-                UpdateStepState();
-                RaiseNavigationState();
-            }
-        }
-    }
-
-    public bool IsHostInspectionStep => CurrentStep == SetupStep.HostInspection;
-
-    public bool IsComponentsStep => CurrentStep == SetupStep.Components;
-
-    public bool IsWindowsMediaStep => CurrentStep == SetupStep.WindowsMedia;
-
-    public bool IsVirtioMediaStep => CurrentStep == SetupStep.VirtioMedia;
-
-    public bool IsImageBuildStep => CurrentStep == SetupStep.ImageBuild;
-
-    public string CurrentTitle => StepDefinitions.First(item => item.Step == CurrentStep).Title;
-
-    public string CurrentDescription => CurrentStep switch
-    {
-        SetupStep.HostInspection => "이 컴퓨터에서 Windows 환경을 실행할 수 있는지 확인합니다.",
-        SetupStep.Components => "실행에 필요한 구성 요소를 준비합니다.",
-        SetupStep.WindowsMedia => "Windows 11 설치 파일을 선택합니다.",
-        SetupStep.VirtioMedia => "디스크·네트워크 드라이버를 선택합니다.",
-        SetupStep.ImageBuild => "선택한 파일로 Windows 환경을 만듭니다.",
-        _ => string.Empty,
-    };
-
-    public string StepProgressText => $"{(int)CurrentStep + 1}/{StepDefinitions.Length} 단계";
 
     public bool IsBusy
     {
@@ -169,152 +122,55 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         {
             if (SetProperty(ref _isBusy, value))
             {
-                RaiseNavigationState();
+                RaiseState();
             }
         }
     }
 
-    public bool HasActiveOperation => IsBusy || Build.IsBuilding;
-
-    public bool CanGoBack => !IsBusy && !Build.IsBuilding && CurrentStep > SetupStep.HostInspection;
-
-    public bool CanContinue => !IsBusy && !Build.IsBuilding && CurrentStep switch
+    public bool IsRunning
     {
-        SetupStep.HostInspection => IsDoctorAvailable(QemuDoctorCheckCodes.Platform),
-        SetupStep.Components => _readiness.CanBuildImage,
-        SetupStep.WindowsMedia =>
-            _windowsFingerprint is not null && SelectedWindowsEdition is not null && IsLicenseConfirmed,
-        SetupStep.VirtioMedia => _virtioFingerprint is not null,
-        SetupStep.ImageBuild => false,
-        _ => false,
-    };
-
-    public string ContinueLabel => CurrentStep == SetupStep.VirtioMedia ? "검토하기" : "계속";
-
-    public bool IsLicenseConfirmed
-    {
-        get => _isLicenseConfirmed;
-        set
-        {
-            if (SetProperty(ref _isLicenseConfirmed, value))
-            {
-                RaiseNavigationState();
-            }
-        }
-    }
-
-    public bool RememberMediaPaths
-    {
-        get => _rememberMediaPaths;
-        set => SetProperty(ref _rememberMediaPaths, value);
-    }
-
-    public string WindowsMediaPath
-    {
-        get => _windowsMediaPath;
+        get => _isRunning;
         private set
         {
-            if (SetProperty(ref _windowsMediaPath, value))
+            if (SetProperty(ref _isRunning, value))
             {
-                OnPropertyChanged(nameof(WindowsMediaName));
+                RaiseState();
             }
         }
     }
 
-    public string WindowsMediaName => MediaName(WindowsMediaPath);
+    public bool IsBlocked => _blocker is not null;
 
-    public string WindowsMediaStatus
+    public bool IsReady => !IsRunning && !IsBlocked;
+
+    public bool HasActiveOperation => IsBusy || IsRunning;
+
+    public bool CanPrepare =>
+        IsReady &&
+        !IsBusy &&
+        _hostInspected &&
+        _windowsFingerprint is not null &&
+        _virtioFingerprint is not null &&
+        SelectedWindowsEdition is not null &&
+        IsLicenseConfirmed &&
+        ImageId.TryParse(ImageIdText, out _) &&
+        DiskSizeGiB is >= 64 and <= 1024 &&
+        CpuCount is >= 2 and <= 32 &&
+        MemoryMiB is >= 4096 and <= 131072;
+
+    public bool CanRetry => IsBlocked && !HasActiveOperation;
+
+    public string HostStatus
     {
-        get => _windowsMediaStatus;
-        private set => SetProperty(ref _windowsMediaStatus, value);
+        get => _hostStatus;
+        private set => SetProperty(ref _hostStatus, value);
     }
 
-    public bool IsWindowsMediaValid => _windowsFingerprint is not null;
-
-    public string WindowsMediaHash => _windowsFingerprint?.Sha256 ?? string.Empty;
-
-    public WindowsInstallationImage? SelectedWindowsEdition
+    public string StatusText
     {
-        get => _selectedWindowsEdition;
-        set
-        {
-            if (SetProperty(ref _selectedWindowsEdition, value))
-            {
-                Build.ApplyInstallationSelection(value?.ToSelection());
-                RaiseNavigationState();
-            }
-        }
+        get => _statusText;
+        private set => SetProperty(ref _statusText, value);
     }
-
-    public bool HasMultipleWindowsEditions => WindowsEditions.Count > 1;
-
-    public string VirtioMediaPath
-    {
-        get => _virtioMediaPath;
-        private set
-        {
-            if (SetProperty(ref _virtioMediaPath, value))
-            {
-                OnPropertyChanged(nameof(VirtioMediaName));
-            }
-        }
-    }
-
-    public string VirtioMediaName => MediaName(VirtioMediaPath);
-
-    public string VirtioMediaStatus
-    {
-        get => _virtioMediaStatus;
-        private set => SetProperty(ref _virtioMediaStatus, value);
-    }
-
-    public bool IsVirtioMediaValid => _virtioFingerprint is not null;
-
-    public string VirtioMediaHash => _virtioFingerprint?.Sha256 ?? string.Empty;
-
-    public string DistributionLabel
-    {
-        get => _distributionLabel;
-        private set => SetProperty(ref _distributionLabel, value);
-    }
-
-    public string PackageStatus
-    {
-        get => _packageStatus;
-        private set => SetProperty(ref _packageStatus, value);
-    }
-
-    public bool CanInstallPackages => !IsBusy && _packagePreview?.CanInstall == true;
-
-    public bool ShowManualCommand => _packagePlan is not null && _packagePreview?.IsPackageKitAvailable == false;
-
-    public string ManualInstallCommand => _packagePlan?.ManualInstallCommand ?? string.Empty;
-
-    public string PackageRepositories => _packagePreview is null
-        ? string.Empty
-        : string.Join(", ", _packagePreview.Repositories);
-
-    public string PackageDownloadSize => _packagePreview is null
-        ? string.Empty
-        : FormatBytes(_packagePreview.DownloadSize);
-
-    public string UnresolvedPackages => _packagePreview is null
-        ? string.Empty
-        : string.Join(", ", _packagePreview.UnresolvedPackages);
-
-    public bool HasUnresolvedPackages => _packagePreview?.UnresolvedPackages.Count > 0;
-
-    public bool CanBuildImage => _readiness.CanBuildImage;
-
-    public bool CanLaunchOnline => _readiness.CanLaunchOnline;
-
-    public string GuestBridgeStatus => _readiness.IsGuestBridgeAvailable
-        ? "준비됨"
-        : "구성 요소를 찾지 못했습니다";
-
-    public string FirmwareStatus => _readiness.HasCompatibleFirmware
-        ? "준비됨"
-        : "시작 구성 요소를 찾지 못했습니다";
 
     public string? ErrorMessage
     {
@@ -330,43 +186,216 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
+    public string BlockerTitle => _blocker?.Title ?? string.Empty;
+
+    public string BlockerDescription => _blocker?.Description ?? string.Empty;
+
+    public string BlockerActionLabel => _blocker?.ActionLabel ?? "다시 시도";
+
+    public string BlockerCode => _blocker?.Code ?? string.Empty;
+
+    public string TechnicalDetail => _blocker?.TechnicalDetail ?? string.Empty;
+
+    public bool HasTechnicalDetail => !string.IsNullOrWhiteSpace(TechnicalDetail);
+
+    public bool ShowManualCommand => string.Equals(
+        _blocker?.Code,
+        "SETUP-PKG-MANUAL",
+        StringComparison.Ordinal);
+
+    public string ManualInstallCommand => ShowManualCommand ? TechnicalDetail : string.Empty;
+
+    public string WindowsMediaPath
+    {
+        get => _windowsMediaPath;
+        private set
+        {
+            if (SetProperty(ref _windowsMediaPath, value))
+            {
+                OnPropertyChanged(nameof(WindowsMediaName));
+            }
+        }
+    }
+
+    public string WindowsMediaName => MediaName(WindowsMediaPath, "선택되지 않음");
+
+    public string WindowsMediaStatus
+    {
+        get => _windowsMediaStatus;
+        private set => SetProperty(ref _windowsMediaStatus, value);
+    }
+
+    public string WindowsMediaHash => _windowsFingerprint?.Sha256 ?? string.Empty;
+
+    public bool IsWindowsMediaValid => _windowsFingerprint is not null;
+
+    public string VirtioMediaPath
+    {
+        get => _virtioMediaPath;
+        private set
+        {
+            if (SetProperty(ref _virtioMediaPath, value))
+            {
+                OnPropertyChanged(nameof(VirtioMediaName));
+            }
+        }
+    }
+
+    public string VirtioMediaName => MediaName(VirtioMediaPath, "선택되지 않음");
+
+    public string VirtioMediaStatus
+    {
+        get => _virtioMediaStatus;
+        private set => SetProperty(ref _virtioMediaStatus, value);
+    }
+
+    public string VirtioMediaHash => _virtioFingerprint?.Sha256 ?? string.Empty;
+
+    public bool IsVirtioMediaValid => _virtioFingerprint is not null;
+
+    public WindowsInstallationImage? SelectedWindowsEdition
+    {
+        get => _selectedWindowsEdition;
+        set
+        {
+            if (SetProperty(ref _selectedWindowsEdition, value))
+            {
+                RaiseState();
+            }
+        }
+    }
+
+    public bool HasMultipleWindowsEditions => WindowsEditions.Count > 1;
+
+    public bool IsLicenseConfirmed
+    {
+        get => _isLicenseConfirmed;
+        set
+        {
+            if (SetProperty(ref _isLicenseConfirmed, value))
+            {
+                RaiseState();
+            }
+        }
+    }
+
+    public bool RememberMediaPaths
+    {
+        get => _rememberMediaPaths;
+        set => SetProperty(ref _rememberMediaPaths, value);
+    }
+
+    public string ImageIdText
+    {
+        get => _imageIdText;
+        set
+        {
+            if (SetProperty(ref _imageIdText, value?.Trim() ?? string.Empty))
+            {
+                RaiseState();
+            }
+        }
+    }
+
+    public int DiskSizeGiB
+    {
+        get => _diskSizeGiB;
+        set
+        {
+            if (SetProperty(ref _diskSizeGiB, value))
+            {
+                OnPropertyChanged(nameof(ResourceWarning));
+                OnPropertyChanged(nameof(HasResourceWarning));
+                RaiseState();
+            }
+        }
+    }
+
+    public int CpuCount
+    {
+        get => _cpuCount;
+        set
+        {
+            if (SetProperty(ref _cpuCount, value))
+            {
+                OnPropertyChanged(nameof(ResourceWarning));
+                OnPropertyChanged(nameof(HasResourceWarning));
+                RaiseState();
+            }
+        }
+    }
+
+    public int MemoryMiB
+    {
+        get => _memoryMiB;
+        set
+        {
+            if (SetProperty(ref _memoryMiB, value))
+            {
+                OnPropertyChanged(nameof(ResourceWarning));
+                OnPropertyChanged(nameof(HasResourceWarning));
+                RaiseState();
+            }
+        }
+    }
+
+    public string ResourceWarning
+    {
+        get
+        {
+            var warnings = new List<string>();
+            if (_hostCapacity.LogicalProcessorCount > 0 && CpuCount > _hostCapacity.LogicalProcessorCount)
+            {
+                warnings.Add($"가상 CPU가 이 컴퓨터의 논리 CPU {_hostCapacity.LogicalProcessorCount}개보다 많습니다.");
+            }
+
+            if (_hostCapacity.AvailableMemoryBytes > 0 &&
+                (long)MemoryMiB * 1024 * 1024 > _hostCapacity.AvailableMemoryBytes * 3 / 4)
+            {
+                warnings.Add("메모리 설정이 현재 사용 가능한 메모리의 75%를 초과합니다.");
+            }
+
+            return string.Join(' ', warnings);
+        }
+    }
+
+    public bool HasResourceWarning => ResourceWarning.Length > 0;
+
     public async Task InitializeAsync()
     {
-        if (_isInitialized)
+        if (_isDisposed || _hostInspected)
         {
             return;
         }
 
-        _isInitialized = true;
         IsBusy = true;
+        ErrorMessage = null;
         try
         {
-            await Build.InitializeAsync().ConfigureAwait(true);
             _state = await _stateStore.LoadAsync(_shutdown.Token).ConfigureAwait(true);
             RememberMediaPaths = _state.RememberMediaPaths;
-            WindowsMediaPath = _state.WindowsIsoPath ?? string.Empty;
-            VirtioMediaPath = _state.VirtioIsoPath ?? string.Empty;
-            var resume = _readiness.PreferredResumableBuild;
-            if (resume is not null)
+            await RefreshHostCoreAsync().ConfigureAwait(true);
+            var run = await _runStore.LoadAsync(_shutdown.Token).ConfigureAwait(true);
+            if (run?.IsActive == true)
             {
-                Build.ImageIdText = resume.ImageId.Value;
-                Build.StagingDirectory = resume.StagingDirectory;
-                CurrentStep = SetupStep.ImageBuild;
-            }
-            else
-            {
-                CurrentStep = _state.LastStep;
+                RestoreInputs(run.Inputs);
+                await RunOrchestratorAsync(resume: true).ConfigureAwait(true);
+                return;
             }
 
-            if (CurrentStep >= SetupStep.Components)
+            if (RememberMediaPaths && _state.WindowsIsoPath is not null)
             {
-                await PreparePackagePlanAsync().ConfigureAwait(true);
+                await ValidateWindowsMediaAsync(_state.WindowsIsoPath).ConfigureAwait(true);
+            }
+
+            if (RememberMediaPaths && _state.VirtioIsoPath is not null)
+            {
+                await ValidateVirtioMediaAsync(_state.VirtioIsoPath).ConfigureAwait(true);
             }
         }
         catch (Exception exception)
         {
             ShowError(exception);
-            CurrentStep = SetupStep.HostInspection;
         }
         finally
         {
@@ -378,27 +407,25 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         await CancelMediaValidationAndWaitAsync().ConfigureAwait(true);
-        _mediaValidation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
-        var validation = _mediaValidation;
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+        _mediaCancellation = cancellation;
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _mediaValidationFinished = finished;
+        _mediaFinished = finished;
         IsBusy = true;
+        ErrorMessage = null;
         WindowsMediaPath = Path.GetFullPath(path);
-        _windowsFingerprint = null;
         WindowsEditions.Clear();
         SelectedWindowsEdition = null;
-        Build.WindowsIsoPath = string.Empty;
-        ErrorMessage = null;
-        WindowsMediaStatus = "x64 부팅 파일, Windows 설치 이미지와 SHA-256을 확인하고 있습니다…";
+        _windowsFingerprint = null;
+        WindowsMediaStatus = "설치 가능한 Windows 버전과 파일 무결성을 확인하고 있습니다…";
         RaiseMediaState();
         try
         {
-            var analysis = await _runtime
-                .AnalyzeWindowsMediaAsync(WindowsMediaPath, validation.Token)
+            var analysis = await _runtime.AnalyzeWindowsMediaAsync(
+                    WindowsMediaPath,
+                    cancellation.Token)
                 .ConfigureAwait(true);
-            var fingerprint = analysis.Fingerprint;
-            _windowsFingerprint = fingerprint;
-            Build.WindowsIsoPath = fingerprint.Path;
+            _windowsFingerprint = ToSetupFingerprint(analysis.Fingerprint);
             foreach (var image in analysis.Catalog.SupportedImages)
             {
                 WindowsEditions.Add(image);
@@ -409,23 +436,27 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
                 ? WindowsEditions.Single(image => image.Index == suggested)
                 : null;
             WindowsMediaStatus = SelectedWindowsEdition is null
-                ? $"사용 가능 · {FormatBytes((ulong)fingerprint.Length)} · 설치할 Windows 버전을 선택하세요."
-                : $"사용 가능 · {SelectedWindowsEdition.DisplayName} · SHA-256 계산 완료";
-            await SaveStateAsync().ConfigureAwait(true);
+                ? "파일 확인 완료 · 설치할 Windows 버전을 선택하세요."
+                : $"파일 확인 완료 · {SelectedWindowsEdition.DisplayName}";
+            await SavePreferencesAsync().ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            WindowsMediaStatus = "파일 확인을 중단했습니다.";
         }
         catch (Exception exception)
         {
-            Trace.TraceError("Windows media validation failed: {0}", exception);
-            WindowsMediaStatus = MediaError(exception, windows: true);
+            Trace.TraceError("Windows media analysis failed: {0}", exception);
+            WindowsMediaStatus = "Windows 11 설치 파일을 확인하지 못했습니다. 다른 파일을 선택하세요.";
             ErrorMessage = WindowsMediaStatus;
         }
         finally
         {
-            if (ReferenceEquals(_mediaValidation, validation))
+            if (ReferenceEquals(_mediaCancellation, cancellation))
             {
-                _mediaValidation.Dispose();
-                _mediaValidation = null;
-                _mediaValidationFinished = null;
+                _mediaCancellation.Dispose();
+                _mediaCancellation = null;
+                _mediaFinished = null;
                 IsBusy = false;
             }
 
@@ -438,40 +469,43 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         await CancelMediaValidationAndWaitAsync().ConfigureAwait(true);
-        _mediaValidation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
-        var validation = _mediaValidation;
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+        _mediaCancellation = cancellation;
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _mediaValidationFinished = finished;
+        _mediaFinished = finished;
         IsBusy = true;
+        ErrorMessage = null;
         VirtioMediaPath = Path.GetFullPath(path);
         _virtioFingerprint = null;
-        Build.VirtioWinIsoPath = string.Empty;
-        ErrorMessage = null;
         VirtioMediaStatus = "Windows 장치 드라이버를 확인하고 있습니다…";
         RaiseMediaState();
         try
         {
-            var fingerprint = await _runtime
-                .ValidateVirtioMediaAsync(VirtioMediaPath, validation.Token)
+            var fingerprint = await _runtime.ValidateVirtioMediaAsync(
+                    VirtioMediaPath,
+                    cancellation.Token)
                 .ConfigureAwait(true);
-            _virtioFingerprint = fingerprint;
-            Build.VirtioWinIsoPath = fingerprint.Path;
-            VirtioMediaStatus = $"사용 가능 · {FormatBytes((ulong)fingerprint.Length)} · SHA-256 계산 완료";
-            await SaveStateAsync().ConfigureAwait(true);
+            _virtioFingerprint = ToSetupFingerprint(fingerprint);
+            VirtioMediaStatus = "파일 확인 완료 · Windows 11 드라이버 사용 가능";
+            await SavePreferencesAsync().ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            VirtioMediaStatus = "파일 확인을 중단했습니다.";
         }
         catch (Exception exception)
         {
             Trace.TraceError("Windows driver media validation failed: {0}", exception);
-            VirtioMediaStatus = MediaError(exception, windows: false);
+            VirtioMediaStatus = "Windows 장치 드라이버 파일을 확인하지 못했습니다. 다른 파일을 선택하세요.";
             ErrorMessage = VirtioMediaStatus;
         }
         finally
         {
-            if (ReferenceEquals(_mediaValidation, validation))
+            if (ReferenceEquals(_mediaCancellation, cancellation))
             {
-                _mediaValidation.Dispose();
-                _mediaValidation = null;
-                _mediaValidationFinished = null;
+                _mediaCancellation.Dispose();
+                _mediaCancellation = null;
+                _mediaFinished = null;
                 IsBusy = false;
             }
 
@@ -482,120 +516,75 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public void ReportExternalActionError(Exception exception) => ShowError(exception);
 
+    public async Task CancelAndWaitAsync()
+    {
+        _operationCancellation?.Cancel();
+        if (_operationTask is not null)
+        {
+            await _operationTask.ConfigureAwait(true);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
-        if (_disposed)
+        if (_isDisposed)
         {
             return;
         }
 
-        _disposed = true;
+        _isDisposed = true;
         _shutdown.Cancel();
         await CancelMediaValidationAndWaitAsync().ConfigureAwait(true);
-        await Build.DisposeAsync().ConfigureAwait(true);
+        await CancelAndWaitAsync().ConfigureAwait(true);
+        await SavePreferencesAsync(CancellationToken.None).ConfigureAwait(true);
         if (_packageInstaller is IAsyncDisposable asyncDisposable)
         {
             await asyncDisposable.DisposeAsync().ConfigureAwait(true);
         }
 
+        _orchestrator.Dispose();
+        _operationCancellation?.Dispose();
         _shutdown.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    public async Task ContinueAsync()
+    public async Task PrepareAsync()
     {
-        if (!CanContinue)
+        if (!CanPrepare)
         {
             return;
         }
 
-        CurrentStep++;
-        if (CurrentStep == SetupStep.Components && _packagePlan is null)
-        {
-            IsBusy = true;
-            try
-            {
-                await PreparePackagePlanAsync().ConfigureAwait(true);
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
-
-        await SaveStateAsync().ConfigureAwait(true);
+        await SavePreferencesAsync().ConfigureAwait(true);
+        await _runStore.ClearAsync(_shutdown.Token).ConfigureAwait(true);
+        await RunOrchestratorAsync(resume: false).ConfigureAwait(true);
     }
 
-    public async Task GoBackAsync()
+    public async Task RetryAsync()
     {
-        if (!CanGoBack)
+        if (!CanRetry)
         {
             return;
         }
 
-        CurrentStep--;
-        await SaveStateAsync().ConfigureAwait(true);
-    }
-
-    private async Task PreparePackagePlanAsync()
-    {
-        ErrorMessage = null;
-        PackageStatus = "필요한 구성 요소를 확인하고 있습니다…";
-        var distribution = await _distributionReader.ReadAsync(_shutdown.Token).ConfigureAwait(true);
-        DistributionLabel = $"{distribution.Name ?? distribution.Id} {distribution.VersionId}".Trim();
-        if (distribution.Family == DistributionFamily.Unsupported)
+        var run = await _runStore.LoadAsync(_shutdown.Token).ConfigureAwait(true);
+        if (run is null)
         {
-            PackageStatus = "이 Linux 배포판에서는 자동 설치를 지원하지 않습니다. 세부정보의 누락 항목을 배포판 문서에 따라 설치하세요.";
+            _blocker = null;
+            RaiseBlockerState();
             return;
         }
 
-        _packagePlan = await _packagePlanResolver.ResolveAsync(distribution, _shutdown.Token)
-            .ConfigureAwait(true);
-        _packagePreview = await _packageInstaller.ResolveAsync(_packagePlan, _shutdown.Token)
-            .ConfigureAwait(true);
-        PackageChanges.Clear();
-        foreach (var change in _packagePreview.Changes)
+        var updated = run with
         {
-            PackageChanges.Add(change);
-        }
-
-        PackageStatus = _packagePreview.IsAlreadySatisfied
-            ? "필수 구성 요소가 이미 설치되어 있습니다."
-            : !_packagePreview.IsPackageKitAvailable
-                ? "자동 설치를 사용할 수 없습니다. 아래 명령을 터미널에서 직접 실행한 뒤 다시 확인하세요."
-                : _packagePreview.UnresolvedPackages.Count > 0
-                    ? "공식 저장소에서 해결하지 못한 패키지가 있습니다. 저장소 설정을 확인하세요."
-                    : "필요한 구성 요소를 설치할 준비가 되었습니다. 시스템 인증이 요청될 수 있습니다.";
-        RaisePackageState();
+            Inputs = CreateInputs(),
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        await _runStore.SaveAsync(updated, _shutdown.Token).ConfigureAwait(true);
+        await RunOrchestratorAsync(resume: true).ConfigureAwait(true);
     }
 
-    private async Task InstallPackagesAsync()
-    {
-        if (_packagePreview?.CanInstall != true)
-        {
-            return;
-        }
-
-        IsBusy = true;
-        ErrorMessage = null;
-        try
-        {
-            var progress = new Progress<PackageInstallProgress>(value =>
-                PackageStatus = value.PackageName is null
-                    ? value.Status
-                    : $"{value.Status} · {value.PackageName}");
-            var result = await _packageInstaller
-                .InstallAsync(_packagePreview, progress, _shutdown.Token)
-                .ConfigureAwait(true);
-            PackageStatus = result.Message;
-            await RefreshHostCoreAsync().ConfigureAwait(true);
-            await PreparePackagePlanAsync().ConfigureAwait(true);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
+    private Task CancelAsync() => CancelAndWaitAsync();
 
     private async Task RefreshHostAsync()
     {
@@ -604,10 +593,10 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await RefreshHostCoreAsync().ConfigureAwait(true);
-            if (_packagePlan is not null)
-            {
-                await PreparePackagePlanAsync().ConfigureAwait(true);
-            }
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception);
         }
         finally
         {
@@ -617,106 +606,213 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     private async Task RefreshHostCoreAsync()
     {
+        HostStatus = "이 컴퓨터를 확인하고 있습니다…";
         var doctor = await _runtime.InspectHostAsync(_shutdown.Token).ConfigureAwait(true);
-        var defaults = await _runtime.GetImageBuildDefaultsAsync(_shutdown.Token).ConfigureAwait(true);
-        _startup = _startup with { Doctor = doctor, ImageBuildDefaults = defaults };
-        ApplySnapshot(_startup);
-        Build.ApplyDefaults(defaults);
+        _hostInspected = true;
+        HostStatus = DesktopSetupOperationFactory.CanBuildImage(doctor)
+            ? "준비됨"
+            : "필요한 구성 요소를 시작할 때 자동으로 준비합니다.";
+        RaiseState();
     }
 
-    private void ApplySnapshot(DesktopStartupSnapshot startup)
+    private async Task RunOrchestratorAsync(bool resume)
     {
-        _readiness = SetupReadinessEvaluator.Evaluate(startup);
-        HostChecks.Clear();
-        foreach (var check in startup.Doctor.Report.Checks)
+        if (IsRunning)
         {
-            HostChecks.Add(new DoctorCheckViewModel(
-                DoctorLabel(check.Name),
-                check.IsAvailable,
-                check.IsRequired,
-                check.Detail));
+            return;
         }
 
-        HostChecks.Add(new DoctorCheckViewModel(
-            "호스트 메모리",
-            _hostCapacity.HasRecommendedMemory,
-            IsRequired: false,
-            _hostCapacity.AvailableMemoryBytes <= 0
-                ? "사용 가능한 메모리를 확인하지 못했습니다."
-                : $"사용 가능 {FormatBytes((ulong)_hostCapacity.AvailableMemoryBytes)} · 기본값 권장 6 GiB"));
-        HostChecks.Add(new DoctorCheckViewModel(
-            "호스트 디스크",
-            _hostCapacity.HasMinimumDiskSpace,
-            IsRequired: false,
-            _hostCapacity.AvailableDiskBytes <= 0
-                ? "사용 가능한 디스크 공간을 확인하지 못했습니다."
-                : $"사용 가능 {FormatBytes((ulong)_hostCapacity.AvailableDiskBytes)} · 최소 권장 64 GiB"));
-
-        OnPropertyChanged(nameof(CanBuildImage));
-        OnPropertyChanged(nameof(CanLaunchOnline));
-        OnPropertyChanged(nameof(GuestBridgeStatus));
-        OnPropertyChanged(nameof(FirmwareStatus));
-        RaiseNavigationState();
+        _blocker = null;
+        ErrorMessage = null;
+        IsRunning = true;
+        ApplyFlowProgress(0, "설치 준비를 시작합니다.");
+        _operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+        var cancellation = _operationCancellation;
+        var progress = new Progress<SetupProgress>(item =>
+        {
+            StatusText = item.Status;
+            ApplyPhase(item.Phase);
+        });
+        _operationTask = ExecuteOrchestratorAsync(resume, progress, cancellation.Token);
+        try
+        {
+            await _operationTask.ConfigureAwait(true);
+        }
+        finally
+        {
+            if (ReferenceEquals(_operationCancellation, cancellation))
+            {
+                _operationCancellation.Dispose();
+                _operationCancellation = null;
+                _operationTask = null;
+                IsRunning = false;
+            }
+        }
     }
 
-    private async Task SaveAndRequestLaterAsync()
+    private async Task ExecuteOrchestratorAsync(
+        bool resume,
+        IProgress<SetupProgress> progress,
+        CancellationToken cancellationToken)
     {
-        await SaveStateAsync().ConfigureAwait(true);
+        try
+        {
+            var run = resume
+                ? await _orchestrator.ResumeAsync(progress, cancellationToken).ConfigureAwait(true)
+                : await _orchestrator.StartAsync(CreateInputs(), progress, cancellationToken)
+                    .ConfigureAwait(true);
+            if (run.Phase == SetupPhase.Blocked)
+            {
+                _blocker = run.Blocker;
+                StatusText = run.Blocker?.Description ?? "사용자 확인이 필요합니다.";
+                RaiseBlockerState();
+                return;
+            }
+
+            if (run.Phase == SetupPhase.Completed)
+            {
+                ApplyFlowProgress(Phases.Count, "Windows 환경 준비를 완료했습니다.");
+                StatusText = "Windows 환경 준비를 완료했습니다.";
+                Completed?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            StatusText = "현재 작업을 안전하게 중단했습니다. 다음 실행에서 계속할 수 있습니다.";
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception);
+            StatusText = "설치 준비를 마치지 못했습니다. 보존된 작업에서 다시 시도할 수 있습니다.";
+            var run = await _runStore.LoadAsync(CancellationToken.None).ConfigureAwait(true);
+            _blocker = new SetupBlocker(
+                run?.Phase ?? SetupPhase.Discovering,
+                SetupFailureKind.Retryable,
+                "SETUP-UNEXPECTED",
+                "Windows 환경 준비를 마치지 못했습니다",
+                "현재 작업을 보존했습니다. 다시 시도하세요.",
+                "다시 시도",
+                exception.Message);
+            RaiseBlockerState();
+        }
+    }
+
+    private async Task RequestLaterAsync()
+    {
+        await SavePreferencesAsync().ConfigureAwait(true);
         LaterRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private async Task OnImageRegisteredAsync(CancellationToken cancellationToken)
+    private SetupInputSnapshot CreateInputs()
     {
-        _ = cancellationToken;
-        _state = SetupState.Default;
-        await _stateStore.SaveAsync(_state, CancellationToken.None).ConfigureAwait(true);
-        Completed?.Invoke(this, EventArgs.Empty);
+        var edition = SelectedWindowsEdition;
+        return new SetupInputSnapshot(
+            EmptyToNull(WindowsMediaPath),
+            _windowsFingerprint,
+            EmptyToNull(VirtioMediaPath),
+            _virtioFingerprint,
+            edition?.Index,
+            edition?.EditionId,
+            edition?.DisplayName,
+            PackagePlanDigest: null,
+            ImageId.Parse(ImageIdText),
+            DiskSizeGiB,
+            CpuCount,
+            MemoryMiB,
+            IsLicenseConfirmed);
     }
 
-    private Task SaveStateAsync()
+    private void RestoreInputs(SetupInputSnapshot inputs)
     {
-        _state = new SetupState(
-            SetupState.CurrentSchemaVersion,
-            SetupState.CurrentWizardVersion,
-            CurrentStep,
-            SetupState.CurrentNoticeVersion,
-            RememberMediaPaths,
-            RememberMediaPaths ? EmptyToNull(WindowsMediaPath) : null,
-            RememberMediaPaths ? EmptyToNull(VirtioMediaPath) : null,
-            EmptyToNull(Build.StagingDirectory));
-        return _stateStore.SaveAsync(_state, _shutdown.Token);
-    }
-
-    private void UpdateStepState()
-    {
-        foreach (var step in Steps)
+        WindowsMediaPath = inputs.WindowsIsoPath ?? string.Empty;
+        VirtioMediaPath = inputs.VirtioIsoPath ?? string.Empty;
+        _windowsFingerprint = inputs.WindowsIsoFingerprint;
+        _virtioFingerprint = inputs.VirtioIsoFingerprint;
+        WindowsEditions.Clear();
+        if (inputs.WindowsImageIndex is int index &&
+            inputs.WindowsEditionId is { Length: > 0 } editionId &&
+            inputs.WindowsEdition is { Length: > 0 } displayName)
         {
-            step.Update(step.Step < CurrentStep, step.Step == CurrentStep);
+            var image = new WindowsInstallationImage(index, displayName, editionId, "amd64", 22000);
+            WindowsEditions.Add(image);
+            SelectedWindowsEdition = image;
+        }
+
+        ImageIdText = inputs.ImageId.Value;
+        DiskSizeGiB = inputs.DiskSizeGiB;
+        CpuCount = inputs.CpuCount;
+        MemoryMiB = inputs.MemoryMiB;
+        IsLicenseConfirmed = inputs.LicenseConfirmed;
+        WindowsMediaStatus = _windowsFingerprint is null ? "파일을 다시 선택하세요." : "이전 작업의 설치 파일";
+        VirtioMediaStatus = _virtioFingerprint is null ? "파일을 다시 선택하세요." : "이전 작업의 장치 드라이버";
+        RaiseMediaState();
+    }
+
+    private async Task SavePreferencesAsync(CancellationToken? cancellationToken = null)
+    {
+        _state = _state with
+        {
+            LastStep = SetupStep.HostInspection,
+            RememberMediaPaths = RememberMediaPaths,
+            WindowsIsoPath = RememberMediaPaths ? EmptyToNull(WindowsMediaPath) : null,
+            VirtioIsoPath = RememberMediaPaths ? EmptyToNull(VirtioMediaPath) : null,
+        };
+        await _stateStore.SaveAsync(
+                _state,
+                cancellationToken ?? _shutdown.Token)
+            .ConfigureAwait(true);
+    }
+
+    private void ApplyImageBuildProgress(DesktopImageBuildProgress progress)
+    {
+        var phaseIndex = progress.Phase switch
+        {
+            WindowsImageBuildPhase.Preparing or WindowsImageBuildPhase.Prepared => 2,
+            WindowsImageBuildPhase.InstallerRunning => 3,
+            WindowsImageBuildPhase.ReadyToVerify or WindowsImageBuildPhase.VerificationRunning => 4,
+            WindowsImageBuildPhase.ReadyToFinalize => 5,
+            _ => 3,
+        };
+        ApplyFlowProgress(phaseIndex, StatusText);
+    }
+
+    private void ApplyPhase(SetupPhase phase)
+    {
+        var index = phase switch
+        {
+            SetupPhase.Discovering or SetupPhase.AwaitingInputs => 0,
+            SetupPhase.InstallingDependencies => 1,
+            SetupPhase.ValidatingMedia or SetupPhase.PlanningWindows => 2,
+            SetupPhase.BuildingImage => 3,
+            SetupPhase.Finalizing => 5,
+            SetupPhase.Completed => Phases.Count,
+            _ => 0,
+        };
+        ApplyFlowProgress(index, StatusText);
+    }
+
+    private void ApplyFlowProgress(int currentIndex, string status)
+    {
+        StatusText = status;
+        for (var index = 0; index < Phases.Count; index++)
+        {
+            Phases[index].Update(index < currentIndex, index == currentIndex);
         }
     }
 
-    private void RaiseNavigationState()
+    private void RaiseBlockerState()
     {
-        OnPropertyChanged(nameof(CanGoBack));
-        OnPropertyChanged(nameof(CanContinue));
-        OnPropertyChanged(nameof(ContinueLabel));
-        BackCommand.RaiseCanExecuteChanged();
-        ContinueCommand.RaiseCanExecuteChanged();
-        ReinspectCommand.RaiseCanExecuteChanged();
-        InstallPackagesCommand.RaiseCanExecuteChanged();
-        LaterCommand.RaiseCanExecuteChanged();
-    }
-
-    private void RaisePackageState()
-    {
-        OnPropertyChanged(nameof(CanInstallPackages));
+        OnPropertyChanged(nameof(IsBlocked));
+        OnPropertyChanged(nameof(IsReady));
+        OnPropertyChanged(nameof(BlockerTitle));
+        OnPropertyChanged(nameof(BlockerDescription));
+        OnPropertyChanged(nameof(BlockerActionLabel));
+        OnPropertyChanged(nameof(BlockerCode));
+        OnPropertyChanged(nameof(TechnicalDetail));
+        OnPropertyChanged(nameof(HasTechnicalDetail));
         OnPropertyChanged(nameof(ShowManualCommand));
         OnPropertyChanged(nameof(ManualInstallCommand));
-        OnPropertyChanged(nameof(PackageRepositories));
-        OnPropertyChanged(nameof(PackageDownloadSize));
-        OnPropertyChanged(nameof(UnresolvedPackages));
-        OnPropertyChanged(nameof(HasUnresolvedPackages));
-        RaiseNavigationState();
+        RaiseState();
     }
 
     private void RaiseMediaState()
@@ -725,102 +821,61 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         OnPropertyChanged(nameof(WindowsMediaHash));
         OnPropertyChanged(nameof(IsVirtioMediaValid));
         OnPropertyChanged(nameof(VirtioMediaHash));
-        RaiseNavigationState();
+        RaiseState();
+    }
+
+    private void RaiseState()
+    {
+        OnPropertyChanged(nameof(IsReady));
+        OnPropertyChanged(nameof(IsBlocked));
+        OnPropertyChanged(nameof(HasActiveOperation));
+        OnPropertyChanged(nameof(CanPrepare));
+        OnPropertyChanged(nameof(CanRetry));
+        PrepareCommand.RaiseCanExecuteChanged();
+        RetryCommand.RaiseCanExecuteChanged();
+        CancelCommand.RaiseCanExecuteChanged();
+        ReinspectCommand.RaiseCanExecuteChanged();
+        LaterCommand.RaiseCanExecuteChanged();
     }
 
     private async Task CancelMediaValidationAndWaitAsync()
     {
-        _mediaValidation?.Cancel();
-        if (_mediaValidationFinished is not null)
+        _mediaCancellation?.Cancel();
+        if (_mediaFinished is not null)
         {
-            await _mediaValidationFinished.Task.ConfigureAwait(true);
+            await _mediaFinished.Task.ConfigureAwait(true);
         }
     }
-
-    private bool IsDoctorAvailable(string code) => _startup.Doctor.Report.Checks.Any(check =>
-        string.Equals(check.Name, code, StringComparison.Ordinal) && check.IsAvailable);
 
     private void ShowError(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
         Trace.TraceError("Desktop setup operation failed: {0}", exception);
-        ErrorMessage = exception switch
-        {
-            OperationCanceledException when _shutdown.IsCancellationRequested => "앱 종료로 작업이 취소되었습니다.",
-            OperationCanceledException => "작업이 취소되었습니다.",
-            UnauthorizedAccessException => "현재 사용자에게 이 작업을 수행할 권한이 없습니다.",
-            _ => "설정 작업 중 오류가 발생했습니다. 다시 시도하거나 로그를 확인하세요.",
-        };
+        ErrorMessage = "작업을 완료하지 못했습니다. 기술 세부정보를 확인한 뒤 다시 시도하세요.";
     }
 
-    private static string MediaError(Exception exception, bool windows) => exception switch
-    {
-        OperationCanceledException => "미디어 검증이 취소되었습니다.",
-        FileNotFoundException => "선택한 파일을 찾지 못했습니다.",
-        UnauthorizedAccessException => "현재 사용자에게 선택한 파일을 읽을 권한이 없습니다.",
-        WindowsImageBuildException when windows && exception.Message.Contains("Windows x64", StringComparison.Ordinal) =>
-            "Windows x64 부팅 파일을 찾지 못했습니다.",
-        WindowsImageBuildException when windows && exception.Message.Contains("install.wim", StringComparison.Ordinal) =>
-            "install.wim 또는 install.esd를 찾지 못했습니다.",
-        WindowsImageBuildException when !windows && exception.Message.Contains("storage and network", StringComparison.Ordinal) =>
-            "Windows 11용 디스크 또는 네트워크 드라이버를 찾지 못했습니다.",
-        WindowsImageBuildException when exception.Message.Contains("size", StringComparison.Ordinal) =>
-            windows ? "Windows 설치 파일이 허용된 32 GiB 크기 제한을 벗어났습니다." : "드라이버 파일이 허용된 8 GiB 크기 제한을 벗어났습니다.",
-        _ => "선택한 파일을 확인하지 못했습니다. 다른 파일을 선택하거나 로그를 확인하세요.",
-    };
+    private static SetupFileFingerprint ToSetupFingerprint(ImageBuildFileFingerprint fingerprint) =>
+        new(
+            fingerprint.Length,
+            new DateTimeOffset(fingerprint.LastWriteUtcTicks, TimeSpan.Zero),
+            fingerprint.Sha256);
 
-    private static string DoctorLabel(string code) => code switch
-    {
-        QemuDoctorCheckCodes.Platform => "운영체제",
-        QemuDoctorCheckCodes.Kvm => "가상화",
-        QemuDoctorCheckCodes.QemuSystem => "Windows 실행",
-        QemuDoctorCheckCodes.QemuImg => "Windows 디스크",
-        QemuDoctorCheckCodes.Firmware => "Windows 시작",
-        QemuDoctorCheckCodes.Swtpm => "보안 장치",
-        QemuDoctorCheckCodes.Bubblewrap => "프로세스 격리",
-        QemuDoctorCheckCodes.RemoteViewer => "Windows 화면",
-        QemuDoctorCheckCodes.WimlibImagex => "Windows 설치 파일",
-        QemuDoctorCheckCodes.Xorriso => "드라이버 파일",
-        QemuDoctorCheckCodes.Passt => "인터넷 연결",
-        QemuDoctorCheckCodes.RuntimeDirectory => "작업 공간",
-        _ => code,
-    };
+    private static string MediaName(string path, string fallback) =>
+        string.IsNullOrWhiteSpace(path) ? fallback : Path.GetFileName(path);
 
-    private static string MediaName(string path) => string.IsNullOrWhiteSpace(path)
-        ? "선택되지 않음"
-        : Path.GetFileName(path);
-
-    private static string FormatBytes(ulong bytes)
-    {
-        string[] units = ["B", "KiB", "MiB", "GiB"];
-        var value = (double)bytes;
-        var unit = 0;
-        while (value >= 1024 && unit < units.Length - 1)
-        {
-            value /= 1024;
-            unit++;
-        }
-
-        return $"{value:0.##} {units[unit]}";
-    }
-
-    private static string? EmptyToNull(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
+    private static string? EmptyToNull(string value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
 }
 
-public sealed class SetupStepItemViewModel : ObservableObject
+public sealed class SetupFlowPhaseItemViewModel : ObservableObject
 {
     private bool _isComplete;
     private bool _isCurrent;
 
-    public SetupStepItemViewModel(SetupStep step, string title)
+    public SetupFlowPhaseItemViewModel(string title)
     {
-        Step = step;
         Title = title;
     }
-
-    public SetupStep Step { get; }
-
-    public int Number => (int)Step + 1;
 
     public string Title { get; }
 
@@ -836,7 +891,7 @@ public sealed class SetupStepItemViewModel : ObservableObject
         private set => SetProperty(ref _isCurrent, value);
     }
 
-    public string Marker => Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    public string Marker => IsComplete ? "완료" : IsCurrent ? "진행 중" : "대기";
 
     public void Update(bool isComplete, bool isCurrent)
     {
