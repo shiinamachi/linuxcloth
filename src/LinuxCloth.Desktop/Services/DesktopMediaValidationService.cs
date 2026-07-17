@@ -28,6 +28,13 @@ public interface IDesktopSetupService : IDesktopImageBuildService, IDesktopMedia
 {
     Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default);
 
+    Task<ImageBuildFileFingerprint?> FindCachedVirtioMediaAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<ImageBuildFileFingerprint> PreparePinnedVirtioMediaAsync(
+        IProgress<VirtioMediaDownloadProgress>? progress = null,
+        CancellationToken cancellationToken = default);
+
     Task<bool> HasVerifiedImageAsync(
         ImageId imageId,
         CancellationToken cancellationToken = default);

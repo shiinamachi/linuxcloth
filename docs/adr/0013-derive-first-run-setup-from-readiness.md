@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-16
+- Superseded in part by: ADR-0015 and ADR-0016
 
 ## Decision
 

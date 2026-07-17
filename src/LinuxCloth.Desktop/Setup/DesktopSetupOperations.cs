@@ -141,7 +141,7 @@ public static class DesktopSetupOperationFactory
                 ? CreateBlocker("SETUP-INPUT-LICENSE", "Windows 사용 권한을 확인하세요.")
                 : !IsAbsolutePath(inputs.WindowsIsoPath)
                     ? CreateBlocker("SETUP-INPUT-WINDOWS", "Windows 11 설치 파일을 다시 선택하세요.")
-                    : !IsAbsolutePath(inputs.VirtioIsoPath)
+                    : inputs.VirtioIsoPath is not null && !IsAbsolutePath(inputs.VirtioIsoPath)
                         ? CreateBlocker("SETUP-INPUT-DRIVERS", "Windows 장치 드라이버 파일을 다시 선택하세요.")
                         : !HasInstallationSelection(inputs)
                             ? CreateBlocker("SETUP-WINDOWS-IMAGE-AMBIGUOUS", "설치할 Windows 버전을 선택하세요.")
@@ -331,11 +331,9 @@ public static class DesktopSetupOperationFactory
             SetupExecutionContext context,
             CancellationToken cancellationToken)
         {
+            _ = context;
             cancellationToken.ThrowIfCancellationRequested();
-            var inputs = context.Run.Inputs;
-            var satisfied = FingerprintMatches(inputs.WindowsIsoPath, inputs.WindowsIsoFingerprint) &&
-                            FingerprintMatches(inputs.VirtioIsoPath, inputs.VirtioIsoFingerprint);
-            return Task.FromResult(new SetupOperationCheck(satisfied));
+            return Task.FromResult(SetupOperationCheck.Required);
         }
 
         public async Task<SetupOperationResult> ExecuteAsync(
@@ -364,14 +362,50 @@ public static class DesktopSetupOperationFactory
                         "파일 다시 선택"));
             }
 
-            var virtio = await _runtime.ValidateVirtioMediaAsync(
-                    inputs.VirtioIsoPath!,
-                    cancellationToken)
+            var virtioPath = inputs.VirtioIsoPath;
+            if (string.IsNullOrWhiteSpace(virtioPath))
+            {
+                var downloadProgress = new ImmediateProgress<VirtioMediaDownloadProgress>(item =>
+                    progress.Report(
+                        new SetupProgress(
+                            Phase,
+                            item.Status,
+                            0,
+                            1)));
+                try
+                {
+                    var pinned = await _runtime.PreparePinnedVirtioMediaAsync(
+                            downloadProgress,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    virtioPath = pinned.Path;
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception exception) when (
+                    exception is IOException or HttpRequestException or InvalidDataException)
+                {
+                    return SetupOperationResult.Blocked(
+                        new SetupBlocker(
+                            Phase,
+                            SetupFailureKind.Retryable,
+                            "SETUP-MEDIA-DRIVER-DOWNLOAD",
+                            "Windows 장치 드라이버를 준비하지 못했습니다",
+                            "네트워크 연결을 확인해 다시 시도하거나 로컬 ISO 파일을 선택하세요.",
+                            "다시 시도",
+                            exception.Message));
+                }
+            }
+
+            var virtio = await _runtime.ValidateVirtioMediaAsync(virtioPath, cancellationToken)
                 .ConfigureAwait(false);
             return SetupOperationResult.Completed(
                 inputs with
                 {
                     WindowsIsoFingerprint = ToSetupFingerprint(windows.Fingerprint),
+                    VirtioIsoPath = virtio.Path,
                     VirtioIsoFingerprint = ToSetupFingerprint(virtio),
                     WindowsEdition = selected.DisplayName,
                 });
@@ -608,18 +642,6 @@ public static class DesktopSetupOperationFactory
         inputs.WindowsImageIndex > 0 &&
         !string.IsNullOrWhiteSpace(inputs.WindowsEditionId) &&
         !string.IsNullOrWhiteSpace(inputs.WindowsEdition);
-
-    private static bool FingerprintMatches(string? path, SetupFileFingerprint? fingerprint)
-    {
-        if (!IsAbsolutePath(path) || fingerprint is null || !File.Exists(path))
-        {
-            return false;
-        }
-
-        var file = new FileInfo(path);
-        return file.Length == fingerprint.Length &&
-               file.LastWriteTimeUtc.Ticks == fingerprint.LastWriteTimeUtc.UtcTicks;
-    }
 
     private static SetupFileFingerprint ToSetupFingerprint(ImageBuildFileFingerprint fingerprint) =>
         new(

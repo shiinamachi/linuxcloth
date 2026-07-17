@@ -23,10 +23,10 @@ public sealed class SetupWizardViewModelTests : IDisposable
         Assert.True(viewModel.IsReady);
         Assert.False(viewModel.CanPrepare);
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
-        await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
         Assert.False(viewModel.CanPrepare);
         viewModel.IsLicenseConfirmed = true;
         Assert.True(viewModel.CanPrepare);
+        Assert.Equal("자동 준비", viewModel.VirtioMediaName);
     }
 
     [Fact]
@@ -37,7 +37,6 @@ public sealed class SetupWizardViewModelTests : IDisposable
         await viewModel.InitializeAsync();
 
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
-        await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
         viewModel.IsLicenseConfirmed = true;
 
         Assert.True(viewModel.HasMultipleWindowsEditions);
@@ -55,7 +54,6 @@ public sealed class SetupWizardViewModelTests : IDisposable
         await using var viewModel = CreateViewModel(runtime, runStore);
         await viewModel.InitializeAsync();
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
-        await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
         viewModel.IsLicenseConfirmed = true;
         var completed = 0;
         viewModel.Completed += (_, _) => completed++;
@@ -63,6 +61,8 @@ public sealed class SetupWizardViewModelTests : IDisposable
         await viewModel.PrepareAsync();
 
         Assert.Equal(1, runtime.BuildCount);
+        Assert.Equal(1, runtime.PinnedVirtioPrepareCount);
+        Assert.Equal("/cache/virtio-win.iso", runtime.LastBuildRequest?.VirtioWinIsoPath);
         Assert.Equal(1, completed);
         Assert.False(viewModel.IsRunning);
         Assert.Equal(SetupPhase.Completed, runStore.Run?.Phase);
@@ -105,7 +105,6 @@ public sealed class SetupWizardViewModelTests : IDisposable
         await using var viewModel = CreateViewModel(runtime, runStore);
         await viewModel.InitializeAsync();
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
-        await viewModel.ValidateVirtioMediaAsync("/media/virtio.iso");
         viewModel.IsLicenseConfirmed = true;
 
         Assert.True(viewModel.CanPrepare);
@@ -293,10 +292,32 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
         public int ResumeCount { get; private set; }
 
+        public int PinnedVirtioPrepareCount { get; private set; }
+
+        public DesktopImageBuildRequest? LastBuildRequest { get; private set; }
+
         public Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(CreateDoctor(DependenciesReady));
+        }
+
+        public Task<ImageBuildFileFingerprint?> FindCachedVirtioMediaAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<ImageBuildFileFingerprint?>(null);
+        }
+
+        public Task<ImageBuildFileFingerprint> PreparePinnedVirtioMediaAsync(
+            IProgress<VirtioMediaDownloadProgress>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PinnedVirtioPrepareCount++;
+            var fingerprint = Fingerprint("/cache/virtio-win.iso", 'b');
+            progress?.Report(new VirtioMediaDownloadProgress("ready", fingerprint.Length, fingerprint.Length));
+            return Task.FromResult(fingerprint);
         }
 
         public Task<bool> HasVerifiedImageAsync(
@@ -368,6 +389,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             BuildCount++;
+            LastBuildRequest = request;
             progress.Report(
                 new DesktopImageBuildProgress(
                     WindowsImageBuildPhase.InstallerRunning,

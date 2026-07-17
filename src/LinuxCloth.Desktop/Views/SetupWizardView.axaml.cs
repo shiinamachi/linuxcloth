@@ -64,13 +64,6 @@ public sealed partial class SetupWizardView : UserControl
         await LaunchAsync(SetupWizardViewModel.WindowsDownloadUri);
     }
 
-    private async void OnOpenVirtioDownload(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs)
-    {
-        _ = sender;
-        _ = eventArgs;
-        await LaunchAsync(SetupWizardViewModel.VirtioDownloadUri);
-    }
-
     private async void OnCopyManualCommand(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs)
     {
         _ = sender;

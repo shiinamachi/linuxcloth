@@ -99,14 +99,8 @@
                   </StackPanel>
                   <WrapPanel Grid.Column="1" VerticalAlignment="Center">
                     <Button
-                        Classes="ghost"
-                        Content="받기"
-                        Click="OnOpenVirtioDownload"
-                        Margin="0,0,4,0"
-                        AutomationProperties.AutomationId="Setup.Drivers.Download" />
-                    <Button
                         Classes="secondary"
-                        Content="파일 선택"
+                        Content="로컬 파일 선택"
                         Click="OnBrowseVirtioIso"
                         AutomationProperties.AutomationId="Setup.Drivers.Select"
                         AutomationProperties.Name="Windows 장치 드라이버 파일 선택" />
@@ -192,7 +186,7 @@
 
           <Border Classes="notice-info">
             <TextBlock
-                Text="준비가 시작되면 Windows 설치와 환경 확인이 자동으로 이어집니다. 작업 중 앱을 닫아도 다음 실행에서 계속할 수 있습니다."
+                Text="준비가 시작되면 검증된 장치 드라이버 확보, Windows 설치, 환경 확인이 자동으로 이어집니다. 작업 중 앱을 닫아도 다음 실행에서 계속할 수 있습니다."
                 TextWrapping="Wrap" />
           </Border>
 

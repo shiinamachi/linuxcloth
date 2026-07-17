@@ -40,7 +40,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private SetupState _state = SetupState.Default;
     private string _virtioMediaPath = string.Empty;
     private SetupFileFingerprint? _virtioFingerprint;
-    private string _virtioMediaStatus = "Windows 장치 드라이버 파일을 선택하세요.";
+    private string _virtioMediaStatus = "시작하면 검증된 Windows 장치 드라이버를 자동으로 준비합니다.";
     private string _windowsMediaPath = string.Empty;
     private SetupFileFingerprint? _windowsFingerprint;
     private string _windowsMediaStatus = "Windows 11 설치 파일을 선택하세요.";
@@ -99,8 +99,6 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public static Uri WindowsDownloadUri { get; } = new("https://www.microsoft.com/software-download/windows11");
 
-    public static Uri VirtioDownloadUri { get; } = new("https://github.com/virtio-win/virtio-win-pkg-scripts/blob/master/README.md");
-
     public ObservableCollection<WindowsInstallationImage> WindowsEditions { get; } = [];
 
     public ObservableCollection<SetupFlowPhaseItemViewModel> Phases { get; } = [];
@@ -150,7 +148,6 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         !IsBusy &&
         _hostInspected &&
         _windowsFingerprint is not null &&
-        _virtioFingerprint is not null &&
         SelectedWindowsEdition is not null &&
         IsLicenseConfirmed &&
         ImageId.TryParse(ImageIdText, out _) &&
@@ -241,7 +238,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    public string VirtioMediaName => MediaName(VirtioMediaPath, "선택되지 않음");
+    public string VirtioMediaName => MediaName(VirtioMediaPath, "자동 준비");
 
     public string VirtioMediaStatus
     {
@@ -391,6 +388,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
             if (RememberMediaPaths && _state.VirtioIsoPath is not null)
             {
                 await ValidateVirtioMediaAsync(_state.VirtioIsoPath).ConfigureAwait(true);
+            }
+
+            if (_virtioFingerprint is null)
+            {
+                await LoadCachedVirtioMediaAsync().ConfigureAwait(true);
             }
         }
         catch (Exception exception)
@@ -577,7 +579,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
         var updated = run with
         {
-            Inputs = CreateInputs(),
+            Inputs = CreateInputs(run.Inputs),
             UpdatedAt = DateTimeOffset.UtcNow,
         };
         await _runStore.SaveAsync(updated, _shutdown.Token).ConfigureAwait(true);
@@ -703,18 +705,18 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         LaterRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private SetupInputSnapshot CreateInputs()
+    private SetupInputSnapshot CreateInputs(SetupInputSnapshot? existing = null)
     {
         var edition = SelectedWindowsEdition;
         return new SetupInputSnapshot(
-            EmptyToNull(WindowsMediaPath),
-            _windowsFingerprint,
-            EmptyToNull(VirtioMediaPath),
-            _virtioFingerprint,
-            edition?.Index,
-            edition?.EditionId,
-            edition?.DisplayName,
-            PackagePlanDigest: null,
+            EmptyToNull(WindowsMediaPath) ?? existing?.WindowsIsoPath,
+            _windowsFingerprint ?? existing?.WindowsIsoFingerprint,
+            EmptyToNull(VirtioMediaPath) ?? existing?.VirtioIsoPath,
+            _virtioFingerprint ?? existing?.VirtioIsoFingerprint,
+            edition?.Index ?? existing?.WindowsImageIndex,
+            edition?.EditionId ?? existing?.WindowsEditionId,
+            edition?.DisplayName ?? existing?.WindowsEdition,
+            existing?.PackagePlanDigest,
             ImageId.Parse(ImageIdText),
             DiskSizeGiB,
             CpuCount,
@@ -744,7 +746,25 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         MemoryMiB = inputs.MemoryMiB;
         IsLicenseConfirmed = inputs.LicenseConfirmed;
         WindowsMediaStatus = _windowsFingerprint is null ? "파일을 다시 선택하세요." : "이전 작업의 설치 파일";
-        VirtioMediaStatus = _virtioFingerprint is null ? "파일을 다시 선택하세요." : "이전 작업의 장치 드라이버";
+        VirtioMediaStatus = _virtioFingerprint is null
+            ? "필요할 때 검증된 Windows 장치 드라이버를 자동으로 준비합니다."
+            : "이전 작업의 장치 드라이버";
+        RaiseMediaState();
+    }
+
+    private async Task LoadCachedVirtioMediaAsync()
+    {
+        VirtioMediaStatus = "캐시된 Windows 장치 드라이버를 확인하고 있습니다…";
+        var cached = await _runtime.FindCachedVirtioMediaAsync(_shutdown.Token).ConfigureAwait(true);
+        if (cached is null)
+        {
+            VirtioMediaStatus = "시작하면 검증된 Windows 장치 드라이버를 자동으로 준비합니다.";
+            return;
+        }
+
+        VirtioMediaPath = cached.Path;
+        _virtioFingerprint = ToSetupFingerprint(cached);
+        VirtioMediaStatus = "자동 준비됨 · 고정된 Windows 11 드라이버";
         RaiseMediaState();
     }
 

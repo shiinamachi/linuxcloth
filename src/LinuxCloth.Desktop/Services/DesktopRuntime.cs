@@ -29,6 +29,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
     private readonly ManagedImageRegistry _images;
     private readonly LinuxClothSessionLauncher _launcher;
     private readonly LinuxClothPaths _paths;
+    private readonly PinnedVirtioMediaService _pinnedVirtioMedia;
     private readonly QemuDoctorOptions _doctorOptions;
     private readonly RecoverySessionManager _recovery;
     private bool _disposed;
@@ -40,7 +41,8 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         QemuDoctor doctor,
         QemuDoctorOptions doctorOptions,
         RecoverySessionManager recovery,
-        LinuxClothSessionLauncher launcher)
+        LinuxClothSessionLauncher launcher,
+        PinnedVirtioMediaService pinnedVirtioMedia)
     {
         _paths = paths;
         _catalog = catalog;
@@ -49,6 +51,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         _doctorOptions = doctorOptions;
         _recovery = recovery;
         _launcher = launcher;
+        _pinnedVirtioMedia = pinnedVirtioMedia;
     }
 
     public CatalogWorkspace Catalog => _catalog;
@@ -84,7 +87,15 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
             new QemuSessionArtifactService(new SessionArtifactPreparer(processRunner)),
             new GuestConfigurationService(),
             new QemuVmSessionStarter(host));
-        return new DesktopRuntime(paths, catalog, images, doctor, doctorOptions, recovery, launcher);
+        return new DesktopRuntime(
+            paths,
+            catalog,
+            images,
+            doctor,
+            doctorOptions,
+            recovery,
+            launcher,
+            new PinnedVirtioMediaService(paths.CacheDirectory));
     }
 
     public async Task<DesktopStartupSnapshot> InitializeAsync(
@@ -127,6 +138,15 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
 
     public Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default) =>
         _doctor.InspectDetailedAsync(cancellationToken);
+
+    public Task<ImageBuildFileFingerprint?> FindCachedVirtioMediaAsync(
+        CancellationToken cancellationToken = default) =>
+        _pinnedVirtioMedia.FindCachedAsync(cancellationToken);
+
+    public Task<ImageBuildFileFingerprint> PreparePinnedVirtioMediaAsync(
+        IProgress<VirtioMediaDownloadProgress>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        _pinnedVirtioMedia.PrepareAsync(progress, cancellationToken);
 
     public Task<IReadOnlyList<ManagedWindowsImage>> ListImagesAsync(
         CancellationToken cancellationToken = default) =>
@@ -310,6 +330,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
 
         _disposed = true;
         _catalog.Dispose();
+        _pinnedVirtioMedia.Dispose();
         return ValueTask.CompletedTask;
     }
 

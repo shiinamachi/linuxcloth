@@ -32,7 +32,8 @@ public sealed class SetupWizardHeadlessTests
                     var labels = buttons
                         .Select(button => button.Content?.ToString() ?? string.Empty)
                         .ToArray();
-                    Assert.Equal(2, labels.Count(label => label == "파일 선택"));
+                    Assert.Equal(1, labels.Count(label => label == "파일 선택"));
+                    Assert.Contains("로컬 파일 선택", labels);
                     Assert.Contains("Windows 환경 준비하기", labels);
                     Assert.DoesNotContain("뒤로", labels);
                     Assert.DoesNotContain("계속", labels);
