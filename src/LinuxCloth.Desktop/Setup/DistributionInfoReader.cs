@@ -5,6 +5,7 @@ namespace LinuxCloth.Desktop.Setup;
 public enum DistributionFamily
 {
     Unsupported,
+    Arch,
     Debian,
     Fedora,
 }
@@ -162,6 +163,12 @@ public sealed class DistributionInfoReader
 
     private static DistributionFamily ResolveFamily(string id, IReadOnlyList<string> idLike)
     {
+        if (string.Equals(id, "arch", StringComparison.Ordinal) ||
+            idLike.Contains("arch", StringComparer.Ordinal))
+        {
+            return DistributionFamily.Arch;
+        }
+
         string[] debianIds = ["debian", "ubuntu", "linuxmint", "pop", "elementary"];
         string[] fedoraIds = ["fedora", "rhel", "centos", "rocky", "almalinux"];
         if (debianIds.Contains(id, StringComparer.Ordinal) ||

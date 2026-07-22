@@ -1,0 +1,5 @@
+# Additional Arch-family package-name hints for Windows image creation.
+7zip
+libisoburn
+virt-firmware
+wimlib

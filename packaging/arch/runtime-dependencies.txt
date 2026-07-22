@@ -1,0 +1,11 @@
+# Arch-family package-name hints for runtime capabilities.
+# Readiness is decided by Doctor after installation, not by these names.
+bubblewrap
+ca-certificates
+edk2-ovmf
+hicolor-icon-theme
+passt
+qemu-desktop
+swtpm
+tzdata
+virt-viewer

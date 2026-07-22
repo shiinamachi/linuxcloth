@@ -32,6 +32,14 @@ public sealed class DistributionInfoReaderTests
     }
 
     [Fact]
+    public void DetectsArchFamilyOnlyForPackageRemediationHints()
+    {
+        var distribution = DistributionInfoReader.Parse("ID=custom\nID_LIKE=arch\n");
+
+        Assert.Equal(DistributionFamily.Arch, distribution.Family);
+    }
+
+    [Fact]
     public void RejectsDuplicateKeysInsteadOfSilentlyOverridingThem()
     {
         Assert.Throws<InvalidDataException>(() =>

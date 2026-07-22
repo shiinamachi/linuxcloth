@@ -41,12 +41,14 @@ to generate a private managed template below the XDG cache. It never modifies
 the distribution firmware. The generated file must match the source size, stay
 within 16 MiB, and resolve through the same strict firmware descriptor checks.
 
-On supported Debian- and Fedora-family systems, **Windows 환경 준비하기**
+On hosts with reviewed Arch-, Debian-, or Fedora-family remediation hints,
+**Windows 환경 준비하기**
 resolves the packaged dependency plan, starts its PackageKit transaction,
 requests polkit authorization, and then runs Doctor again before continuing.
 Do not launch the desktop as root. If PackageKit is unavailable, copy the one
-displayed `apt` or `dnf` command into a terminal, run it yourself, and choose
-**다시 확인**. The desktop never executes that command or adds a repository.
+displayed `pacman`, `apt`, or `dnf` command into a terminal, run it yourself,
+and choose **다시 확인**. The desktop never executes that command or adds a
+repository.
 
 Distribution families select only reviewed package-remediation hints. Actual
 readiness is always decided by the capability probes above: an unrecognized

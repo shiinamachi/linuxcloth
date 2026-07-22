@@ -19,12 +19,13 @@ licensed Windows 11 x64 ISO and a Windows 11 amd64 virtio-win ISO. linuxcloth
 requires its packaged GuestBridge and the exact QEMU descriptor-selected Q35
 Secure Boot OVMF code/NVRAM-template pair; neither is a general user input.
 
-Supported Debian- and Fedora-family package plans come directly from the
-packaging dependency manifests. The desktop resolves and previews changes
+Reviewed Arch-, Debian-, and Fedora-family remediation plans come directly from
+the packaging dependency manifests. The desktop resolves and previews changes
 through PackageKit, and PackageKit obtains per-transaction polkit authorization.
 The desktop process remains unprivileged. If PackageKit is unavailable, the UI
 only displays a fixed package-manager command for the user to copy and run in a
-terminal; linuxcloth does not execute `sudo`, `pkexec`, `apt`, or `dnf`.
+terminal; linuxcloth does not execute `sudo`, `pkexec`, `pacman`, `apt`, or
+`dnf`.
 
 Distribution detection is remediation metadata, not a readiness authority.
 Doctor's concrete host capabilities decide whether setup can continue. A host

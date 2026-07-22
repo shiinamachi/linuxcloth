@@ -150,7 +150,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
         await using var viewModel = CreateViewModel(
             runtime,
             runStore,
-            "ID=arch\nNAME=\"Arch Linux\"\n");
+            "ID=opensuse\nNAME=openSUSE\n");
         await viewModel.InitializeAsync();
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
         viewModel.IsLicenseConfirmed = true;
@@ -170,7 +170,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
         await using var viewModel = CreateViewModel(
             runtime,
             runStore,
-            "ID=arch\nNAME=\"Arch Linux\"\n");
+            "ID=opensuse\nNAME=openSUSE\n");
         await viewModel.InitializeAsync();
         await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
         viewModel.IsLicenseConfirmed = true;

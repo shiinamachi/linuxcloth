@@ -31,6 +31,11 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="../../packaging/arch/*-dependencies.txt">
+      <Link>setup-packages/arch/%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Content Include="../../packaging/deb/*-dependencies.txt">
       <Link>setup-packages/deb/%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

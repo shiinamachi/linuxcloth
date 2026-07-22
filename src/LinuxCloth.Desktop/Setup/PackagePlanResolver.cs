@@ -34,6 +34,7 @@ public sealed class FilePackageManifestSource : IPackageManifestSource
     {
         var familyDirectory = family switch
         {
+            DistributionFamily.Arch => "arch",
             DistributionFamily.Debian => "deb",
             DistributionFamily.Fedora => "rpm",
             _ => throw new NotSupportedException("지원되지 않는 배포판에는 패키지 매니페스트가 없습니다."),
@@ -73,9 +74,14 @@ public sealed partial class PackagePlanResolver
             await _source.ReadAsync(distribution.Family, imageBuild: true, cancellationToken)
                 .ConfigureAwait(false));
         var all = runtime.Concat(imageBuild).Distinct(StringComparer.Ordinal).ToArray();
-        var command = distribution.Family == DistributionFamily.Debian
-            ? $"sudo apt install -- {string.Join(' ', all)}"
-            : $"sudo dnf install -- {string.Join(' ', all)}";
+        var command = distribution.Family switch
+        {
+            DistributionFamily.Arch => $"sudo pacman -S --needed -- {string.Join(' ', all)}",
+            DistributionFamily.Debian => $"sudo apt install -- {string.Join(' ', all)}",
+            DistributionFamily.Fedora => $"sudo dnf install -- {string.Join(' ', all)}",
+            _ => throw new NotSupportedException(
+                $"배포판 '{distribution.Id}'은 패키지 복구 계획을 지원하지 않습니다."),
+        };
         return new PackagePlan(distribution.Family, runtime, imageBuild, all, command);
     }
 
