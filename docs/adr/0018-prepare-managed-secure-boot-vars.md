@@ -25,9 +25,10 @@ with an argument array to copy that source template into the private XDG cache,
 enroll its standard Microsoft Secure Boot certificate set, and enable Secure
 Boot. The source firmware under `/usr/share` is never modified. The output must
 be a regular file, match the source template size, stay below 16 MiB, and pass
-the existing strict firmware resolver through a generated private descriptor.
-The NVRAM file is mode 0600 and its descriptor is promoted only after the NVRAM
-file is complete.
+an immediate `virt-fw-vars --print` inspection that reports PK, KEK, db, and an
+enabled Secure Boot state. It then passes the existing strict firmware resolver
+through a generated private descriptor. The NVRAM file is mode 0600 and its
+descriptor is promoted only after the NVRAM file is complete.
 
 The private descriptor directory is an additional resolver source, not a
 replacement for system descriptors. A missing tool, incompatible source

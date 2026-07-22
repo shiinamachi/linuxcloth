@@ -39,7 +39,8 @@ If the system exposes Q35 x86_64 Secure Boot firmware but its variable template
 has no enrolled keys, the desktop can use a detected `virt-fw-vars` executable
 to generate a private managed template below the XDG cache. It never modifies
 the distribution firmware. The generated file must match the source size, stay
-within 16 MiB, and resolve through the same strict firmware descriptor checks.
+within 16 MiB, report PK/KEK/db plus enabled Secure Boot state, and resolve
+through the same strict firmware descriptor checks.
 
 On hosts with reviewed Arch-, Debian-, or Fedora-family remediation hints,
 **Windows 환경 준비하기**

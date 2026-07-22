@@ -36,7 +36,8 @@ public sealed class ManagedSecureBootFirmwareServiceTests : IDisposable
                 "--enroll-microsoft",
                 "--secure-boot",
             ],
-            runner.Arguments);
+            runner.EnrollmentArguments);
+        Assert.Equal(1, runner.VerificationCount);
         var resolved = new FirmwareDescriptorResolver(
                 [fixture.SystemDescriptorDirectory, fixture.Paths.FirmwareDescriptorDirectory])
             .Resolve();
@@ -84,7 +85,7 @@ public sealed class ManagedSecureBootFirmwareServiceTests : IDisposable
         var result = await service.PrepareAsync();
 
         Assert.Equal(ManagedFirmwarePreparationStatus.NotRequired, result.Status);
-        Assert.Null(runner.Arguments);
+        Assert.Null(runner.EnrollmentArguments);
         Assert.Empty(Directory.EnumerateFiles(fixture.Paths.FirmwareDescriptorDirectory));
     }
 
@@ -104,6 +105,22 @@ public sealed class ManagedSecureBootFirmwareServiceTests : IDisposable
         Assert.False(File.Exists(Path.Combine(
             fixture.Paths.FirmwareDescriptorDirectory,
             ManagedSecureBootFirmwareService.ManagedDescriptorFileName)));
+    }
+
+    [Fact]
+    public async Task RejectsAnOutputWithoutVerifiedSecureBootVariables()
+    {
+        var fixture = CreateFixture(enrolledKeys: false);
+        using var service = new ManagedSecureBootFirmwareService(
+            fixture.SystemDescriptorDirectory,
+            fixture.Paths,
+            new FixedLocator(fixture.EnrollmentToolPath),
+            new EnrollmentRunner(reportValidEnrollment: false));
+
+        var result = await service.PrepareAsync();
+
+        Assert.Equal(ManagedFirmwarePreparationStatus.Failed, result.Status);
+        Assert.Contains("PK, KEK, db", result.Detail, StringComparison.Ordinal);
     }
 
     public void Dispose()
@@ -187,23 +204,36 @@ public sealed class ManagedSecureBootFirmwareServiceTests : IDisposable
         }
     }
 
-    private sealed class EnrollmentRunner(int outputSizeDelta = 0) : IProcessRunner
+    private sealed class EnrollmentRunner(
+        int outputSizeDelta = 0,
+        bool reportValidEnrollment = true) : IProcessRunner
     {
-        public IReadOnlyList<string>? Arguments { get; private set; }
+        public IReadOnlyList<string>? EnrollmentArguments { get; private set; }
 
         public string? OutputPath { get; private set; }
+
+        public int VerificationCount { get; private set; }
 
         public Task<ProcessResult> RunAsync(
             ProcessSpec spec,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Arguments = spec.Arguments;
-            var inputPath = spec.Arguments[1];
-            OutputPath = spec.Arguments[3];
-            var source = File.ReadAllBytes(inputPath);
-            File.WriteAllBytes(OutputPath, new byte[source.Length + outputSizeDelta]);
-            return Task.FromResult(new ProcessResult(0, string.Empty, string.Empty));
+            if (spec.Arguments.Contains("--output", StringComparer.Ordinal))
+            {
+                EnrollmentArguments = spec.Arguments;
+                var inputPath = spec.Arguments[1];
+                OutputPath = spec.Arguments[3];
+                var source = File.ReadAllBytes(inputPath);
+                File.WriteAllBytes(OutputPath, new byte[source.Length + outputSizeDelta]);
+                return Task.FromResult(new ProcessResult(0, string.Empty, string.Empty));
+            }
+
+            VerificationCount++;
+            var output = reportValidEnrollment
+                ? "PK: blob: 1 bytes\nKEK: blob: 1 bytes\ndb: blob: 1 bytes\nSecureBootEnable: bool: ON\n"
+                : "SecureBootEnable: bool: OFF\n";
+            return Task.FromResult(new ProcessResult(0, output, string.Empty));
         }
     }
 }

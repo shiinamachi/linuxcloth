@@ -21,6 +21,8 @@ public sealed record ManagedFirmwarePreparationResult(
 
 public sealed class ManagedSecureBootFirmwareService : IDisposable
 {
+    private static readonly string[] RequiredSignatureDatabases = ["PK", "KEK", "db"];
+
     public const string EnrollmentToolName = "virt-fw-vars";
     public const string ManagedDescriptorFileName = "10-linuxcloth-secure-boot.json";
     public const long MaximumNvramBytes = 16L * 1024 * 1024;
@@ -165,6 +167,16 @@ public sealed class ManagedSecureBootFirmwareService : IDisposable
                     $"The enrolled NVRAM template has an unexpected size ({outputLength} bytes).");
             }
 
+            var verificationError = await VerifyEnrollmentAsync(
+                    enrollmentTool,
+                    temporaryNvramPath,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (verificationError is not null)
+            {
+                return Failed(verificationError);
+            }
+
             SetPrivateFileMode(temporaryNvramPath);
             File.Move(temporaryNvramPath, _paths.ManagedFirmwareNvramPath, overwrite: true);
             SetPrivateFileMode(_paths.ManagedFirmwareNvramPath);
@@ -187,6 +199,42 @@ public sealed class ManagedSecureBootFirmwareService : IDisposable
         {
             File.Delete(temporaryNvramPath);
         }
+    }
+
+    private async Task<string?> VerifyEnrollmentAsync(
+        string enrollmentTool,
+        string nvramPath,
+        CancellationToken cancellationToken)
+    {
+        var result = await _runner.RunAsync(
+                new ProcessSpec(enrollmentTool, ["--input", nvramPath, "--print"]),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return $"'{EnrollmentToolName}' could not inspect the generated NVRAM template: " +
+                   BoundedDetail(result.StandardError, result.StandardOutput);
+        }
+
+        var variables = result.StandardOutput
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => (Separator: line.IndexOf(':'), Line: line))
+            .Where(item => item.Separator > 0)
+            .Select(item => new
+            {
+                Name = item.Line[..item.Separator].Trim(),
+                Value = item.Line[(item.Separator + 1)..].Trim(),
+            })
+            .GroupBy(item => item.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.Ordinal);
+        var hasSignatureDatabases = RequiredSignatureDatabases
+            .All(name => variables.TryGetValue(name, out var value) &&
+                         value.StartsWith("blob:", StringComparison.Ordinal));
+        var secureBootEnabled = variables.TryGetValue("SecureBootEnable", out var secureBoot) &&
+                                string.Equals(secureBoot, "bool: ON", StringComparison.Ordinal);
+        return hasSignatureDatabases && secureBootEnabled
+            ? null
+            : "The generated NVRAM template does not report enrolled PK, KEK, db, and enabled Secure Boot state.";
     }
 
     private async Task WriteDescriptorAsync(
