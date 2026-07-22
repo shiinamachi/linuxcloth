@@ -20,6 +20,8 @@ public sealed partial record LinuxClothPaths(
 
     public string SessionsDirectory => Path.Combine(RuntimeDirectory, "sessions");
 
+    public string WindowsMediaAnalysisDirectory => Path.Combine(CacheDirectory, "windows-media-analysis");
+
     public static LinuxClothPaths FromEnvironment() =>
         FromEnvironment(Environment.GetEnvironmentVariable, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
@@ -59,6 +61,7 @@ public sealed partial record LinuxClothPaths(
         CreatePrivateDirectory(DiagnosticsDirectory);
         CreatePrivateDirectory(ImagesDirectory);
         CreatePrivateDirectory(SessionsDirectory);
+        CreatePrivateDirectory(WindowsMediaAnalysisDirectory);
     }
 
     private static string ResolveXdgRoot(string? configuredPath, string fallbackPath)

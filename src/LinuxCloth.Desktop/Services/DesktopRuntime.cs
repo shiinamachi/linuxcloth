@@ -219,7 +219,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
             .ConfigureAwait(false);
         var catalog = await new WindowsInstallationPlanner(
                 runner,
-                Path.Combine(_paths.RuntimeDirectory, "windows-media-analysis"))
+                _paths.WindowsMediaAnalysisDirectory)
             .AnalyzeAsync(path, sevenZip, wimlib, bubblewrap, cancellationToken)
             .ConfigureAwait(false);
         return new DesktopWindowsMediaAnalysis(fingerprint, catalog);

@@ -25,6 +25,9 @@ public sealed class LinuxClothPathsTests : IDisposable
         Assert.Equal(Path.Combine(_root, "data", "linuxcloth"), paths.DataDirectory);
         Assert.Equal(Path.Combine(_root, "cache", "linuxcloth"), paths.CacheDirectory);
         Assert.Equal(Path.Combine(_root, "runtime", "linuxcloth"), paths.RuntimeDirectory);
+        Assert.Equal(
+            Path.Combine(_root, "cache", "linuxcloth", "windows-media-analysis"),
+            paths.WindowsMediaAnalysisDirectory);
     }
 
     [Fact]
@@ -55,11 +58,15 @@ public sealed class LinuxClothPathsTests : IDisposable
 
         Assert.True(Directory.Exists(paths.ImagesDirectory));
         Assert.True(Directory.Exists(paths.SessionsDirectory));
+        Assert.True(Directory.Exists(paths.WindowsMediaAnalysisDirectory));
         if (OperatingSystem.IsLinux())
         {
             Assert.Equal(
                 UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
                 File.GetUnixFileMode(paths.RuntimeDirectory));
+            Assert.Equal(
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                File.GetUnixFileMode(paths.WindowsMediaAnalysisDirectory));
         }
     }
 

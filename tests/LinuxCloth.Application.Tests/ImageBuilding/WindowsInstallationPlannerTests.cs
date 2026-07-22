@@ -81,6 +81,26 @@ public sealed class WindowsInstallationPlannerTests : IDisposable
         Assert.Empty(Directory.EnumerateFileSystemEntries(analysisRoot));
     }
 
+    [Fact]
+    public async Task TreatsAZeroExitWithoutAnExtractedEntryAsMissingMediaContent()
+    {
+        var windowsIso = CreateFile("windows.iso", "iso");
+        var sevenZip = CreateExecutable("7z");
+        var wimlib = CreateExecutable("wimlib-imagex");
+        var bubblewrap = CreateExecutable("bwrap");
+        var analysisRoot = Path.Combine(_root, "analysis");
+        var planner = new WindowsInstallationPlanner(new EmptyExtractionRunner(), analysisRoot);
+
+        var exception = await Assert.ThrowsAsync<WindowsImageBuildException>(() => planner.AnalyzeAsync(
+            windowsIso,
+            sevenZip,
+            wimlib,
+            bubblewrap));
+
+        Assert.Contains("could not be extracted", exception.Message, StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(analysisRoot));
+    }
+
     private string CreateFile(string name, string contents)
     {
         Directory.CreateDirectory(_root);
@@ -160,6 +180,17 @@ public sealed class WindowsInstallationPlannerTests : IDisposable
 
             Assert.Equal(_wimlib, spec.IdentityExecutablePath);
             return Task.FromResult(new ProcessResult(0, _xml, string.Empty));
+        }
+    }
+
+    private sealed class EmptyExtractionRunner : IProcessRunner
+    {
+        public Task<ProcessResult> RunAsync(
+            ProcessSpec spec,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new ProcessResult(0, string.Empty, string.Empty));
         }
     }
 }

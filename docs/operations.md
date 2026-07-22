@@ -48,8 +48,10 @@ Only one local file is selected in the normal setup flow:
 
 Selection immediately performs bounded, network-disabled, Bubblewrap-confined
 ISO inspection, WIM/ESD edition analysis, and SHA-256 hashing. linuxcloth does
-not upload the file. At start, the desktop downloads virtio-win `0.1.285-1` from
-its immutable Fedora People archive URL and accepts it only after the
+not upload the file. WIM/ESD analysis uses a private per-run directory under the
+disk-backed XDG cache instead of the usually size-limited XDG runtime tmpfs, and
+removes the extracted file after analysis. At start, the desktop downloads
+virtio-win `0.1.285-1` from its immutable Fedora People archive URL and accepts it only after the
 release-bundled exact length and SHA-256 match. The versioned XDG cache is mode
 0600, invalid or partial files are not promoted, and a local ISO containing
 `vioscsi` and `NetKVM` remains available as the offline fallback. The packaged

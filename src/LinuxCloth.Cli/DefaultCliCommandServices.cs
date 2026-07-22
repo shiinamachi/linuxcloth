@@ -72,7 +72,7 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
         var builder = CreateImageBuilder();
         var catalog = await new WindowsInstallationPlanner(
                 new SystemProcessRunner(),
-                Path.Combine(_paths.RuntimeDirectory, "windows-media-analysis"))
+                _paths.WindowsMediaAnalysisDirectory)
             .AnalyzeAsync(
                 command.WindowsIsoPath,
                 environment.Toolchain.SevenZip,

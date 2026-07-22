@@ -249,7 +249,7 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
                         directory),
                     cancellationToken)
                 .ConfigureAwait(false);
-            if (result.IsSuccess)
+            if (result.IsSuccess && File.Exists(destination))
             {
                 var extracted = ImageBuildPathGuard.RequireRegularFile(
                     destination,
