@@ -330,6 +330,11 @@ public sealed class RecoverySessionManagerTests : IDisposable
             return Task.CompletedTask;
         }
 
+        public Task SendKeyAsync(
+            QmpKeyCode keyCode,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task QuitAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();

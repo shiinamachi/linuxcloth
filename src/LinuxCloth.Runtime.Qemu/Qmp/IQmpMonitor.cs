@@ -1,5 +1,10 @@
 namespace LinuxCloth.Runtime.Qemu.Qmp;
 
+public enum QmpKeyCode
+{
+    Space,
+}
+
 public interface IQmpMonitor : IAsyncDisposable
 {
     Task<string> QueryStatusAsync(CancellationToken cancellationToken = default);
@@ -10,6 +15,10 @@ public interface IQmpMonitor : IAsyncDisposable
         CancellationToken cancellationToken = default);
 
     Task SystemPowerdownAsync(CancellationToken cancellationToken = default);
+
+    Task SendKeyAsync(
+        QmpKeyCode keyCode,
+        CancellationToken cancellationToken = default);
 
     Task QuitAsync(CancellationToken cancellationToken = default);
 }

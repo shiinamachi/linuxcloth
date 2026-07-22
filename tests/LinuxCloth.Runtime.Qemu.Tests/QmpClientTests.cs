@@ -30,6 +30,7 @@ public sealed class QmpClientTests : IAsyncLifetime
 
         await using var client = await QmpClient.ConnectAsync(socketPath, TimeSpan.FromSeconds(2));
 
+        await client.SendKeyAsync(QmpKeyCode.Space);
         Assert.Equal("running", await client.QueryStatusAsync());
         Assert.Equal("RESUME", (await client.WaitForEventAsync("RESUME", TimeSpan.FromSeconds(1))).Name);
         await server;
@@ -90,9 +91,20 @@ public sealed class QmpClientTests : IAsyncLifetime
         await WriteAsync(stream, "{\"return\":{},\"id\":\"1\"}");
 
         var query = await ReadAsync(stream);
+        using (var command = System.Text.Json.JsonDocument.Parse(query))
+        {
+            Assert.Equal("send-key", command.RootElement.GetProperty("execute").GetString());
+            var key = command.RootElement.GetProperty("arguments").GetProperty("keys")[0];
+            Assert.Equal("qcode", key.GetProperty("type").GetString());
+            Assert.Equal("spc", key.GetProperty("data").GetString());
+        }
+
+        await WriteAsync(stream, "{\"return\":{},\"id\":\"2\"}");
+
+        query = await ReadAsync(stream);
         Assert.Contains("query-status", query, StringComparison.Ordinal);
         await WriteAsync(stream, "{\"event\":\"RESUME\",\"data\":{}}");
-        await WriteAsync(stream, "{\"return\":{\"status\":\"running\",\"running\":true},\"id\":\"2\"}");
+        await WriteAsync(stream, "{\"return\":{\"status\":\"running\",\"running\":true},\"id\":\"3\"}");
     }
 
     private static async Task ServeQuitAsync(Socket listener)

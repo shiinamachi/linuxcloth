@@ -133,6 +133,22 @@ public sealed partial class QmpClient : IQmpMonitor
         using var response = await ExecuteAsync("system_powerdown", cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task SendKeyAsync(
+        QmpKeyCode keyCode,
+        CancellationToken cancellationToken = default)
+    {
+        var qcode = keyCode switch
+        {
+            QmpKeyCode.Space => "spc",
+            _ => throw new ArgumentOutOfRangeException(nameof(keyCode)),
+        };
+        using var response = await ExecuteAsync(
+                "send-key",
+                new QmpSendKeyArguments([new QmpKeyValue("qcode", qcode)]),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task QuitAsync(CancellationToken cancellationToken = default)
     {
         _quitRequested = true;
@@ -186,7 +202,15 @@ public sealed partial class QmpClient : IQmpMonitor
         using var response = await ExecuteAsync("qmp_capabilities", cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<JsonDocument> ExecuteAsync(string command, CancellationToken cancellationToken)
+    private Task<JsonDocument> ExecuteAsync(
+        string command,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(command, null, cancellationToken);
+
+    private async Task<JsonDocument> ExecuteAsync(
+        string command,
+        QmpSendKeyArguments? arguments,
+        CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var id = Interlocked.Increment(ref _nextCommandId).ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -199,7 +223,7 @@ public sealed partial class QmpClient : IQmpMonitor
         try
         {
             var payload = JsonSerializer.SerializeToUtf8Bytes(
-                new QmpCommand(command, id),
+                new QmpCommand(command, arguments, id),
                 QmpJsonContext.Default.QmpCommand);
             await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -315,7 +339,19 @@ public sealed partial class QmpClient : IQmpMonitor
 
     private sealed record QmpCommand(
         [property: System.Text.Json.Serialization.JsonPropertyName("execute")] string Execute,
+        [property: System.Text.Json.Serialization.JsonPropertyName("arguments")]
+        [property: System.Text.Json.Serialization.JsonIgnore(
+            Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        QmpSendKeyArguments? Arguments,
         [property: System.Text.Json.Serialization.JsonPropertyName("id")] string Id);
+
+    private sealed record QmpSendKeyArguments(
+        [property: System.Text.Json.Serialization.JsonPropertyName("keys")]
+        QmpKeyValue[] Keys);
+
+    private sealed record QmpKeyValue(
+        [property: System.Text.Json.Serialization.JsonPropertyName("type")] string Type,
+        [property: System.Text.Json.Serialization.JsonPropertyName("data")] string Data);
 
     [System.Text.Json.Serialization.JsonSerializable(typeof(QmpCommand))]
     private sealed partial class QmpJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

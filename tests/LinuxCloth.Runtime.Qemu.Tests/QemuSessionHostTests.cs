@@ -491,6 +491,11 @@ public sealed class QemuSessionHostTests : IDisposable
             return Task.CompletedTask;
         }
 
+        public Task SendKeyAsync(
+            QmpKeyCode keyCode,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task QuitAsync(CancellationToken cancellationToken = default)
         {
             QuitCount++;
