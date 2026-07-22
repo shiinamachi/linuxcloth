@@ -28,6 +28,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
     private readonly QemuDoctor _doctor;
     private readonly ManagedImageRegistry _images;
     private readonly LinuxClothSessionLauncher _launcher;
+    private readonly ManagedSecureBootFirmwareService _managedFirmware;
     private readonly LinuxClothPaths _paths;
     private readonly PinnedVirtioMediaService _pinnedVirtioMedia;
     private readonly QemuDoctorOptions _doctorOptions;
@@ -42,7 +43,8 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         QemuDoctorOptions doctorOptions,
         RecoverySessionManager recovery,
         LinuxClothSessionLauncher launcher,
-        PinnedVirtioMediaService pinnedVirtioMedia)
+        PinnedVirtioMediaService pinnedVirtioMedia,
+        ManagedSecureBootFirmwareService managedFirmware)
     {
         _paths = paths;
         _catalog = catalog;
@@ -52,6 +54,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         _recovery = recovery;
         _launcher = launcher;
         _pinnedVirtioMedia = pinnedVirtioMedia;
+        _managedFirmware = managedFirmware;
     }
 
     public CatalogWorkspace Catalog => _catalog;
@@ -66,13 +69,23 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         var catalog = new CatalogWorkspace(paths, ResolveOfficialCatalogBundle());
         var images = new ManagedImageRegistry(paths);
         var processRunner = new SystemProcessRunner();
+        var executableLocator = new ExecutableLocator();
         var runtimeRoot = Path.GetDirectoryName(paths.RuntimeDirectory)
             ?? throw new InvalidOperationException("linuxcloth runtime directory has no parent directory.");
-        var doctorOptions = new QemuDoctorOptions { XdgRuntimeDirectory = runtimeRoot };
+        var doctorOptions = new QemuDoctorOptions
+        {
+            XdgRuntimeDirectory = runtimeRoot,
+            AdditionalFirmwareDescriptorDirectories = [paths.FirmwareDescriptorDirectory],
+        };
         var doctor = new QemuDoctor(
-            new ExecutableLocator(),
+            executableLocator,
             doctorOptions,
             new SystemQemuDoctorHostProbe());
+        var managedFirmware = new ManagedSecureBootFirmwareService(
+            doctorOptions.FirmwareDescriptorDirectory,
+            paths,
+            executableLocator,
+            processRunner);
         var qmpConnector = new QmpConnector();
         var recovery = new RecoverySessionManager(
             new SessionRecordStore(),
@@ -95,7 +108,8 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
             doctorOptions,
             recovery,
             launcher,
-            new PinnedVirtioMediaService(paths.CacheDirectory));
+            new PinnedVirtioMediaService(paths.CacheDirectory),
+            managedFirmware);
     }
 
     public async Task<DesktopStartupSnapshot> InitializeAsync(
@@ -107,7 +121,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
             .ConfigureAwait(false);
         var catalog = await _catalog.InitializeWithBundledRefreshAsync(cancellationToken)
             .ConfigureAwait(false);
-        var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
+        var doctor = await InspectHostAsync(cancellationToken).ConfigureAwait(false);
         var listedImages = await _images.ListAsync(cancellationToken).ConfigureAwait(false);
         var verification = new List<ImageVerificationResult>(listedImages.Count);
         var images = new List<ManagedWindowsImage>(listedImages.Count);
@@ -136,8 +150,14 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
             recoveryIssues);
     }
 
-    public Task<QemuDoctorResult> InspectHostAsync(CancellationToken cancellationToken = default) =>
-        _doctor.InspectDetailedAsync(cancellationToken);
+    public async Task<QemuDoctorResult> InspectHostAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var preparation = await _managedFirmware.PrepareAsync(cancellationToken).ConfigureAwait(false);
+        var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
+        return AddFirmwarePreparationDetail(doctor, preparation);
+    }
 
     public Task<ImageBuildFileFingerprint?> FindCachedVirtioMediaAsync(
         CancellationToken cancellationToken = default) =>
@@ -273,9 +293,8 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
         var guestBridgePath = ResolveDefaultGuestBridgePath();
-        var firmware = new FirmwareDescriptorResolver(_doctorOptions.FirmwareDescriptorDirectory)
-            .Resolve()
-            .Pair;
+        _ = await _managedFirmware.PrepareAsync(cancellationToken).ConfigureAwait(false);
+        var firmware = ResolveFirmware();
         return await Task.FromResult(
                 new DesktopImageBuildDefaults(
                     guestBridgePath,
@@ -368,6 +387,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         _disposed = true;
         _catalog.Dispose();
         _pinnedVirtioMedia.Dispose();
+        _managedFirmware.Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -421,7 +441,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
     private async Task<WindowsImageBuildToolchain> ResolveImageBuildToolchainAsync(
         CancellationToken cancellationToken)
     {
-        var result = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
+        var result = await InspectHostAsync(cancellationToken).ConfigureAwait(false);
         string[] requiredCodes =
         [
             QemuDoctorCheckCodes.Platform,
@@ -528,13 +548,40 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
 
     private void ValidateSelectedFirmware(DesktopImageBuildRequest request)
     {
-        var verified = new FirmwareDescriptorResolver(_doctorOptions.FirmwareDescriptorDirectory)
-            .Resolve()
-            .Pair;
+        var verified = ResolveFirmware();
         DesktopFirmwareSelectionValidator.Validate(
             verified,
             request.OvmfCodePath,
             request.OvmfVariablesTemplatePath);
+    }
+
+    private FirmwarePair? ResolveFirmware() =>
+        new FirmwareDescriptorResolver(
+                new[] { _doctorOptions.FirmwareDescriptorDirectory }
+                    .Concat(_doctorOptions.AdditionalFirmwareDescriptorDirectories))
+            .Resolve()
+            .Pair;
+
+    private static QemuDoctorResult AddFirmwarePreparationDetail(
+        QemuDoctorResult doctor,
+        ManagedFirmwarePreparationResult preparation)
+    {
+        if (preparation.Status is not ManagedFirmwarePreparationStatus.EnrollmentToolUnavailable and
+            not ManagedFirmwarePreparationStatus.Failed)
+        {
+            return doctor;
+        }
+
+        var checks = doctor.Report.Checks
+            .Select(check => string.Equals(
+                    check.Name,
+                    QemuDoctorCheckCodes.Firmware,
+                    StringComparison.Ordinal) &&
+                !check.IsAvailable
+                    ? check with { Detail = $"{check.Detail} {preparation.Detail}" }
+                    : check)
+            .ToArray();
+        return doctor with { Report = new DoctorReport(checks) };
     }
 
     private static string ResolveDefaultGuestBridgePath()

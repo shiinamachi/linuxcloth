@@ -26,6 +26,12 @@ public sealed class LinuxClothPathsTests : IDisposable
         Assert.Equal(Path.Combine(_root, "cache", "linuxcloth"), paths.CacheDirectory);
         Assert.Equal(Path.Combine(_root, "runtime", "linuxcloth"), paths.RuntimeDirectory);
         Assert.Equal(
+            Path.Combine(_root, "cache", "linuxcloth", "firmware", "descriptors"),
+            paths.FirmwareDescriptorDirectory);
+        Assert.Equal(
+            Path.Combine(_root, "cache", "linuxcloth", "firmware", "linuxcloth-secure-boot-vars.fd"),
+            paths.ManagedFirmwareNvramPath);
+        Assert.Equal(
             Path.Combine(_root, "cache", "linuxcloth", "windows-media-analysis"),
             paths.WindowsMediaAnalysisDirectory);
     }
@@ -58,12 +64,16 @@ public sealed class LinuxClothPathsTests : IDisposable
 
         Assert.True(Directory.Exists(paths.ImagesDirectory));
         Assert.True(Directory.Exists(paths.SessionsDirectory));
+        Assert.True(Directory.Exists(paths.FirmwareDescriptorDirectory));
         Assert.True(Directory.Exists(paths.WindowsMediaAnalysisDirectory));
         if (OperatingSystem.IsLinux())
         {
             Assert.Equal(
                 UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
                 File.GetUnixFileMode(paths.RuntimeDirectory));
+            Assert.Equal(
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                File.GetUnixFileMode(paths.FirmwareDescriptorDirectory));
             Assert.Equal(
                 UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
                 File.GetUnixFileMode(paths.WindowsMediaAnalysisDirectory));

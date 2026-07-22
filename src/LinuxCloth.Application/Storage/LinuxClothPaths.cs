@@ -20,6 +20,13 @@ public sealed partial record LinuxClothPaths(
 
     public string SessionsDirectory => Path.Combine(RuntimeDirectory, "sessions");
 
+    public string FirmwareCacheDirectory => Path.Combine(CacheDirectory, "firmware");
+
+    public string FirmwareDescriptorDirectory => Path.Combine(FirmwareCacheDirectory, "descriptors");
+
+    public string ManagedFirmwareNvramPath =>
+        Path.Combine(FirmwareCacheDirectory, "linuxcloth-secure-boot-vars.fd");
+
     public string WindowsMediaAnalysisDirectory => Path.Combine(CacheDirectory, "windows-media-analysis");
 
     public static LinuxClothPaths FromEnvironment() =>
@@ -61,6 +68,8 @@ public sealed partial record LinuxClothPaths(
         CreatePrivateDirectory(DiagnosticsDirectory);
         CreatePrivateDirectory(ImagesDirectory);
         CreatePrivateDirectory(SessionsDirectory);
+        CreatePrivateDirectory(FirmwareCacheDirectory);
+        CreatePrivateDirectory(FirmwareDescriptorDirectory);
         CreatePrivateDirectory(WindowsMediaAnalysisDirectory);
     }
 

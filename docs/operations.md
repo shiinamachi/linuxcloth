@@ -35,6 +35,12 @@ GuestBridge availability, compatible OVMF descriptors, and durable image-build
 state on every start. It opens one preparation flow or a focused repair action
 when those facts require it; there is no authoritative “setup complete” flag.
 
+If the system exposes Q35 x86_64 Secure Boot firmware but its variable template
+has no enrolled keys, the desktop can use a detected `virt-fw-vars` executable
+to generate a private managed template below the XDG cache. It never modifies
+the distribution firmware. The generated file must match the source size, stay
+within 16 MiB, and resolve through the same strict firmware descriptor checks.
+
 On supported Debian- and Fedora-family systems, **Windows 환경 준비하기**
 resolves the packaged dependency plan, starts its PackageKit transaction,
 requests polkit authorization, and then runs Doctor again before continuing.
