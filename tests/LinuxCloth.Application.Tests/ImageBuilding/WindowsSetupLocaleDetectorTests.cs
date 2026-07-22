@@ -35,6 +35,23 @@ public sealed class WindowsSetupLocaleDetectorTests : IDisposable
         Assert.Contains("supported UI language", exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("ko-kr", "ko-KR")]
+    [InlineData("en-us", "en-US")]
+    public void NormalizesCanonicalLocale(string candidate, string expected)
+    {
+        Assert.Equal(expected, WindowsSetupLocaleDetector.NormalizeLocale(candidate));
+    }
+
+    [Theory]
+    [InlineData("ko-KR</UILanguage><Injected>")]
+    [InlineData("not-a-locale")]
+    public void RejectsInvalidLocale(string candidate)
+    {
+        Assert.Throws<WindowsImageBuildException>(
+            () => WindowsSetupLocaleDetector.NormalizeLocale(candidate));
+    }
+
     [Fact]
     public async Task ExtractsLanguageMetadataInsideNetworklessConfinement()
     {

@@ -99,6 +99,8 @@ public sealed record WindowsImageBuildWorkspace(
 
     public string ProvisioningSourceDirectory => Path.Combine(RuntimeDirectory, "provisioning");
 
+    public string SetupLocaleDirectory => Path.Combine(RuntimeDirectory, "setup-locale");
+
     public string ProvisioningIsoPath => Path.Combine(RuntimeDirectory, "linuxcloth-provisioning.iso");
 
     public string VerificationDirectory => Path.Combine(RuntimeDirectory, "verification");

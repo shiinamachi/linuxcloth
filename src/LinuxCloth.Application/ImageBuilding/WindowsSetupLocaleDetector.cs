@@ -9,6 +9,11 @@ public sealed class WindowsSetupLocaleDetector
     public const int MaximumLangIniBytes = 64 * 1024;
 
     private static readonly string[] LangIniPaths = ["/sources/lang.ini", "/SOURCES/LANG.INI"];
+    private static readonly HashSet<string> KnownLocales = CultureInfo
+        .GetCultures(CultureTypes.AllCultures)
+        .Select(static culture => culture.Name)
+        .Where(static name => name.Length > 0)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
     private readonly IProcessRunner _processRunner;
 
     public WindowsSetupLocaleDetector(IProcessRunner processRunner)
@@ -123,14 +128,9 @@ public sealed class WindowsSetupLocaleDetector
             var candidate = line[..separator].Trim();
             try
             {
-                var locale = CultureInfo.GetCultureInfo(candidate).Name;
-                if (locale.Length is > 0 and <= 32 &&
-                    locale.All(static character => char.IsAsciiLetterOrDigit(character) || character == '-'))
-                {
-                    return locale;
-                }
+                return NormalizeLocale(candidate);
             }
-            catch (CultureNotFoundException)
+            catch (WindowsImageBuildException)
             {
                 // Continue to another advertised Windows setup language.
             }
@@ -138,6 +138,27 @@ public sealed class WindowsSetupLocaleDetector
 
         throw new WindowsImageBuildException(
             "The Windows setup language metadata contains no supported UI language.");
+    }
+
+    public static string NormalizeLocale(string candidate)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(candidate);
+        try
+        {
+            var locale = CultureInfo.GetCultureInfo(candidate).Name;
+            if (locale.Length is > 0 and <= 32 &&
+                KnownLocales.Contains(locale) &&
+                locale.All(static character => char.IsAsciiLetterOrDigit(character) || character == '-'))
+            {
+                return locale;
+            }
+        }
+        catch (CultureNotFoundException)
+        {
+            // Report all invalid locale forms consistently below.
+        }
+
+        throw new WindowsImageBuildException("The Windows setup locale is invalid.");
     }
 
     private static string RequireExtractionDirectory(string path)

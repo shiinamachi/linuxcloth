@@ -36,7 +36,7 @@ internal sealed class ImageBuildFixture : IDisposable
             CreateExecutable("7z"),
             CreateExecutable("xorriso"),
             CreateExecutable("bwrap"));
-        Runner = new ImageBuildProcessRunner(Toolchain.QemuImg);
+        Runner = new ImageBuildProcessRunner(Toolchain.QemuImg, Toolchain.SevenZip);
         Launcher = new ImageBuildProcessLauncher(Toolchain);
         MediaValidator = new StubInstallationMediaValidator();
         BootIdProvider = new StubBootIdProvider();
@@ -224,10 +224,12 @@ internal sealed class StubInstallationMediaValidator : IInstallationMediaValidat
 internal sealed class ImageBuildProcessRunner : IProcessRunner
 {
     private readonly string _qemuImgPath;
+    private readonly string _sevenZipPath;
 
-    public ImageBuildProcessRunner(string qemuImgPath)
+    public ImageBuildProcessRunner(string qemuImgPath, string sevenZipPath)
     {
         _qemuImgPath = qemuImgPath;
+        _sevenZipPath = sevenZipPath;
     }
 
     public List<ProcessSpec> Specs { get; } = [];
@@ -240,7 +242,8 @@ internal sealed class ImageBuildProcessRunner : IProcessRunner
         CancellationToken cancellationToken = default)
     {
         Specs.Add(spec);
-        if (string.Equals(spec.IdentityExecutablePath ?? spec.FileName, _qemuImgPath, StringComparison.Ordinal))
+        var identityExecutable = spec.IdentityExecutablePath ?? spec.FileName;
+        if (string.Equals(identityExecutable, _qemuImgPath, StringComparison.Ordinal))
         {
             var arguments = spec.FileName == _qemuImgPath
                 ? spec.Arguments
@@ -274,6 +277,15 @@ internal sealed class ImageBuildProcessRunner : IProcessRunner
                             "{\"format\":\"qcow2\",\"virtual-size\":103079215104}",
                             string.Empty));
             }
+        }
+
+        if (string.Equals(identityExecutable, _sevenZipPath, StringComparison.Ordinal) &&
+            spec.Arguments.Any(argument => argument.EndsWith("lang.ini", StringComparison.OrdinalIgnoreCase)))
+        {
+            var output = spec.Arguments.Single(argument => argument.StartsWith("-o", StringComparison.Ordinal))[2..];
+            File.WriteAllText(
+                Path.Combine(output, "lang.ini"),
+                "[Available UI Languages]\r\nko-kr = 3\r\n");
         }
 
         if (spec.Arguments.Contains("mkisofs", StringComparer.Ordinal))

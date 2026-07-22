@@ -21,6 +21,7 @@ public sealed class WindowsImageBuilder
     private readonly IProcessRunner _processRunner;
     private readonly IProcessLauncher _processLauncher;
     private readonly IInstallationMediaValidator _mediaValidator;
+    private readonly WindowsSetupLocaleDetector _setupLocaleDetector;
     private readonly IImageBuildEndpointWaiter _endpointWaiter;
     private readonly IProcessIdentityController _processIdentityController;
     private readonly IQmpConnector _qmpConnector;
@@ -44,6 +45,7 @@ public sealed class WindowsImageBuilder
         _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
         _processLauncher = processLauncher ?? throw new ArgumentNullException(nameof(processLauncher));
         _mediaValidator = mediaValidator ?? new SevenZipInstallationMediaValidator(processRunner);
+        _setupLocaleDetector = new WindowsSetupLocaleDetector(processRunner);
         _endpointWaiter = endpointWaiter ?? new ImageBuildEndpointWaiter();
         _processIdentityController = processIdentityController ?? new LinuxProcessIdentityController();
         _qmpConnector = qmpConnector ?? new QmpConnector();
@@ -561,6 +563,24 @@ public sealed class WindowsImageBuilder
         WindowsImageBuildWorkspace workspace,
         CancellationToken cancellationToken)
     {
+        Directory.CreateDirectory(workspace.SetupLocaleDirectory);
+        SetPrivateDirectoryMode(workspace.SetupLocaleDirectory);
+        string setupLocale;
+        try
+        {
+            setupLocale = await _setupLocaleDetector.DetectAsync(
+                    workspace.State.WindowsIso.Path,
+                    workspace.State.Toolchain.SevenZip,
+                    workspace.State.Toolchain.Bubblewrap,
+                    workspace.SetupLocaleDirectory,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            ImageBuildPathGuard.DeleteTreeWithoutFollowingLinks(workspace.SetupLocaleDirectory);
+        }
+
         Directory.CreateDirectory(workspace.ProvisioningSourceDirectory);
         SetPrivateDirectoryMode(workspace.ProvisioningSourceDirectory);
         var executablePath = Path.Combine(
@@ -595,7 +615,8 @@ public sealed class WindowsImageBuilder
             CreateAutounattend(
                 CreateLocalAdministratorPassword(),
                 workspace.State.Installation,
-                workspace.State.DiskSizeGiB));
+                workspace.State.DiskSizeGiB,
+                setupLocale));
         WritePrivateTextFile(
             Path.Combine(
                 workspace.ProvisioningSourceDirectory,
@@ -1411,17 +1432,26 @@ public sealed class WindowsImageBuilder
     internal static string CreateAutounattend(
         string password,
         WindowsInstallationSelection installation,
-        int diskSizeGiB)
+        int diskSizeGiB,
+        string setupLocale)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(password);
         ValidateInstallationSelection(installation);
         WindowsImageBuildStateStore.ValidateResources(diskSizeGiB, 2, 4096);
+        setupLocale = WindowsSetupLocaleDetector.NormalizeLocale(setupLocale);
         var windowsPartitionSizeMiB = checked(diskSizeGiB * 1024 - 260 - 16 - 1536);
         return
         $$"""
         <?xml version="1.0" encoding="utf-8"?>
         <unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
           <settings pass="windowsPE">
+            <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+              <SetupUILanguage><UILanguage>{{setupLocale}}</UILanguage></SetupUILanguage>
+              <InputLocale>{{setupLocale}}</InputLocale>
+              <SystemLocale>{{setupLocale}}</SystemLocale>
+              <UILanguage>{{setupLocale}}</UILanguage>
+              <UserLocale>{{setupLocale}}</UserLocale>
+            </component>
             <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
               <DriverPaths>
                 <PathAndCredentials wcm:action="add" wcm:keyValue="1">

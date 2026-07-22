@@ -105,6 +105,11 @@ public sealed class WindowsImageBuilderTests
         Assert.Contains("<WillWipeDisk>true</WillWipeDisk>", autounattend);
         Assert.Contains("<Key>/IMAGE/INDEX</Key><Value>6</Value>", autounattend);
         Assert.Contains("<Path>E:\\vioscsi\\w11\\amd64</Path>", autounattend);
+        Assert.Contains("<SetupUILanguage><UILanguage>ko-KR</UILanguage></SetupUILanguage>", autounattend);
+        Assert.Contains("<InputLocale>ko-KR</InputLocale>", autounattend);
+        Assert.Contains("<SystemLocale>ko-KR</SystemLocale>", autounattend);
+        Assert.Contains("<UILanguage>ko-KR</UILanguage>", autounattend);
+        Assert.Contains("<UserLocale>ko-KR</UserLocale>", autounattend);
         Assert.Contains("<InstallTo><DiskID>0</DiskID><PartitionID>3</PartitionID></InstallTo>", autounattend);
         Assert.Contains("<Name>linuxcloth</Name>", autounattend);
         Assert.Contains("<AutoLogon>", autounattend);
@@ -126,6 +131,7 @@ public sealed class WindowsImageBuilderTests
                 fixture.Toolchain.RemoteViewer,
                 StringComparison.Ordinal));
         Assert.All(fixture.Launcher.Processes, process => Assert.True(process.WasDisposed));
+        Assert.False(Directory.Exists(prepared.SetupLocaleDirectory));
     }
 
     [Fact]
