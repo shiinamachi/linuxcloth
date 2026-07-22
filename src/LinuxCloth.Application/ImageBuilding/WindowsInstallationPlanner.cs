@@ -242,10 +242,11 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
         {
             var destination = Path.Combine(directory, Path.GetFileName(isoPath));
             var result = await _processRunner.RunAsync(
-                    ConfineExtractionTool(
+                    BuildConfinedExtraction(
                         bubblewrap,
-                        BuildExtraction(sevenZip, windowsIso, isoPath, directory),
+                        sevenZip,
                         windowsIso,
+                        isoPath,
                         directory),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -334,12 +335,17 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
         return value;
     }
 
-    private static ProcessSpec ConfineExtractionTool(
+    internal static ProcessSpec BuildConfinedExtraction(
         string bubblewrap,
-        ProcessSpec process,
+        string sevenZip,
         string isoPath,
+        string isoEntryPath,
         string writableDirectory) =>
-        ConfineTool(bubblewrap, process, [isoPath], [writableDirectory]);
+        ConfineTool(
+            bubblewrap,
+            BuildExtraction(sevenZip, isoPath, isoEntryPath, writableDirectory),
+            [isoPath],
+            [writableDirectory]);
 
     private static ProcessSpec ConfineMetadataTool(
         string bubblewrap,
