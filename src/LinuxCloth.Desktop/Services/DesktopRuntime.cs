@@ -210,17 +210,17 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
-        var xorriso = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Xorriso);
+        var sevenZip = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.SevenZip);
         var bubblewrap = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Bubblewrap);
         var wimlib = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.WimlibImagex);
         var runner = new SystemProcessRunner();
-        var fingerprint = await new XorrisoInstallationMediaValidator(runner)
-            .ValidateWindowsAsync(path, xorriso, bubblewrap, cancellationToken)
+        var fingerprint = await new SevenZipInstallationMediaValidator(runner)
+            .ValidateWindowsAsync(path, sevenZip, bubblewrap, cancellationToken)
             .ConfigureAwait(false);
         var catalog = await new WindowsInstallationPlanner(
                 runner,
                 Path.Combine(_paths.RuntimeDirectory, "windows-media-analysis"))
-            .AnalyzeAsync(path, xorriso, wimlib, bubblewrap, cancellationToken)
+            .AnalyzeAsync(path, sevenZip, wimlib, bubblewrap, cancellationToken)
             .ConfigureAwait(false);
         return new DesktopWindowsMediaAnalysis(fingerprint, catalog);
     }
@@ -433,6 +433,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
             QemuDoctorCheckCodes.Bubblewrap,
             QemuDoctorCheckCodes.Firmware,
             QemuDoctorCheckCodes.RuntimeDirectory,
+            QemuDoctorCheckCodes.SevenZip,
             QemuDoctorCheckCodes.Xorriso,
         ];
         var unavailable = requiredCodes
@@ -450,6 +451,7 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.QemuImg),
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.Swtpm),
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.RemoteViewer),
+            RequireDoctorPath(result.Report, QemuDoctorCheckCodes.SevenZip),
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.Xorriso),
             RequireDoctorPath(result.Report, QemuDoctorCheckCodes.Bubblewrap));
     }
@@ -462,13 +464,13 @@ public sealed class DesktopRuntime : IDesktopSetupService, IAsyncDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var doctor = await _doctor.InspectDetailedAsync(cancellationToken).ConfigureAwait(false);
-        var xorriso = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Xorriso);
+        var sevenZip = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.SevenZip);
         var bubblewrap = RequireDoctorPath(doctor.Report, QemuDoctorCheckCodes.Bubblewrap);
-        var validator = new XorrisoInstallationMediaValidator(new SystemProcessRunner());
+        var validator = new SevenZipInstallationMediaValidator(new SystemProcessRunner());
         return validateWindows
-            ? await validator.ValidateWindowsAsync(path, xorriso, bubblewrap, cancellationToken)
+            ? await validator.ValidateWindowsAsync(path, sevenZip, bubblewrap, cancellationToken)
                 .ConfigureAwait(false)
-            : await validator.ValidateVirtioWinAsync(path, xorriso, bubblewrap, cancellationToken)
+            : await validator.ValidateVirtioWinAsync(path, sevenZip, bubblewrap, cancellationToken)
                 .ConfigureAwait(false);
     }
 

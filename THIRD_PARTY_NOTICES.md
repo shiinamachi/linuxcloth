@@ -71,8 +71,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## System dependencies not redistributed by linuxcloth
 
-QEMU, OVMF/edk2, swtpm, virt-viewer, passt, Bubblewrap, xorriso, and wimlib are
-resolved from the host distribution. They are not copied into the linuxcloth
-package; their distribution packages carry their own license notices. Windows,
+QEMU, OVMF/edk2, swtpm, virt-viewer, passt, Bubblewrap, 7-Zip, xorriso, and
+wimlib are resolved from the host distribution. They are not copied into the
+linuxcloth package; their distribution packages carry their own license notices. Windows,
 virtio-win media, product keys, generated VM images, TPM state, and UEFI variable
 state are not linuxcloth package contents.

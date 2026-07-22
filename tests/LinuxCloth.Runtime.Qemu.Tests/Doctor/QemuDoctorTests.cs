@@ -22,6 +22,7 @@ public sealed class QemuDoctorTests : IDisposable
             QemuDoctorCheckCodes.Passt,
             QemuDoctorCheckCodes.Bubblewrap,
             QemuDoctorCheckCodes.WimlibImagex,
+            QemuDoctorCheckCodes.SevenZip,
             QemuDoctorCheckCodes.Xorriso);
         var xdgRuntime = CreateDirectory("runtime");
         var kvmPath = CreateFile("devices/kvm");
@@ -47,6 +48,7 @@ public sealed class QemuDoctorTests : IDisposable
 
         var image = Assert.IsType<ImageBuildPrerequisites>(result.ImageBuildPrerequisites);
         Assert.Equal(Path.Combine(binaryDirectory, QemuDoctorCheckCodes.WimlibImagex), image.WimlibImagex);
+        Assert.Equal(Path.Combine(binaryDirectory, QemuDoctorCheckCodes.SevenZip), image.SevenZip);
         Assert.Equal(Path.Combine(binaryDirectory, QemuDoctorCheckCodes.Xorriso), image.Xorriso);
     }
 
@@ -199,7 +201,7 @@ public sealed class QemuDoctorTests : IDisposable
         var report = await doctor.InspectAsync(CancellationToken.None);
 
         Assert.True(report.CanLaunch);
-        Assert.Equal(12, report.Checks.Count);
+        Assert.Equal(13, report.Checks.Count);
         Assert.Equal(
             Path.Combine(_root, "bin", QemuDoctorCheckCodes.QemuSystem),
             report.FindPath(QemuDoctorCheckCodes.QemuSystem));

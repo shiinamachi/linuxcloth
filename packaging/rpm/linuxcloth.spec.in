@@ -40,6 +40,7 @@ Requires:       swtpm-tools
 Requires:       tzdata
 Requires:       virt-viewer
 Requires:       zlib
+Recommends:     7zip
 Recommends:     wimlib-utils
 Recommends:     xdg-desktop-portal
 Recommends:     xorriso

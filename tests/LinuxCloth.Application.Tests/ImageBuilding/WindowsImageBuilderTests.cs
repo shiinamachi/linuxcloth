@@ -14,6 +14,7 @@ public sealed class WindowsImageBuilderTests
 
         Assert.Equal(WindowsImageBuildPhase.Prepared, workspace.State.Phase);
         Assert.True(File.Exists(workspace.Staging.BaseImagePath));
+        Assert.Equal(fixture.Toolchain.SevenZip, workspace.State.Toolchain.SevenZip);
         Assert.Equal(
             File.ReadAllBytes(fixture.OvmfVariablesPath),
             File.ReadAllBytes(workspace.Staging.OvmfVariablesTemplatePath));

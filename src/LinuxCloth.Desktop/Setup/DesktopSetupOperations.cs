@@ -21,6 +21,7 @@ public static class DesktopSetupOperationFactory
         QemuDoctorCheckCodes.Firmware,
         QemuDoctorCheckCodes.RuntimeDirectory,
         QemuDoctorCheckCodes.WimlibImagex,
+        QemuDoctorCheckCodes.SevenZip,
         QemuDoctorCheckCodes.Xorriso,
     ];
 

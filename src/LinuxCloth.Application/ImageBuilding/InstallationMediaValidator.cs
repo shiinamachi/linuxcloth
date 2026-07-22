@@ -6,25 +6,25 @@ public interface IInstallationMediaValidator
 {
     Task<ImageBuildFileFingerprint> ValidateWindowsAsync(
         string windowsIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default);
 
     Task<ImageBuildFileFingerprint> ValidateVirtioWinAsync(
         string virtioWinIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default);
 
     Task<ValidatedInstallationMedia> ValidateAsync(
         string windowsIsoPath,
         string virtioWinIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default);
 }
 
-public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValidator
+public sealed class SevenZipInstallationMediaValidator : IInstallationMediaValidator
 {
     public const long MaximumWindowsIsoBytes = 32L * 1024 * 1024 * 1024;
     public const long MaximumVirtioWinIsoBytes = 8L * 1024 * 1024 * 1024;
@@ -60,7 +60,7 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
 
     private readonly IProcessRunner _processRunner;
 
-    public XorrisoInstallationMediaValidator(IProcessRunner processRunner)
+    public SevenZipInstallationMediaValidator(IProcessRunner processRunner)
     {
         _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
     }
@@ -68,19 +68,19 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
     public async Task<ValidatedInstallationMedia> ValidateAsync(
         string windowsIsoPath,
         string virtioWinIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default)
     {
         var windowsFingerprint = await ValidateWindowsAsync(
                 windowsIsoPath,
-                xorrisoPath,
+                sevenZipPath,
                 bubblewrapPath,
                 cancellationToken)
             .ConfigureAwait(false);
         var virtioFingerprint = await ValidateVirtioWinAsync(
                 virtioWinIsoPath,
-                xorrisoPath,
+                sevenZipPath,
                 bubblewrapPath,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -89,7 +89,7 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
 
     public async Task<ImageBuildFileFingerprint> ValidateWindowsAsync(
         string windowsIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default)
     {
@@ -97,12 +97,12 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
             windowsIsoPath,
             "Windows installation ISO",
             MaximumWindowsIsoBytes);
-        var (xorriso, bubblewrap) = ValidateTools(xorrisoPath, bubblewrapPath);
+        var (sevenZip, bubblewrap) = ValidateTools(sevenZipPath, bubblewrapPath);
 
         foreach (var requirement in WindowsRequirements)
         {
             await RequireAnyIsoEntryAsync(
-                    xorriso,
+                    sevenZip,
                     bubblewrap,
                     windowsIso,
                     requirement.Alternatives,
@@ -120,7 +120,7 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
 
     public async Task<ImageBuildFileFingerprint> ValidateVirtioWinAsync(
         string virtioWinIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default)
     {
@@ -128,11 +128,11 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
             virtioWinIsoPath,
             "virtio-win ISO",
             MaximumVirtioWinIsoBytes);
-        var (xorriso, bubblewrap) = ValidateTools(xorrisoPath, bubblewrapPath);
+        var (sevenZip, bubblewrap) = ValidateTools(sevenZipPath, bubblewrapPath);
         foreach (var alternatives in VirtioWinRequirements)
         {
             await RequireAnyIsoEntryAsync(
-                    xorriso,
+                    sevenZip,
                     bubblewrap,
                     virtioWinIso,
                     alternatives,
@@ -148,25 +148,30 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
             .ConfigureAwait(false);
     }
 
-    public static ProcessSpec BuildProbe(string xorrisoPath, string isoPath, string entryPath)
+    public static ProcessSpec BuildProbe(string sevenZipPath, string isoPath, string entryPath)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(xorrisoPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sevenZipPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(isoPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(entryPath);
-        if (entryPath[0] != '/' || entryPath.Any(char.IsControl))
+        if (entryPath[0] != '/' ||
+            entryPath.Any(char.IsControl) ||
+            entryPath.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .Any(static segment => segment is "." or ".."))
         {
             throw new ArgumentException("An ISO entry probe must use an absolute, control-free ISO path.", nameof(entryPath));
         }
 
         return new ProcessSpec(
-            xorrisoPath,
+            sevenZipPath,
             [
-                "-no_rc",
-                "-abort_on", "FAILURE",
-                "-return_with", "SORRY", "32",
-                "-iso_rr_pattern", "off",
-                "-indev", isoPath,
-                "-lsdl", entryPath,
+                "l",
+                "-slt",
+                "-ba",
+                "-bd",
+                "-spd",
+                "--",
+                isoPath,
+                entryPath[1..],
             ],
             environment: new Dictionary<string, string?> { ["LC_ALL"] = "C" });
     }
@@ -243,13 +248,13 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
         return fullPath;
     }
 
-    private static (string Xorriso, string Bubblewrap) ValidateTools(
-        string xorrisoPath,
+    private static (string SevenZip, string Bubblewrap) ValidateTools(
+        string sevenZipPath,
         string bubblewrapPath) =>
         (
             ImageBuildPathGuard.RequireRegularFile(
-                xorrisoPath,
-                "xorriso executable",
+                sevenZipPath,
+                "7-Zip executable",
                 requireExecutable: true),
             ImageBuildPathGuard.RequireRegularFile(
                 bubblewrapPath,
@@ -257,7 +262,7 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
                 requireExecutable: true));
 
     private async Task RequireAnyIsoEntryAsync(
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         string isoPath,
         IReadOnlyList<string> alternatives,
@@ -270,11 +275,11 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
             var result = await _processRunner.RunAsync(
                     BuildConfinedProbe(
                         bubblewrapPath,
-                        BuildProbe(xorrisoPath, isoPath, entry),
+                        BuildProbe(sevenZipPath, isoPath, entry),
                         isoPath),
                     cancellationToken)
                 .ConfigureAwait(false);
-            if (result.IsSuccess && IsRegularFileListing(result.StandardOutput))
+            if (result.IsSuccess && IsRegularFileListing(result.StandardOutput, entry[1..]))
             {
                 return;
             }
@@ -282,19 +287,20 @@ public sealed class XorrisoInstallationMediaValidator : IInstallationMediaValida
             lastError = Truncate(result.StandardError.Trim(), 512);
         }
 
-        var detail = string.IsNullOrEmpty(lastError) ? string.Empty : $" xorriso: {lastError}";
+        var detail = string.IsNullOrEmpty(lastError) ? string.Empty : $" 7-Zip: {lastError}";
         throw new WindowsImageBuildException(errorMessage + detail);
     }
 
     private static string Truncate(string value, int maximumCharacters) =>
         value.Length <= maximumCharacters ? value : value[..maximumCharacters];
 
-    private static bool IsRegularFileListing(string output)
+    private static bool IsRegularFileListing(string output, string entryPath)
     {
-        foreach (var line in output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        for (var index = 0; index + 1 < lines.Length; index++)
         {
-            var trimmed = line.TrimStart();
-            if (trimmed.Length > 0 && trimmed[0] == '-')
+            if (string.Equals(lines[index], $"Path = {entryPath}", StringComparison.Ordinal) &&
+                string.Equals(lines[index + 1], "Folder = -", StringComparison.Ordinal))
             {
                 return true;
             }

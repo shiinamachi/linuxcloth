@@ -41,7 +41,7 @@ public sealed class WindowsImageBuilder
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
         _processLauncher = processLauncher ?? throw new ArgumentNullException(nameof(processLauncher));
-        _mediaValidator = mediaValidator ?? new XorrisoInstallationMediaValidator(processRunner);
+        _mediaValidator = mediaValidator ?? new SevenZipInstallationMediaValidator(processRunner);
         _endpointWaiter = endpointWaiter ?? new ImageBuildEndpointWaiter();
         _processIdentityController = processIdentityController ?? new LinuxProcessIdentityController();
         _qmpConnector = qmpConnector ?? new QmpConnector();
@@ -87,7 +87,7 @@ public sealed class WindowsImageBuilder
         var media = await _mediaValidator.ValidateAsync(
                 normalized.WindowsIsoPath,
                 normalized.VirtioWinIsoPath,
-                normalized.Toolchain.Xorriso,
+                normalized.Toolchain.SevenZip,
                 normalized.Toolchain.Bubblewrap,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -1597,6 +1597,7 @@ public sealed class WindowsImageBuilder
             ImageBuildPathGuard.RequireRegularFile(toolchain.QemuImg, "qemu-img executable", true),
             ImageBuildPathGuard.RequireRegularFile(toolchain.Swtpm, "swtpm executable", true),
             ImageBuildPathGuard.RequireRegularFile(toolchain.RemoteViewer, "remote-viewer executable", true),
+            ImageBuildPathGuard.RequireRegularFile(toolchain.SevenZip, "7-Zip executable", true),
             ImageBuildPathGuard.RequireRegularFile(toolchain.Xorriso, "xorriso executable", true),
             ImageBuildPathGuard.RequireRegularFile(toolchain.Bubblewrap, "Bubblewrap executable", true));
 
@@ -1612,7 +1613,7 @@ public sealed class WindowsImageBuilder
             var media = await _mediaValidator.ValidateAsync(
                     state.WindowsIso.Path,
                     state.VirtioWinIso.Path,
-                    state.Toolchain.Xorriso,
+                    state.Toolchain.SevenZip,
                     state.Toolchain.Bubblewrap,
                     cancellationToken)
                 .ConfigureAwait(false);

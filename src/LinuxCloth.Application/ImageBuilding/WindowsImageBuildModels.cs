@@ -18,6 +18,7 @@ public sealed record WindowsImageBuildToolchain(
     string QemuImg,
     string Swtpm,
     string RemoteViewer,
+    string SevenZip,
     string Xorriso,
     string Bubblewrap);
 
@@ -80,7 +81,7 @@ public sealed record WindowsImageBuildState(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt)
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 }
 
 public sealed record WindowsImageBuildWorkspace(

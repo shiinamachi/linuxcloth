@@ -16,6 +16,7 @@ public sealed class QemuDoctor
         (QemuDoctorCheckCodes.Passt, true),
         (QemuDoctorCheckCodes.Bubblewrap, true),
         (QemuDoctorCheckCodes.WimlibImagex, false),
+        (QemuDoctorCheckCodes.SevenZip, false),
         (QemuDoctorCheckCodes.Xorriso, false),
     ];
 
@@ -322,9 +323,10 @@ public sealed class QemuDoctor
     private static ImageBuildPrerequisites? BuildImagePrerequisites(DoctorReport report)
     {
         var wimlib = report.FindPath(QemuDoctorCheckCodes.WimlibImagex);
+        var sevenZip = report.FindPath(QemuDoctorCheckCodes.SevenZip);
         var xorriso = report.FindPath(QemuDoctorCheckCodes.Xorriso);
-        return wimlib is not null && xorriso is not null
-            ? new ImageBuildPrerequisites(wimlib, xorriso)
+        return wimlib is not null && sevenZip is not null && xorriso is not null
+            ? new ImageBuildPrerequisites(wimlib, sevenZip, xorriso)
             : null;
     }
 

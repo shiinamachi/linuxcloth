@@ -49,19 +49,19 @@ public sealed class WindowsInstallationPlannerTests : IDisposable
     public async Task ExtractsAndInspectsMediaInsideNetworklessConfinementThenCleansWorkspace()
     {
         var windowsIso = CreateFile("Windows; $(not-shell).iso", "iso");
-        var xorriso = CreateExecutable("xorriso");
+        var sevenZip = CreateExecutable("7z");
         var wimlib = CreateExecutable("wimlib-imagex");
         var bubblewrap = CreateExecutable("bwrap");
         var analysisRoot = Path.Combine(_root, "analysis");
         var runner = new PlannerRunner(
-            xorriso,
+            sevenZip,
             wimlib,
             CreateXml(ImageXml(6, "Windows 11 Pro", "Professional", 9, 26100)));
         var planner = new WindowsInstallationPlanner(runner, analysisRoot);
 
         var catalog = await planner.AnalyzeAsync(
             windowsIso,
-            xorriso,
+            sevenZip,
             wimlib,
             bubblewrap);
 
@@ -125,13 +125,13 @@ public sealed class WindowsInstallationPlannerTests : IDisposable
 
     private sealed class PlannerRunner : IProcessRunner
     {
-        private readonly string _xorriso;
+        private readonly string _sevenZip;
         private readonly string _wimlib;
         private readonly string _xml;
 
-        public PlannerRunner(string xorriso, string wimlib, string xml)
+        public PlannerRunner(string sevenZip, string wimlib, string xml)
         {
-            _xorriso = xorriso;
+            _sevenZip = sevenZip;
             _wimlib = wimlib;
             _xml = xml;
         }
@@ -144,12 +144,15 @@ public sealed class WindowsInstallationPlannerTests : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             Specs.Add(spec);
-            if (string.Equals(spec.IdentityExecutablePath, _xorriso, StringComparison.Ordinal))
+            if (string.Equals(spec.IdentityExecutablePath, _sevenZip, StringComparison.Ordinal))
             {
                 var separator = spec.Arguments.ToList().IndexOf("--");
                 var arguments = spec.Arguments.Skip(separator + 2).ToArray();
-                var extraction = Array.IndexOf(arguments, "-extract_single");
-                File.WriteAllText(arguments[extraction + 2], "test WIM");
+                var destination = spec.Arguments.Single(argument => argument.StartsWith("-o", StringComparison.Ordinal))[2..];
+                var archiveSeparator = Array.IndexOf(arguments, "--");
+                File.WriteAllText(
+                    Path.Combine(destination, Path.GetFileName(arguments[archiveSeparator + 2])),
+                    "test WIM");
                 return Task.FromResult(new ProcessResult(0, string.Empty, string.Empty));
             }
 

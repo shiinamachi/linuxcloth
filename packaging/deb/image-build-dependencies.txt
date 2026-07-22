@@ -1,3 +1,4 @@
 # Additional packages used only while creating a Windows base image.
+7zip
 wimtools
 xorriso

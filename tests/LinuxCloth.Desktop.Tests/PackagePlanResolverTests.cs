@@ -13,7 +13,7 @@ public sealed class PackagePlanResolverTests
     {
         var source = new FakeManifestSource(
             "qemu-system-x86\nbubblewrap\n",
-            "xorriso\nbubblewrap\n");
+            "7zip\nxorriso\nbubblewrap\n");
         var resolver = new PackagePlanResolver(source);
         var distribution = new DistributionInfo(
             family == DistributionFamily.Debian ? "debian" : "fedora",
@@ -26,8 +26,8 @@ public sealed class PackagePlanResolverTests
         var plan = await resolver.ResolveAsync(distribution);
 
         Assert.Equal(["qemu-system-x86", "bubblewrap"], plan.RuntimePackages);
-        Assert.Equal(["xorriso", "bubblewrap"], plan.ImageBuildPackages);
-        Assert.Equal(["qemu-system-x86", "bubblewrap", "xorriso"], plan.AllPackages);
+        Assert.Equal(["7zip", "xorriso", "bubblewrap"], plan.ImageBuildPackages);
+        Assert.Equal(["qemu-system-x86", "bubblewrap", "7zip", "xorriso"], plan.AllPackages);
         Assert.StartsWith(commandPrefix, plan.ManualInstallCommand, StringComparison.Ordinal);
     }
 

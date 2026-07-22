@@ -31,7 +31,7 @@ public interface IWindowsInstallationPlanner
 {
     Task<WindowsInstallationCatalog> AnalyzeAsync(
         string windowsIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string wimlibImagexPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default);
@@ -68,7 +68,7 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
 
     public async Task<WindowsInstallationCatalog> AnalyzeAsync(
         string windowsIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string wimlibImagexPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default)
@@ -81,7 +81,7 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
         var windowsIso = ImageBuildPathGuard.RequireRegularFile(
             windowsIsoPath,
             "Windows installation ISO");
-        var xorriso = ImageBuildPathGuard.RequireRegularFile(xorrisoPath, "xorriso executable", true);
+        var sevenZip = ImageBuildPathGuard.RequireRegularFile(sevenZipPath, "7-Zip executable", true);
         var wimlib = ImageBuildPathGuard.RequireRegularFile(
             wimlibImagexPath,
             "wimlib-imagex executable",
@@ -99,7 +99,7 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
         {
             var installationImage = await ExtractInstallationImageAsync(
                     windowsIso,
-                    xorriso,
+                    sevenZip,
                     bubblewrap,
                     directory,
                     cancellationToken)
@@ -194,38 +194,56 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
     }
 
     public static ProcessSpec BuildExtraction(
-        string xorrisoPath,
+        string sevenZipPath,
         string isoPath,
         string isoEntryPath,
-        string destinationPath) =>
-        new(
-            xorrisoPath,
+        string destinationDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sevenZipPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(isoPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(isoEntryPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
+        if (isoEntryPath[0] != '/' ||
+            isoEntryPath.Any(char.IsControl) ||
+            isoEntryPath.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .Any(static segment => segment is "." or ".."))
+        {
+            throw new ArgumentException(
+                "An extracted ISO entry must use an absolute, control-free ISO path.",
+                nameof(isoEntryPath));
+        }
+
+        return new ProcessSpec(
+            sevenZipPath,
             [
-                "-no_rc",
-                "-abort_on", "FAILURE",
-                "-indev", isoPath,
-                "-osirrox", "on:o_excl_off",
-                "-extract_single", isoEntryPath, destinationPath,
-                "-end",
+                "e",
+                "-bd",
+                "-bb0",
+                "-y",
+                "-spd",
+                $"-o{destinationDirectory}",
+                "--",
+                isoPath,
+                isoEntryPath[1..],
             ],
-            Path.GetDirectoryName(destinationPath),
+            destinationDirectory,
             new Dictionary<string, string?> { ["LC_ALL"] = "C" });
+    }
 
     private async Task<string> ExtractInstallationImageAsync(
         string windowsIso,
-        string xorriso,
+        string sevenZip,
         string bubblewrap,
         string directory,
         CancellationToken cancellationToken)
     {
         foreach (var isoPath in InstallationImagePaths)
         {
-            var extension = isoPath.EndsWith(".esd", StringComparison.OrdinalIgnoreCase) ? ".esd" : ".wim";
-            var destination = Path.Combine(directory, $"install{extension}");
+            var destination = Path.Combine(directory, Path.GetFileName(isoPath));
             var result = await _processRunner.RunAsync(
                     ConfineExtractionTool(
                         bubblewrap,
-                        BuildExtraction(xorriso, windowsIso, isoPath, destination),
+                        BuildExtraction(sevenZip, windowsIso, isoPath, directory),
                         windowsIso,
                         directory),
                     cancellationToken)

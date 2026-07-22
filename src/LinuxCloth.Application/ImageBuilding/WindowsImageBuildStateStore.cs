@@ -367,6 +367,7 @@ public static partial class WindowsImageBuildStateStore
                      (toolchain.QemuImg, "qemu-img executable"),
                      (toolchain.Swtpm, "swtpm executable"),
                      (toolchain.RemoteViewer, "remote-viewer executable"),
+                     (toolchain.SevenZip, "7-Zip executable"),
                      (toolchain.Xorriso, "xorriso executable"),
                      (toolchain.Bubblewrap, "Bubblewrap executable"),
                  })
@@ -429,6 +430,7 @@ public static partial class WindowsImageBuildStateStore
                 QemuImg = state.Toolchain.QemuImg,
                 Swtpm = state.Toolchain.Swtpm,
                 RemoteViewer = state.Toolchain.RemoteViewer,
+                SevenZip = state.Toolchain.SevenZip,
                 Xorriso = state.Toolchain.Xorriso,
                 Bubblewrap = state.Toolchain.Bubblewrap,
             },
@@ -487,6 +489,7 @@ public static partial class WindowsImageBuildStateStore
                 dto.Toolchain.QemuImg,
                 dto.Toolchain.Swtpm,
                 dto.Toolchain.RemoteViewer,
+                dto.Toolchain.SevenZip,
                 dto.Toolchain.Xorriso,
                 dto.Toolchain.Bubblewrap),
             new WindowsInstallationSelection(
@@ -641,6 +644,7 @@ public static partial class WindowsImageBuildStateStore
         public required string QemuImg { get; init; }
         public required string Swtpm { get; init; }
         public required string RemoteViewer { get; init; }
+        public required string SevenZip { get; init; }
         public required string Xorriso { get; init; }
         public required string Bubblewrap { get; init; }
     }

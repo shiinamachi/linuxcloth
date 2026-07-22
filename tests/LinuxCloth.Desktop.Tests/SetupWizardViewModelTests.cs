@@ -493,6 +493,7 @@ public sealed class SetupWizardViewModelTests : IDisposable
                 QemuDoctorCheckCodes.RemoteViewer,
                 QemuDoctorCheckCodes.Bubblewrap,
                 QemuDoctorCheckCodes.WimlibImagex,
+                QemuDoctorCheckCodes.SevenZip,
                 QemuDoctorCheckCodes.Xorriso,
                 QemuDoctorCheckCodes.Firmware,
                 QemuDoctorCheckCodes.RuntimeDirectory,

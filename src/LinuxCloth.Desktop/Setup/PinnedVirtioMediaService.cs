@@ -91,7 +91,7 @@ public sealed class PinnedVirtioManifestSource
             artifact.Version.Contains("..", StringComparison.Ordinal) ||
             !artifact.Version.All(static character =>
                 char.IsAsciiLetterOrDigit(character) || character is '.' or '-' or '_') ||
-            artifact.Length is <= 0 or > XorrisoInstallationMediaValidator.MaximumVirtioWinIsoBytes ||
+            artifact.Length is <= 0 or > SevenZipInstallationMediaValidator.MaximumVirtioWinIsoBytes ||
             artifact.Sha256 is not { Length: 64 } ||
             !artifact.Sha256.All(static character => char.IsAsciiHexDigit(character)) ||
             artifact.Urls is not { Count: > 0 } ||

@@ -15,6 +15,7 @@ public static class QemuDoctorCheckCodes
     public const string Firmware = "firmware";
     public const string RuntimeDirectory = "xdg-runtime";
     public const string WimlibImagex = "wimlib-imagex";
+    public const string SevenZip = "7z";
     public const string Xorriso = "xorriso";
 }
 
@@ -41,6 +42,7 @@ public sealed record QemuLaunchPrerequisites(
 
 public sealed record ImageBuildPrerequisites(
     string WimlibImagex,
+    string SevenZip,
     string Xorriso);
 
 public sealed record QemuDoctorResult(

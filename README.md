@@ -30,7 +30,7 @@ linuxcloth는 공식 TableCloth 카탈로그와 Spork 실행 계약을 사용해
 - x86_64 Linux
 - .NET SDK 10
 - QEMU/KVM, Q35 Secure Boot OVMF, swtpm, Bubblewrap, virt-viewer
-- 네트워크 세션용 `passt`, 이미지 생성용 `xorriso`
+- 네트워크 세션용 `passt`, 설치 미디어 분석용 `7z`·`wimlib-imagex`, 이미지 생성용 `xorriso`
 - Windows 11 x64 ISO와 유효한 라이선스(사용자 제공)
 - 고정 virtio-win ISO를 처음 받을 네트워크 연결 또는 Windows 11 amd64 virtio-win ISO(선택적 로컬 대체 파일)
 

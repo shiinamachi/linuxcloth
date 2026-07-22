@@ -11,7 +11,8 @@ The supported target is x86_64 Linux with:
 - CPU virtualization enabled and read/write access to `/dev/kvm`;
 - `qemu-system-x86_64`, `qemu-img`, Q35-compatible Secure Boot OVMF descriptors,
   `swtpm`, Bubblewrap, and `remote-viewer`;
-- `passt` for network-enabled sessions and `xorriso` while building an image;
+- `passt` for network-enabled sessions, `7z` and `wimlib-imagex` for installation
+  media analysis, and `xorriso` while building an image;
 - unprivileged user namespaces or the distribution's supported Bubblewrap setup;
 - enough memory and storage for Windows 11 and a sparse base image;
 - a user-provided Windows 11 x64 ISO and either network access to the pinned
@@ -146,10 +147,10 @@ linuxcloth image build start windows-11 \
 
 `--windows-image-index` is needed only when the ISO contains multiple supported
 editions without a unique suggested image. The image builder validates bounded
-ISO contents with confined `xorriso`, analyzes WIM/ESD metadata with confined
-`wimlib-imagex`, and starts Windows Setup without opening a viewer. Its complete
-`windowsPE` answer file selects the reviewed edition, loads `vioscsi`, and
-creates a deterministic UEFI/GPT disk layout. **설치 화면 보기** explicitly
+ISO9660 or UDF contents with confined `7z`, analyzes WIM/ESD metadata with
+confined `wimlib-imagex`, and starts Windows Setup without opening a viewer. Its
+complete `windowsPE` answer file selects the reviewed edition, loads `vioscsi`,
+and creates a deterministic UEFI/GPT disk layout. **설치 화면 보기** explicitly
 connects the unconfined diagnostic SPICE viewer while the VM is active. The
 generated answer file creates a per-run local administrator, and first logon
 verifies and installs the pinned GuestBridge plus virtio drivers, removes

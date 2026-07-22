@@ -52,6 +52,7 @@ public static class SetupReadinessEvaluator
     [
         .. OfflineLaunchChecks,
         QemuDoctorCheckCodes.WimlibImagex,
+        QemuDoctorCheckCodes.SevenZip,
         QemuDoctorCheckCodes.Xorriso,
     ];
 

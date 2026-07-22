@@ -75,7 +75,7 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
                 Path.Combine(_paths.RuntimeDirectory, "windows-media-analysis"))
             .AnalyzeAsync(
                 command.WindowsIsoPath,
-                environment.Toolchain.Xorriso,
+                environment.Toolchain.SevenZip,
                 environment.WimlibImagex,
                 environment.Toolchain.Bubblewrap,
                 cancellationToken)
@@ -288,6 +288,7 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
             QemuDoctorCheckCodes.Firmware,
             QemuDoctorCheckCodes.RuntimeDirectory,
             QemuDoctorCheckCodes.WimlibImagex,
+            QemuDoctorCheckCodes.SevenZip,
             QemuDoctorCheckCodes.Xorriso,
         };
         var unavailable = result.Report.Checks
@@ -312,6 +313,7 @@ public sealed class DefaultCliCommandServices : ICliCommandServices
             RequirePath(report, QemuDoctorCheckCodes.QemuImg),
             RequirePath(report, QemuDoctorCheckCodes.Swtpm),
             RequirePath(report, QemuDoctorCheckCodes.RemoteViewer),
+            RequirePath(report, QemuDoctorCheckCodes.SevenZip),
             RequirePath(report, QemuDoctorCheckCodes.Xorriso),
             RequirePath(report, QemuDoctorCheckCodes.Bubblewrap));
         return new ImageBuildEnvironment(

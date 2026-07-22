@@ -33,6 +33,7 @@ internal sealed class ImageBuildFixture : IDisposable
             CreateExecutable("qemu-img"),
             CreateExecutable("swtpm"),
             CreateExecutable("remote-viewer"),
+            CreateExecutable("7z"),
             CreateExecutable("xorriso"),
             CreateExecutable("bwrap"));
         Runner = new ImageBuildProcessRunner(Toolchain.QemuImg);
@@ -162,27 +163,27 @@ internal sealed class StubInstallationMediaValidator : IInstallationMediaValidat
 
     public Task<ImageBuildFileFingerprint> ValidateWindowsAsync(
         string windowsIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default) =>
-        ValidateFileAsync(windowsIsoPath, xorrisoPath, bubblewrapPath, cancellationToken);
+        ValidateFileAsync(windowsIsoPath, sevenZipPath, bubblewrapPath, cancellationToken);
 
     public Task<ImageBuildFileFingerprint> ValidateVirtioWinAsync(
         string virtioWinIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default) =>
-        ValidateFileAsync(virtioWinIsoPath, xorrisoPath, bubblewrapPath, cancellationToken);
+        ValidateFileAsync(virtioWinIsoPath, sevenZipPath, bubblewrapPath, cancellationToken);
 
     public Task<ValidatedInstallationMedia> ValidateAsync(
         string windowsIsoPath,
         string virtioWinIsoPath,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = xorrisoPath;
+        _ = sevenZipPath;
         _ = bubblewrapPath;
         CallCount++;
         return Task.FromResult(
@@ -193,12 +194,12 @@ internal sealed class StubInstallationMediaValidator : IInstallationMediaValidat
 
     private Task<ImageBuildFileFingerprint> ValidateFileAsync(
         string path,
-        string xorrisoPath,
+        string sevenZipPath,
         string bubblewrapPath,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = xorrisoPath;
+        _ = sevenZipPath;
         _ = bubblewrapPath;
         CallCount++;
         return Task.FromResult(Fingerprint(path));

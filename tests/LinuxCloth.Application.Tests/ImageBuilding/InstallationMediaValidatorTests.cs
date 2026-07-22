@@ -12,7 +12,7 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     {
         var windowsIso = CreateFile("windows;touch-pwned.iso", "windows");
         var virtioIso = CreateFile("virtio.iso", "virtio");
-        var xorriso = CreateExecutable("xorriso");
+        var sevenZip = CreateExecutable("7z");
         var bubblewrap = CreateExecutable("bwrap");
         var runner = new MediaProbeRunner(
         [
@@ -21,9 +21,9 @@ public sealed class InstallationMediaValidatorTests : IDisposable
             "/vioscsi/w11/amd64/vioscsi.inf",
             "/NetKVM/w11/amd64/netkvm.inf",
         ]);
-        var validator = new XorrisoInstallationMediaValidator(runner);
+        var validator = new SevenZipInstallationMediaValidator(runner);
 
-        var media = await validator.ValidateAsync(windowsIso, virtioIso, xorriso, bubblewrap);
+        var media = await validator.ValidateAsync(windowsIso, virtioIso, sevenZip, bubblewrap);
 
         Assert.Equal(Path.GetFullPath(windowsIso), media.WindowsIso.Path);
         Assert.Equal(64, media.WindowsIso.Sha256.Length);
@@ -31,7 +31,7 @@ public sealed class InstallationMediaValidatorTests : IDisposable
         Assert.All(runner.Specs, spec =>
         {
             Assert.Equal(bubblewrap, spec.FileName);
-            Assert.Contains(xorriso, spec.Arguments);
+            Assert.Contains(sevenZip, spec.Arguments);
             Assert.Contains("--unshare-all", spec.Arguments);
             Assert.DoesNotContain("--share-net", spec.Arguments);
             Assert.DoesNotContain("sh", spec.Arguments);
@@ -44,16 +44,16 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     public async Task ValidatesWindowsMediaIndependently()
     {
         var windowsIso = CreateFile("windows.iso", "windows");
-        var xorriso = CreateExecutable("xorriso");
+        var sevenZip = CreateExecutable("7z");
         var bubblewrap = CreateExecutable("bwrap");
         var runner = new MediaProbeRunner(
         [
             "/efi/boot/bootx64.efi",
             "/sources/install.wim",
         ]);
-        var validator = new XorrisoInstallationMediaValidator(runner);
+        var validator = new SevenZipInstallationMediaValidator(runner);
 
-        var fingerprint = await validator.ValidateWindowsAsync(windowsIso, xorriso, bubblewrap);
+        var fingerprint = await validator.ValidateWindowsAsync(windowsIso, sevenZip, bubblewrap);
 
         Assert.Equal(Path.GetFullPath(windowsIso), fingerprint.Path);
         Assert.Equal(2, runner.Specs.Count);
@@ -64,16 +64,16 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     public async Task ValidatesVirtioMediaIndependently()
     {
         var virtioIso = CreateFile("virtio.iso", "virtio");
-        var xorriso = CreateExecutable("xorriso");
+        var sevenZip = CreateExecutable("7z");
         var bubblewrap = CreateExecutable("bwrap");
         var runner = new MediaProbeRunner(
         [
             "/vioscsi/w11/amd64/vioscsi.inf",
             "/NetKVM/w11/amd64/netkvm.inf",
         ]);
-        var validator = new XorrisoInstallationMediaValidator(runner);
+        var validator = new SevenZipInstallationMediaValidator(runner);
 
-        var fingerprint = await validator.ValidateVirtioWinAsync(virtioIso, xorriso, bubblewrap);
+        var fingerprint = await validator.ValidateVirtioWinAsync(virtioIso, sevenZip, bubblewrap);
 
         Assert.Equal(Path.GetFullPath(virtioIso), fingerprint.Path);
         Assert.Equal(2, runner.Specs.Count);
@@ -85,7 +85,7 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     {
         var windowsIso = CreateFile("windows.iso", "windows");
         var virtioIso = CreateFile("virtio.iso", "virtio");
-        var xorriso = CreateExecutable("xorriso");
+        var sevenZip = CreateExecutable("7z");
         var bubblewrap = CreateExecutable("bwrap");
         var runner = new MediaProbeRunner(
         [
@@ -93,10 +93,10 @@ public sealed class InstallationMediaValidatorTests : IDisposable
             "/vioscsi/w11/amd64/vioscsi.inf",
             "/NetKVM/w11/amd64/netkvm.inf",
         ]);
-        var validator = new XorrisoInstallationMediaValidator(runner);
+        var validator = new SevenZipInstallationMediaValidator(runner);
 
         var exception = await Assert.ThrowsAsync<WindowsImageBuildException>(
-            () => validator.ValidateAsync(windowsIso, virtioIso, xorriso, bubblewrap));
+            () => validator.ValidateAsync(windowsIso, virtioIso, sevenZip, bubblewrap));
 
         Assert.Contains("Windows x64", exception.Message, StringComparison.Ordinal);
         Assert.Equal(2, runner.Specs.Count);
@@ -106,13 +106,13 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     public async Task ReportsMissingWindowsInstallationImageSeparately()
     {
         var windowsIso = CreateFile("windows.iso", "windows");
-        var xorriso = CreateExecutable("xorriso");
+        var sevenZip = CreateExecutable("7z");
         var bubblewrap = CreateExecutable("bwrap");
         var runner = new MediaProbeRunner(["/efi/boot/bootx64.efi"]);
-        var validator = new XorrisoInstallationMediaValidator(runner);
+        var validator = new SevenZipInstallationMediaValidator(runner);
 
         var exception = await Assert.ThrowsAsync<WindowsImageBuildException>(() =>
-            validator.ValidateWindowsAsync(windowsIso, xorriso, bubblewrap));
+            validator.ValidateWindowsAsync(windowsIso, sevenZip, bubblewrap));
 
         Assert.Contains("install.wim", exception.Message, StringComparison.Ordinal);
     }
@@ -122,7 +122,7 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     {
         var windowsIso = CreateFile("windows.iso", "windows");
         var virtioIso = CreateFile("virtio.iso", "virtio");
-        var xorriso = CreateExecutable("xorriso");
+        var sevenZip = CreateExecutable("7z");
         var bubblewrap = CreateExecutable("bwrap");
         var runner = new MediaProbeRunner(
         [
@@ -131,10 +131,10 @@ public sealed class InstallationMediaValidatorTests : IDisposable
             "/viostor/w11/amd64/viostor.inf",
             "/NetKVM/w11/amd64/netkvm.inf",
         ]);
-        var validator = new XorrisoInstallationMediaValidator(runner);
+        var validator = new SevenZipInstallationMediaValidator(runner);
 
         var exception = await Assert.ThrowsAsync<WindowsImageBuildException>(
-            () => validator.ValidateAsync(windowsIso, virtioIso, xorriso, bubblewrap));
+            () => validator.ValidateAsync(windowsIso, virtioIso, sevenZip, bubblewrap));
 
         Assert.Contains("storage and network drivers", exception.Message, StringComparison.Ordinal);
     }
@@ -142,14 +142,15 @@ public sealed class InstallationMediaValidatorTests : IDisposable
     [Fact]
     public void ProbeUsesFixedArgumentBoundaries()
     {
-        var spec = XorrisoInstallationMediaValidator.BuildProbe(
-            "/usr/bin/xorriso",
+        var spec = SevenZipInstallationMediaValidator.BuildProbe(
+            "/usr/bin/7z",
             "/tmp/a; rm -rf.iso",
             "/sources/install.wim");
 
-        Assert.Equal("-no_rc", spec.Arguments[0]);
-        Assert.Equal("/tmp/a; rm -rf.iso", spec.Arguments[9]);
-        Assert.Equal("/sources/install.wim", spec.Arguments[11]);
+        Assert.Equal("l", spec.Arguments[0]);
+        Assert.Equal("--", spec.Arguments[5]);
+        Assert.Equal("/tmp/a; rm -rf.iso", spec.Arguments[6]);
+        Assert.Equal("sources/install.wim", spec.Arguments[7]);
         Assert.False(spec.InheritEnvironment);
         Assert.Equal("C", spec.Environment["LC_ALL"]);
     }
@@ -202,10 +203,13 @@ public sealed class InstallationMediaValidatorTests : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             Specs.Add(spec);
-            var entry = spec.Arguments[^1];
+            var entry = $"/{spec.Arguments[^1]}";
             return Task.FromResult(_existingEntries.Contains(entry)
-                ? new ProcessResult(0, $"-r--r--r-- 1 0 0 4096 Jan 1 00:00 '{entry}'", string.Empty)
-                : new ProcessResult(32, string.Empty, "entry not found"));
+                ? new ProcessResult(
+                    0,
+                    $"Path = {spec.Arguments[^1]}\nFolder = -\nSize = 4096\n",
+                    string.Empty)
+                : new ProcessResult(0, string.Empty, string.Empty));
         }
     }
 }
