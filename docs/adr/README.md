@@ -19,3 +19,5 @@ ADRs are immutable once accepted. A later decision supersedes an earlier ADR ins
 15. [Automate Windows image installation](0015-automate-windows-image-installation.md)
 16. [Pin and verify the setup virtio artifact](0016-pin-virtio-setup-artifact.md)
 17. [Read UDF installation media with 7-Zip](0017-read-udf-installation-media-with-7zip.md)
+18. [Prepare managed Secure Boot variables](0018-prepare-managed-secure-boot-vars.md)
+19. [Track confined payload processes](0019-track-confined-payload-processes.md)

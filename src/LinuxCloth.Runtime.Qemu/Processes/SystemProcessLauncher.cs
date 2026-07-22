@@ -7,6 +7,7 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
 {
     private static readonly TimeSpan IdentityTransitionTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan IdentityPollInterval = TimeSpan.FromMilliseconds(10);
+    private const int MaximumIdentityProcessTreeSize = 64;
 
     public async Task<IManagedProcess> StartAsync(
         ProcessSpec spec,
@@ -30,8 +31,8 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             }
 
             started = true;
-            var identity = await WaitForIdentityAsync(process, spec, cancellationToken).ConfigureAwait(false);
-            return new SystemManagedProcess(process, spec, identity);
+            var identified = await WaitForIdentityAsync(process, spec, cancellationToken).ConfigureAwait(false);
+            return new SystemManagedProcess(process, identified.Process, spec, identified.Identity);
         }
         catch
         {
@@ -45,7 +46,7 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
         }
     }
 
-    private static async Task<ProcessIdentity> WaitForIdentityAsync(
+    private static async Task<IdentifiedProcess> WaitForIdentityAsync(
         Process process,
         ProcessSpec spec,
         CancellationToken cancellationToken)
@@ -53,7 +54,7 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
         var expectedExecutable = spec.IdentityExecutablePath;
         if (expectedExecutable is null)
         {
-            return LinuxProcessIdentity.Read(process);
+            return new IdentifiedProcess(process, LinuxProcessIdentity.Read(process));
         }
 
         var stopwatch = Stopwatch.StartNew();
@@ -68,10 +69,10 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
 
             try
             {
-                var identity = LinuxProcessIdentity.Read(process);
-                if (string.Equals(identity.ExecutablePath, expectedExecutable, StringComparison.Ordinal))
+                var identified = FindExpectedProcess(process, expectedExecutable);
+                if (identified is not null)
                 {
-                    return identity;
+                    return identified;
                 }
             }
             catch (Exception exception) when (
@@ -92,6 +93,94 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
 
         throw new TimeoutException(
             $"Process '{spec.FileName}' did not become '{expectedExecutable}' within {IdentityTransitionTimeout}.");
+    }
+
+    private static IdentifiedProcess? FindExpectedProcess(
+        Process root,
+        string expectedExecutable)
+    {
+        var pending = new Queue<(int ProcessId, int? ParentProcessId)>();
+        var visited = new HashSet<int>();
+        pending.Enqueue((root.Id, null));
+
+        while (pending.Count > 0)
+        {
+            var (processId, parentProcessId) = pending.Dequeue();
+            if (!visited.Add(processId))
+            {
+                continue;
+            }
+
+            if (visited.Count > MaximumIdentityProcessTreeSize)
+            {
+                throw new InvalidDataException(
+                    $"Process '{root.Id}' exceeded the bounded identity process-tree size.");
+            }
+
+            Process? candidate = null;
+            var retainCandidate = false;
+            try
+            {
+                candidate = processId == root.Id
+                    ? root
+                    : Process.GetProcessById(processId);
+                var snapshot = LinuxProcessIdentity.ReadSnapshot(candidate);
+                if (parentProcessId is not null && snapshot.ParentProcessId != parentProcessId)
+                {
+                    continue;
+                }
+
+                if (string.Equals(
+                        snapshot.Identity.ExecutablePath,
+                        expectedExecutable,
+                        StringComparison.Ordinal))
+                {
+                    retainCandidate = true;
+                    return new IdentifiedProcess(candidate, snapshot.Identity);
+                }
+
+                foreach (var childProcessId in ReadChildProcessIds(processId))
+                {
+                    pending.Enqueue((childProcessId, processId));
+                }
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException or
+                InvalidDataException or
+                IOException or
+                InvalidOperationException)
+            {
+                // The process tree may change while it is sampled; retry from the live root.
+            }
+            finally
+            {
+                if (!retainCandidate && candidate is not null && candidate.Id != root.Id)
+                {
+                    candidate.Dispose();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<int> ReadChildProcessIds(int processId)
+    {
+        var contents = File.ReadAllText($"/proc/{processId}/task/{processId}/children");
+        foreach (var value in contents.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!int.TryParse(
+                    value,
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var childProcessId) ||
+                childProcessId <= 0)
+            {
+                throw new InvalidDataException($"Could not parse a child PID for process {processId}.");
+            }
+
+            yield return childProcessId;
+        }
     }
 
     private static ProcessStartInfo CreateStartInfo(ProcessSpec spec)
@@ -141,24 +230,30 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
     private sealed class SystemManagedProcess : IManagedProcess
     {
         private const int MaximumLogCharacters = 1024 * 1024;
-        private readonly Process _process;
+        private readonly Process _hostProcess;
+        private readonly Process _payloadProcess;
         private readonly Task _standardOutputPump;
         private readonly Task _standardErrorPump;
         private bool _disposed;
 
-        public SystemManagedProcess(Process process, ProcessSpec spec, ProcessIdentity identity)
+        public SystemManagedProcess(
+            Process hostProcess,
+            Process payloadProcess,
+            ProcessSpec spec,
+            ProcessIdentity identity)
         {
-            _process = process;
+            _hostProcess = hostProcess;
+            _payloadProcess = payloadProcess;
             Identity = identity;
             _standardOutputPump = spec.StandardOutputPath is null
                 ? Task.CompletedTask
-                : PumpLogAsync(process.StandardOutput, spec.StandardOutputPath);
+                : PumpLogAsync(hostProcess.StandardOutput, spec.StandardOutputPath);
             _standardErrorPump = spec.StandardErrorPath is null
                 ? Task.CompletedTask
-                : PumpLogAsync(process.StandardError, spec.StandardErrorPath);
+                : PumpLogAsync(hostProcess.StandardError, spec.StandardErrorPath);
         }
 
-        public int Id => _process.Id;
+        public int Id => Identity.ProcessId;
 
         public ProcessIdentity Identity { get; }
 
@@ -168,7 +263,7 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             {
                 try
                 {
-                    return _process.HasExited;
+                    return _payloadProcess.HasExited;
                 }
                 catch (InvalidOperationException)
                 {
@@ -179,9 +274,9 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
 
         public async Task<int> WaitForExitAsync(CancellationToken cancellationToken = default)
         {
-            await _process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            await _hostProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             await Task.WhenAll(_standardOutputPump, _standardErrorPump).WaitAsync(cancellationToken).ConfigureAwait(false);
-            return _process.ExitCode;
+            return _hostProcess.ExitCode;
         }
 
         public Task TerminateAsync(CancellationToken cancellationToken = default)
@@ -194,18 +289,18 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
 
             if (OperatingSystem.IsLinux())
             {
-                if (NativeMethods.Kill(_process.Id, NativeMethods.SigTerm) != 0)
+                if (NativeMethods.Kill(_payloadProcess.Id, NativeMethods.SigTerm) != 0)
                 {
                     var error = Marshal.GetLastPInvokeError();
                     if (error != NativeMethods.NoSuchProcess)
                     {
-                        throw new IOException($"Failed to send SIGTERM to process {_process.Id}; errno={error}.");
+                        throw new IOException($"Failed to send SIGTERM to process {_payloadProcess.Id}; errno={error}.");
                     }
                 }
             }
             else
             {
-                _process.CloseMainWindow();
+                _payloadProcess.CloseMainWindow();
             }
 
             return Task.CompletedTask;
@@ -216,7 +311,7 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             cancellationToken.ThrowIfCancellationRequested();
             if (!HasExited)
             {
-                _process.Kill(entireProcessTree: true);
+                _payloadProcess.Kill(entireProcessTree: true);
             }
 
             return Task.CompletedTask;
@@ -244,7 +339,12 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
                 // The process was never associated or was already disposed.
             }
 
-            _process.Dispose();
+            if (_payloadProcess.Id != _hostProcess.Id)
+            {
+                _payloadProcess.Dispose();
+            }
+
+            _hostProcess.Dispose();
         }
 
         private static async Task PumpLogAsync(StreamReader reader, string path)
@@ -284,6 +384,8 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
         }
     }
 
+    private sealed record IdentifiedProcess(Process Process, ProcessIdentity Identity);
+
     private static partial class NativeMethods
     {
         public const int SigTerm = 15;
@@ -296,16 +398,20 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
 
 public static class LinuxProcessIdentity
 {
-    public static ProcessIdentity Read(Process process)
+    public static ProcessIdentity Read(Process process) => ReadSnapshot(process).Identity;
+
+    internal static LinuxProcessSnapshot ReadSnapshot(Process process)
     {
         ArgumentNullException.ThrowIfNull(process);
         if (!OperatingSystem.IsLinux())
         {
-            return new ProcessIdentity(
-                process.Id,
-                string.Empty,
-                process.StartTime.ToUniversalTime().Ticks,
-                process.MainModule?.FileName ?? process.ProcessName);
+            return new LinuxProcessSnapshot(
+                new ProcessIdentity(
+                    process.Id,
+                    string.Empty,
+                    process.StartTime.ToUniversalTime().Ticks,
+                    process.MainModule?.FileName ?? process.ProcessName),
+                ParentProcessId: 0);
         }
 
         var bootId = File.ReadAllText("/proc/sys/kernel/random/boot_id").Trim();
@@ -319,13 +425,18 @@ public static class LinuxProcessIdentity
         var fields = stat[(closingParenthesis + 2)..]
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (fields.Length <= 19 ||
+            !int.TryParse(fields[1], System.Globalization.CultureInfo.InvariantCulture, out var parentProcessId) ||
             !long.TryParse(fields[19], System.Globalization.CultureInfo.InvariantCulture, out var startTicks))
         {
-            throw new InvalidDataException($"Could not read process start ticks for PID {process.Id}.");
+            throw new InvalidDataException($"Could not read process identity fields for PID {process.Id}.");
         }
 
         var executable = File.ResolveLinkTarget($"/proc/{process.Id}/exe", returnFinalTarget: true)?.FullName
             ?? throw new InvalidDataException($"Could not resolve executable for PID {process.Id}.");
-        return new ProcessIdentity(process.Id, bootId, startTicks, executable);
+        return new LinuxProcessSnapshot(
+            new ProcessIdentity(process.Id, bootId, startTicks, executable),
+            parentProcessId);
     }
 }
+
+internal sealed record LinuxProcessSnapshot(ProcessIdentity Identity, int ParentProcessId);
