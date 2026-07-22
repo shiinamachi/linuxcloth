@@ -42,6 +42,7 @@ internal sealed class ImageBuildFixture : IDisposable
         BootIdProvider = new StubBootIdProvider();
         ProcessIdentityController = new StubProcessIdentityController();
         EndpointWaiter = new ImmediateEndpointWaiter();
+        QmpConnector = new StubQmpConnector();
         Builder = new WindowsImageBuilder(
             Registry,
             Runner,
@@ -49,7 +50,7 @@ internal sealed class ImageBuildFixture : IDisposable
             MediaValidator,
             EndpointWaiter,
             ProcessIdentityController,
-            new StubQmpConnector(),
+            QmpConnector,
             BootIdProvider,
             runtimeRoot: RuntimeRoot);
     }
@@ -70,6 +71,7 @@ internal sealed class ImageBuildFixture : IDisposable
     public StubBootIdProvider BootIdProvider { get; }
     public StubProcessIdentityController ProcessIdentityController { get; }
     public ImmediateEndpointWaiter EndpointWaiter { get; }
+    public StubQmpConnector QmpConnector { get; }
     public WindowsImageBuilder Builder { get; }
 
     public WindowsImageBuildRequest CreateRequest(string imageId = "windows-11") =>
@@ -565,9 +567,56 @@ internal sealed class StubProcessIdentityController : IProcessIdentityController
 
 internal sealed class StubQmpConnector : IQmpConnector
 {
+    public int ConnectCount { get; private set; }
+
+    public StubQmpMonitor Monitor { get; } = new();
+
     public Task<IQmpMonitor> ConnectAsync(
         string socketPath,
         TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Assert.True(Path.IsPathFullyQualified(socketPath));
+        Assert.True(timeout > TimeSpan.Zero);
+        ConnectCount++;
+        return Task.FromResult<IQmpMonitor>(Monitor);
+    }
+}
+
+internal sealed class StubQmpMonitor : IQmpMonitor
+{
+    public List<QmpKeyCode> SentKeys { get; } = [];
+
+    public int QuitCount { get; private set; }
+
+    public Task<string> QueryStatusAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult("running");
+
+    public Task<QmpEvent> WaitForEventAsync(
+        string eventName,
+        TimeSpan timeout,
         CancellationToken cancellationToken = default) =>
-        Task.FromException<IQmpMonitor>(new IOException("No fake QMP endpoint."));
+        throw new NotSupportedException();
+
+    public Task SystemPowerdownAsync(CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task SendKeyAsync(
+        QmpKeyCode keyCode,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        SentKeys.Add(keyCode);
+        return Task.CompletedTask;
+    }
+
+    public Task QuitAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        QuitCount++;
+        return Task.CompletedTask;
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

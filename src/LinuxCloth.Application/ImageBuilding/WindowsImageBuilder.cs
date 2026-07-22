@@ -12,9 +12,11 @@ namespace LinuxCloth.Application.ImageBuilding;
 public sealed class WindowsImageBuilder
 {
     private static readonly TimeSpan EndpointTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan InstallerBootKeyInterval = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan InstallationVmTimeout = TimeSpan.FromHours(4);
     private static readonly TimeSpan ProcessStopTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan VerificationVmTimeout = TimeSpan.FromMinutes(30);
+    private const int InstallerBootKeyAttempts = 40;
     private readonly ManagedImageRegistry _registry;
     private readonly IProcessRunner _processRunner;
     private readonly IProcessLauncher _processLauncher;
@@ -289,6 +291,7 @@ public sealed class WindowsImageBuilder
                 ImageBuilderCommandFactory.BuildQemu,
                 WindowsImageBuildPhase.Prepared,
                 InstallationVmTimeout,
+                confirmInstallationMediaBoot: true,
                 cancellationToken)
             .ConfigureAwait(false);
         try
@@ -393,6 +396,7 @@ public sealed class WindowsImageBuilder
                 ImageBuilderCommandFactory.BuildVerificationQemu,
                 WindowsImageBuildPhase.ReadyToVerify,
                 VerificationVmTimeout,
+                confirmInstallationMediaBoot: false,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -632,6 +636,7 @@ public sealed class WindowsImageBuilder
         Func<WindowsImageBuildWorkspace, ProcessSpec> qemuFactory,
         WindowsImageBuildPhase retryPhase,
         TimeSpan timeout,
+        bool confirmInstallationMediaBoot,
         CancellationToken cancellationToken)
     {
         IManagedProcess? swtpm = null;
@@ -673,10 +678,28 @@ public sealed class WindowsImageBuilder
                     cancellationToken)
                 .ConfigureAwait(false);
 
+            using var bootKeyCancellation = confirmInstallationMediaBoot
+                ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+                : null;
+            var bootKeyTask = bootKeyCancellation is null
+                ? null
+                : SendInstallerBootKeysAsync(running, bootKeyCancellation.Token);
+            var bootKeyTaskWasPrimary = false;
             int exitCode;
             try
             {
-                exitCode = await qemu.WaitForExitAsync(cancellationToken)
+                var exitTask = qemu.WaitForExitAsync(cancellationToken);
+                if (bootKeyTask is not null)
+                {
+                    var completed = await Task.WhenAny(exitTask, bootKeyTask).ConfigureAwait(false);
+                    if (completed == bootKeyTask)
+                    {
+                        bootKeyTaskWasPrimary = true;
+                        await bootKeyTask.ConfigureAwait(false);
+                    }
+                }
+
+                exitCode = await exitTask
                     .WaitAsync(timeout, cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -686,6 +709,27 @@ public sealed class WindowsImageBuilder
                     $"The Windows virtual machine did not finish within {timeout.TotalMinutes:0} minutes.",
                     exception,
                     running.Staging);
+            }
+            finally
+            {
+                if (bootKeyCancellation is not null)
+                {
+                    await bootKeyCancellation.CancelAsync().ConfigureAwait(false);
+                }
+
+                if (bootKeyTask is not null && !bootKeyTaskWasPrimary)
+                {
+                    try
+                    {
+                        await bootKeyTask.ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (
+                        exception is OperationCanceledException or IOException or QmpException or
+                        TimeoutException or InvalidOperationException or WindowsImageBuildException)
+                    {
+                        // QEMU already exited, so its exit result is the authoritative failure.
+                    }
+                }
             }
 
             if (exitCode != 0)
@@ -728,6 +772,36 @@ public sealed class WindowsImageBuilder
         }
 
         return running;
+    }
+
+    private async Task SendInstallerBootKeysAsync(
+        WindowsImageBuildWorkspace workspace,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var monitor = await _qmpConnector.ConnectAsync(
+                    workspace.QmpSocketPath,
+                    EndpointTimeout,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            for (var attempt = 0; attempt < InstallerBootKeyAttempts; attempt++)
+            {
+                await monitor.SendKeyAsync(QmpKeyCode.Space, cancellationToken).ConfigureAwait(false);
+                if (attempt + 1 < InstallerBootKeyAttempts)
+                {
+                    await Task.Delay(InstallerBootKeyInterval, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception exception) when (
+            exception is IOException or QmpException or TimeoutException or InvalidOperationException)
+        {
+            throw new WindowsImageBuildException(
+                "The Windows installer boot prompt could not be confirmed through QMP.",
+                exception,
+                workspace.Staging);
+        }
     }
 
     private async Task WaitForEndpointAsync(

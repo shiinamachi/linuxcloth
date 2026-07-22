@@ -1,5 +1,6 @@
 using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Application.Images;
+using LinuxCloth.Runtime.Qemu.Qmp;
 
 namespace LinuxCloth.Application.Tests.ImageBuilding;
 
@@ -240,6 +241,36 @@ public sealed class WindowsImageBuilderTests
                 spec.IdentityExecutablePath ?? spec.FileName,
                 fixture.Toolchain.RemoteViewer,
                 StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task InstallerConfirmsBootPromptWithoutSendingKeysDuringVerification()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        using var fixture = new ImageBuildFixture();
+        var prepared = await fixture.BeginAsync();
+        fixture.Launcher.BlockQemuExit = true;
+
+        var installation = fixture.Builder.RunInstallerAsync(prepared);
+        await WaitUntilAsync(
+            () => fixture.QmpConnector.Monitor.SentKeys.Count > 0,
+            TimeSpan.FromSeconds(5));
+        fixture.Launcher.CompleteRunningQemu();
+        var installed = await installation.WaitAsync(TimeSpan.FromSeconds(5));
+        var installerKeyCount = fixture.QmpConnector.Monitor.SentKeys.Count;
+        fixture.Launcher.BlockQemuExit = false;
+
+        _ = await fixture.Builder.RunVerificationAsync(installed);
+
+        Assert.Equal(1, fixture.QmpConnector.ConnectCount);
+        Assert.Equal(installerKeyCount, fixture.QmpConnector.Monitor.SentKeys.Count);
+        Assert.All(
+            fixture.QmpConnector.Monitor.SentKeys,
+            keyCode => Assert.Equal(QmpKeyCode.Space, keyCode));
     }
 
     [Fact]
