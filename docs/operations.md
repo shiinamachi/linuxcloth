@@ -42,6 +42,12 @@ Do not launch the desktop as root. If PackageKit is unavailable, copy the one
 displayed `apt` or `dnf` command into a terminal, run it yourself, and choose
 **다시 확인**. The desktop never executes that command or adds a repository.
 
+Distribution families select only reviewed package-remediation hints. Actual
+readiness is always decided by the capability probes above: an unrecognized
+distribution proceeds when every required capability is present, and otherwise
+shows the failed probe details without treating the distribution name as a
+fatal compatibility boundary.
+
 Only one local file is selected in the normal setup flow:
 
 1. a licensed Microsoft Windows 11 x64 ISO.

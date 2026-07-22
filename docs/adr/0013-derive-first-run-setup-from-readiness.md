@@ -26,6 +26,12 @@ The desktop process remains unprivileged. If PackageKit is unavailable, the UI
 only displays a fixed package-manager command for the user to copy and run in a
 terminal; linuxcloth does not execute `sudo`, `pkexec`, `apt`, or `dnf`.
 
+Distribution detection is remediation metadata, not a readiness authority.
+Doctor's concrete host capabilities decide whether setup can continue. A host
+outside the reviewed package-plan families proceeds when those capabilities are
+already present; if they are not, setup reports the failed probes instead of
+blocking on the distribution identifier.
+
 Media are inspected immediately after selection with the existing bounded,
 Bubblewrap-confined xorriso validator and hashed before the next step is
 enabled. A moving virtio `stable` URL is not downloaded automatically. Automatic

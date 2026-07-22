@@ -213,16 +213,21 @@ public static class DesktopSetupOperationFactory
             IProgress<SetupProgress> progress,
             CancellationToken cancellationToken)
         {
+            var doctor = await _runtime.InspectHostAsync(cancellationToken).ConfigureAwait(false);
+            if (CanBuildImage(doctor))
+            {
+                return SetupOperationResult.Completed();
+            }
+
             var distribution = await _distributionReader.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (distribution.Family == DistributionFamily.Unsupported)
             {
                 return SetupOperationResult.Blocked(
-                    CreateBlocker(
-                        SetupFailureKind.Fatal,
-                        "SETUP-PKG-DISTRIBUTION",
-                        "이 Linux 배포판에서는 자동 준비를 지원하지 않습니다",
-                        "배포판 문서에 따라 필요한 구성 요소를 설치한 뒤 다시 확인하세요.",
-                        "다시 확인"));
+                    CreateMissingCapabilityBlocker(
+                        doctor,
+                        "SETUP-CAPABILITY-MANUAL",
+                        "필수 구성 요소를 직접 준비해야 합니다",
+                        "자동 설치 방법을 찾지 못했습니다. 기술 세부정보에서 부족한 항목을 확인하고 준비한 뒤 다시 확인하세요."));
             }
 
             var plan = await _packagePlanResolver.ResolveAsync(distribution, cancellationToken)
@@ -286,12 +291,11 @@ public static class DesktopSetupOperationFactory
             if (!CanBuildImage(refreshed))
             {
                 return SetupOperationResult.Blocked(
-                    CreateBlocker(
-                        SetupFailureKind.Retryable,
-                        "SETUP-PKG-READINESS",
+                    CreateMissingCapabilityBlocker(
+                        refreshed,
+                        "SETUP-CAPABILITY-MISSING",
                         "필수 구성 요소가 아직 준비되지 않았습니다",
-                        "설치 상태를 다시 확인하세요.",
-                        "다시 확인"));
+                        "설치 후에도 필요한 기능을 확인하지 못했습니다. 기술 세부정보를 확인하세요."));
             }
 
             return SetupOperationResult.Completed(
@@ -306,6 +310,31 @@ public static class DesktopSetupOperationFactory
             string action,
             string? technicalDetail = null) =>
             new(Phase, kind, code, title, description, action, technicalDetail);
+
+        private SetupBlocker CreateMissingCapabilityBlocker(
+            QemuDoctorResult doctor,
+            string code,
+            string title,
+            string description) =>
+            CreateBlocker(
+                SetupFailureKind.UserActionRequired,
+                code,
+                title,
+                description,
+                "다시 확인",
+                FormatMissingCapabilities(doctor));
+
+        private static string FormatMissingCapabilities(QemuDoctorResult doctor)
+        {
+            var requiredCodes = ImageBuildChecks.ToHashSet(StringComparer.Ordinal);
+            var missing = doctor.Report.Checks
+                .Where(check => requiredCodes.Contains(check.Name) && !check.IsAvailable)
+                .Select(check => $"{check.Name}: {check.Detail}")
+                .ToArray();
+            return missing.Length == 0
+                ? "필수 기능 검사 결과를 확인할 수 없습니다."
+                : string.Join(Environment.NewLine, missing);
+        }
 
         private static string CreatePlanDigest(PackagePlan plan)
         {

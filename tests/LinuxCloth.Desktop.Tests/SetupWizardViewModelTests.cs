@@ -143,6 +143,50 @@ public sealed class SetupWizardViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task UnknownDistributionDoesNotBlockSatisfiedCapabilities()
+    {
+        var runtime = new FakeSetupService();
+        var runStore = new FakeRunStore();
+        await using var viewModel = CreateViewModel(
+            runtime,
+            runStore,
+            "ID=arch\nNAME=\"Arch Linux\"\n");
+        await viewModel.InitializeAsync();
+        await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        viewModel.IsLicenseConfirmed = true;
+
+        await viewModel.PrepareAsync();
+
+        Assert.Equal(1, runtime.BuildCount);
+        Assert.False(viewModel.IsBlocked);
+        Assert.Equal(SetupPhase.Completed, runStore.Run?.Phase);
+    }
+
+    [Fact]
+    public async Task UnknownDistributionReportsMissingCapabilitiesInsteadOfItsName()
+    {
+        var runtime = new FakeSetupService { DependenciesReady = false };
+        var runStore = new FakeRunStore();
+        await using var viewModel = CreateViewModel(
+            runtime,
+            runStore,
+            "ID=arch\nNAME=\"Arch Linux\"\n");
+        await viewModel.InitializeAsync();
+        await viewModel.ValidateWindowsMediaAsync("/media/windows.iso");
+        viewModel.IsLicenseConfirmed = true;
+
+        await viewModel.PrepareAsync();
+
+        Assert.True(viewModel.IsBlocked);
+        Assert.Equal("SETUP-CAPABILITY-MANUAL", viewModel.BlockerCode);
+        Assert.Equal("필수 구성 요소를 직접 준비해야 합니다", viewModel.BlockerTitle);
+        Assert.DoesNotContain("배포판", viewModel.BlockerDescription, StringComparison.Ordinal);
+        Assert.Contains(QemuDoctorCheckCodes.Firmware, viewModel.TechnicalDetail, StringComparison.Ordinal);
+        Assert.False(viewModel.ShowManualCommand);
+        Assert.Equal(0, runtime.BuildCount);
+    }
+
+    [Fact]
     public async Task DisposalCancelsAndWaitsForActiveMediaAnalysis()
     {
         var runtime = new FakeSetupService { WaitForMediaCancellation = true };
@@ -160,11 +204,12 @@ public sealed class SetupWizardViewModelTests : IDisposable
 
     private SetupWizardViewModel CreateViewModel(
         FakeSetupService runtime,
-        ISetupRunStore runStore)
+        ISetupRunStore runStore,
+        string osReleaseContents = "ID=debian\nNAME=Debian\nVERSION_ID=12\n")
     {
         Directory.CreateDirectory(_root);
         var osRelease = Path.Combine(_root, "os-release");
-        File.WriteAllText(osRelease, "ID=debian\nNAME=Debian\nVERSION_ID=12\n");
+        File.WriteAllText(osRelease, osReleaseContents);
         return new SetupWizardViewModel(
             runtime,
             CreateFirstRun(runtime.DependenciesReady),
