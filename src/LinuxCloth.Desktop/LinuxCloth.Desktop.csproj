@@ -5,6 +5,8 @@
     <AssemblyName>linuxcloth-desktop</AssemblyName>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GuestBridgeProjectPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '..', '..', 'guest', 'LinuxCloth.GuestBridge', 'LinuxCloth.GuestBridge.csproj'))</GuestBridgeProjectPath>
+    <GuestBridgeDevelopmentPublishDirectory>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'guestbridge', '$(Configuration)', 'publish'))</GuestBridgeDevelopmentPublishDirectory>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
@@ -47,4 +49,19 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <Target Name="PublishGuestBridgeForDevelopmentRun" BeforeTargets="Run">
+    <MSBuild
+      Projects="$(GuestBridgeProjectPath)"
+      Targets="Publish"
+      Properties="Configuration=$(Configuration);PublishDir=$(GuestBridgeDevelopmentPublishDirectory);DebugSymbols=false;DebugType=None"
+      BuildInParallel="false" />
+    <Error
+      Condition="!Exists('$(GuestBridgeDevelopmentPublishDirectory)/linuxcloth-guest-bridge.exe')"
+      Text="GuestBridge publish did not produce linuxcloth-guest-bridge.exe." />
+    <MakeDir Directories="$(TargetDir)guest" />
+    <Copy
+      SourceFiles="$(GuestBridgeDevelopmentPublishDirectory)/linuxcloth-guest-bridge.exe"
+      DestinationFiles="$(TargetDir)guest/linuxcloth-guest-bridge.exe"
+      SkipUnchangedFiles="true" />
+  </Target>
 </Project>

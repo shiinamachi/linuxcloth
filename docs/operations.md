@@ -79,6 +79,12 @@ dotnet build linuxcloth.slnx --no-restore
 dotnet test linuxcloth.slnx --no-build --no-restore
 ```
 
+When the desktop is started from a restored source checkout with
+`dotnet run --project src/LinuxCloth.Desktop`, its `Run` target publishes the
+current `win-x64` GuestBridge as a single file and places it in the desktop
+output's managed `guest` directory before launch. Packaged builds continue to
+use the release-staged copy described below.
+
 The release staging pipeline publishes self-contained `linux-x64` CLI and
 desktop apphosts plus a single-file `win-x64` GuestBridge. Build and validate it
 from a clean x86_64 checkout:
