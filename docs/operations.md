@@ -284,6 +284,11 @@ and OVMF package versions, KVM availability, image metadata (without media),
 catalog commit/hash, and the recovery disposition. Do not attach the Windows
 image, overlay, TPM state, or config disk.
 
+Image-build startup, endpoint, installation, and verification limits are
+reported separately. A five-second payload identity failure or a fifteen-second
+Unix-socket failure must not be presented as the four-hour Windows installation
+limit. Wrapper output is captured before payload identity discovery completes.
+
 ## Current deployment gates
 
 - No AppArmor or SELinux policy is claimed as supported.

@@ -101,6 +101,28 @@ public sealed class SystemProcessLauncherTests : IDisposable
         Assert.True(process.HasExited);
     }
 
+    [Fact]
+    public async Task PreservesLogsWhenProcessExitsBeforeExpectedIdentityAppears()
+    {
+        if (!OperatingSystem.IsLinux() || !File.Exists("/usr/bin/sh"))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(_directory);
+        var stderr = Path.Combine(_directory, "early.stderr.log");
+        var spec = new ProcessSpec(
+            "/usr/bin/sh",
+            ["-c", "printf 'identity setup failed\\n' >&2; exit 7"],
+            standardErrorPath: stderr,
+            identityExecutablePath: "/usr/bin/sleep");
+
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new SystemProcessLauncher().StartAsync(spec));
+
+        Assert.Equal($"identity setup failed{Environment.NewLine}", await File.ReadAllTextAsync(stderr));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_directory))

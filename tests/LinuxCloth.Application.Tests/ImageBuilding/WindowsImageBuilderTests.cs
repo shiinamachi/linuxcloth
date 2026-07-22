@@ -151,6 +151,50 @@ public sealed class WindowsImageBuilderTests
     }
 
     [Fact]
+    public async Task ProcessIdentityTimeoutIsNotReportedAsTheInstallationTimeout()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        using var fixture = new ImageBuildFixture();
+        var prepared = await fixture.BeginAsync();
+        fixture.Launcher.FailExecutable = fixture.Toolchain.Swtpm;
+        fixture.Launcher.LaunchFailure = new TimeoutException(
+            "Process '/usr/bin/bwrap' did not expose '/usr/bin/swtpm' within 00:00:05.");
+
+        var failure = await Assert.ThrowsAsync<WindowsImageBuildException>(
+            () => fixture.Builder.RunInstallerAsync(prepared));
+
+        Assert.Contains("expected executable identity", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("00:00:05", failure.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("240 minutes", failure.Message, StringComparison.Ordinal);
+        Assert.Equal(prepared.Staging, failure.Staging);
+    }
+
+    [Fact]
+    public async Task EndpointTimeoutIsNotReportedAsTheInstallationTimeout()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        using var fixture = new ImageBuildFixture();
+        var prepared = await fixture.BeginAsync();
+        fixture.EndpointWaiter.Failure = new TimeoutException("simulated socket timeout");
+
+        var failure = await Assert.ThrowsAsync<WindowsImageBuildException>(
+            () => fixture.Builder.RunInstallerAsync(prepared));
+
+        Assert.Contains("swtpm", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("15 seconds", failure.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("240 minutes", failure.Message, StringComparison.Ordinal);
+        Assert.Equal(prepared.Staging, failure.Staging);
+    }
+
+    [Fact]
     public async Task VerificationRejectsAGuestEditionDifferentFromTheApprovedSelection()
     {
         if (!OperatingSystem.IsLinux())

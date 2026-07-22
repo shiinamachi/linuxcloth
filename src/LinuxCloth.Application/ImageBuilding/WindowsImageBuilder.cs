@@ -648,10 +648,11 @@ public sealed class WindowsImageBuilder
                     swtpmSpec,
                     cancellationToken)
                 .ConfigureAwait(false);
-            await _endpointWaiter.WaitAsync(
+            await WaitForEndpointAsync(
+                    running,
+                    WindowsImageBuildProcessNames.Swtpm,
                     running.SwtpmSocketPath,
                     swtpm,
-                    EndpointTimeout,
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -664,16 +665,29 @@ public sealed class WindowsImageBuilder
                     qemuSpec,
                     cancellationToken)
                 .ConfigureAwait(false);
-            await _endpointWaiter.WaitAsync(
+            await WaitForEndpointAsync(
+                    running,
+                    WindowsImageBuildProcessNames.Qemu,
                     running.SpiceSocketPath,
                     qemu,
-                    EndpointTimeout,
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            var exitCode = await qemu.WaitForExitAsync(cancellationToken)
-                .WaitAsync(timeout, cancellationToken)
-                .ConfigureAwait(false);
+            int exitCode;
+            try
+            {
+                exitCode = await qemu.WaitForExitAsync(cancellationToken)
+                    .WaitAsync(timeout, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (TimeoutException exception)
+            {
+                throw new WindowsImageBuildException(
+                    $"The Windows virtual machine did not finish within {timeout.TotalMinutes:0} minutes.",
+                    exception,
+                    running.Staging);
+            }
+
             if (exitCode != 0)
             {
                 throw new WindowsImageBuildException(
@@ -683,12 +697,7 @@ public sealed class WindowsImageBuilder
         }
         catch (Exception exception)
         {
-            operationFailure = exception is TimeoutException
-                ? new WindowsImageBuildException(
-                    $"The Windows virtual machine did not finish within {timeout.TotalMinutes:0} minutes.",
-                    exception,
-                    running.Staging)
-                : exception;
+            operationFailure = exception;
             await TryQuitQemuAsync(running.QmpSocketPath, qemu).ConfigureAwait(false);
         }
 
@@ -721,6 +730,36 @@ public sealed class WindowsImageBuilder
         return running;
     }
 
+    private async Task WaitForEndpointAsync(
+        WindowsImageBuildWorkspace workspace,
+        string processName,
+        string socketPath,
+        IManagedProcess process,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _endpointWaiter.WaitAsync(
+                    socketPath,
+                    process,
+                    EndpointTimeout,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException exception)
+        {
+            throw new WindowsImageBuildException(
+                $"The {processName} process did not create its required Unix socket within " +
+                $"{EndpointTimeout.TotalSeconds:0} seconds: {socketPath}",
+                exception,
+                workspace.Staging);
+        }
+        catch (WindowsImageBuildException exception) when (exception.Staging is null)
+        {
+            throw new WindowsImageBuildException(exception.Message, exception, workspace.Staging);
+        }
+    }
+
     private async Task<(WindowsImageBuildWorkspace Workspace, IManagedProcess Process)> StartTrackedProcessAsync(
         WindowsImageBuildWorkspace workspace,
         string processName,
@@ -741,8 +780,28 @@ public sealed class WindowsImageBuilder
                 cancellationToken)
             .ConfigureAwait(false);
 
-        var process = await _processLauncher.StartAsync(processSpec, cancellationToken)
-            .ConfigureAwait(false);
+        IManagedProcess process;
+        try
+        {
+            process = await _processLauncher.StartAsync(processSpec, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException exception)
+        {
+            throw new WindowsImageBuildException(
+                $"The {processName} process did not establish its expected executable identity: " +
+                exception.Message,
+                exception,
+                workspace.Staging);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw new WindowsImageBuildException(
+                $"The {processName} process exited during startup: {exception.Message}",
+                exception,
+                workspace.Staging);
+        }
+
         try
         {
             var identities = new Dictionary<string, ProcessIdentity>(

@@ -23,6 +23,8 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
         };
 
         var started = false;
+        Task standardOutputPump = Task.CompletedTask;
+        Task standardErrorPump = Task.CompletedTask;
         try
         {
             if (!process.Start())
@@ -31,14 +33,31 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             }
 
             started = true;
+            standardOutputPump = spec.StandardOutputPath is null
+                ? Task.CompletedTask
+                : SystemManagedProcess.PumpLogAsync(process.StandardOutput, spec.StandardOutputPath);
+            standardErrorPump = spec.StandardErrorPath is null
+                ? Task.CompletedTask
+                : SystemManagedProcess.PumpLogAsync(process.StandardError, spec.StandardErrorPath);
             var identified = await WaitForIdentityAsync(process, spec, cancellationToken).ConfigureAwait(false);
-            return new SystemManagedProcess(process, identified.Process, spec, identified.Identity);
+            return new SystemManagedProcess(
+                process,
+                identified.Process,
+                identified.Identity,
+                standardOutputPump,
+                standardErrorPump);
         }
         catch
         {
             if (started && !process.HasExited)
             {
                 process.Kill(entireProcessTree: true);
+            }
+
+            if (started)
+            {
+                await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+                await ObserveLogPumpsAsync(standardOutputPump, standardErrorPump).ConfigureAwait(false);
             }
 
             process.Dispose();
@@ -164,6 +183,18 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
         return null;
     }
 
+    private static async Task ObserveLogPumpsAsync(params Task[] pumps)
+    {
+        try
+        {
+            await Task.WhenAll(pumps).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Preserve the launch failure that triggered process cleanup.
+        }
+    }
+
     private static IEnumerable<int> ReadChildProcessIds(int processId)
     {
         var contents = File.ReadAllText($"/proc/{processId}/task/{processId}/children");
@@ -239,18 +270,15 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
         public SystemManagedProcess(
             Process hostProcess,
             Process payloadProcess,
-            ProcessSpec spec,
-            ProcessIdentity identity)
+            ProcessIdentity identity,
+            Task standardOutputPump,
+            Task standardErrorPump)
         {
             _hostProcess = hostProcess;
             _payloadProcess = payloadProcess;
             Identity = identity;
-            _standardOutputPump = spec.StandardOutputPath is null
-                ? Task.CompletedTask
-                : PumpLogAsync(hostProcess.StandardOutput, spec.StandardOutputPath);
-            _standardErrorPump = spec.StandardErrorPath is null
-                ? Task.CompletedTask
-                : PumpLogAsync(hostProcess.StandardError, spec.StandardErrorPath);
+            _standardOutputPump = standardOutputPump;
+            _standardErrorPump = standardErrorPump;
         }
 
         public int Id => Identity.ProcessId;
@@ -347,7 +375,7 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             _hostProcess.Dispose();
         }
 
-        private static async Task PumpLogAsync(StreamReader reader, string path)
+        internal static async Task PumpLogAsync(StreamReader reader, string path)
         {
             var fullPath = Path.GetFullPath(path);
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);

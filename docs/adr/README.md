@@ -21,3 +21,4 @@ ADRs are immutable once accepted. A later decision supersedes an earlier ADR ins
 17. [Read UDF installation media with 7-Zip](0017-read-udf-installation-media-with-7zip.md)
 18. [Prepare managed Secure Boot variables](0018-prepare-managed-secure-boot-vars.md)
 19. [Track confined payload processes](0019-track-confined-payload-processes.md)
+20. [Preserve image-build failure stages](0020-preserve-image-build-failure-stages.md)

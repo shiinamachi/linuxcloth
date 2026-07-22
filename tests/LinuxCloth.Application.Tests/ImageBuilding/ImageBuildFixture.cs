@@ -41,12 +41,13 @@ internal sealed class ImageBuildFixture : IDisposable
         MediaValidator = new StubInstallationMediaValidator();
         BootIdProvider = new StubBootIdProvider();
         ProcessIdentityController = new StubProcessIdentityController();
+        EndpointWaiter = new ImmediateEndpointWaiter();
         Builder = new WindowsImageBuilder(
             Registry,
             Runner,
             Launcher,
             MediaValidator,
-            new ImmediateEndpointWaiter(),
+            EndpointWaiter,
             ProcessIdentityController,
             new StubQmpConnector(),
             BootIdProvider,
@@ -68,6 +69,7 @@ internal sealed class ImageBuildFixture : IDisposable
     public StubInstallationMediaValidator MediaValidator { get; }
     public StubBootIdProvider BootIdProvider { get; }
     public StubProcessIdentityController ProcessIdentityController { get; }
+    public ImmediateEndpointWaiter EndpointWaiter { get; }
     public WindowsImageBuilder Builder { get; }
 
     public WindowsImageBuildRequest CreateRequest(string imageId = "windows-11") =>
@@ -302,6 +304,7 @@ internal sealed class ImageBuildProcessLauncher : IProcessLauncher
     public List<ImageBuildManagedProcess> Processes { get; } = [];
     public int QemuExitCode { get; set; }
     public string? FailExecutable { get; set; }
+    public Exception? LaunchFailure { get; set; }
     public bool WriteVerificationResult { get; set; } = true;
     public bool BlockQemuExit { get; set; }
     public bool ViewerExitsImmediately { get; set; }
@@ -316,7 +319,7 @@ internal sealed class ImageBuildProcessLauncher : IProcessLauncher
         var identityExecutable = spec.IdentityExecutablePath ?? spec.FileName;
         if (string.Equals(identityExecutable, FailExecutable, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("simulated process launch failure");
+            throw LaunchFailure ?? new InvalidOperationException("simulated process launch failure");
         }
 
         if (string.Equals(identityExecutable, _toolchain.Swtpm, StringComparison.Ordinal))
@@ -488,6 +491,8 @@ internal sealed class ImageBuildManagedProcess : IManagedProcess
 
 internal sealed class ImmediateEndpointWaiter : IImageBuildEndpointWaiter
 {
+    public Exception? Failure { get; set; }
+
     public Task WaitAsync(
         string path,
         IManagedProcess owner,
@@ -498,6 +503,11 @@ internal sealed class ImmediateEndpointWaiter : IImageBuildEndpointWaiter
         _ = owner;
         _ = timeout;
         cancellationToken.ThrowIfCancellationRequested();
+        if (Failure is not null)
+        {
+            return Task.FromException(Failure);
+        }
+
         return Task.CompletedTask;
     }
 }
