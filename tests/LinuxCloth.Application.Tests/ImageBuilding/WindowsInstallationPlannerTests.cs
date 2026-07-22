@@ -1,3 +1,4 @@
+using System.Text;
 using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Runtime.Qemu.Processes;
 
@@ -76,6 +77,7 @@ public sealed class WindowsInstallationPlannerTests : IDisposable
             Assert.DoesNotContain("-c", spec.Arguments);
         });
         Assert.Contains(windowsIso, runner.Specs[0].Arguments);
+        Assert.Equal(Encoding.Unicode.WebName, runner.Specs[1].StandardOutputEncoding?.WebName);
         Assert.Empty(Directory.EnumerateFileSystemEntries(analysisRoot));
     }
 

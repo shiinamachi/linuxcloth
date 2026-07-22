@@ -111,7 +111,8 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
                             wimlib,
                             ["info", installationImage, "--xml"],
                             directory,
-                            new Dictionary<string, string?> { ["LC_ALL"] = "C" }),
+                            new Dictionary<string, string?> { ["LC_ALL"] = "C" },
+                            standardOutputEncoding: Encoding.Unicode),
                         installationImage),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -406,7 +407,9 @@ public sealed class WindowsInstallationPlanner : IWindowsInstallationPlanner
             arguments,
             process.WorkingDirectory,
             new Dictionary<string, string?> { ["LC_ALL"] = "C" },
-            identityExecutablePath: process.FileName);
+            identityExecutablePath: process.FileName,
+            standardOutputEncoding: process.StandardOutputEncoding,
+            standardErrorEncoding: process.StandardErrorEncoding);
     }
 
     private void EnsurePrivateAnalysisRoot()

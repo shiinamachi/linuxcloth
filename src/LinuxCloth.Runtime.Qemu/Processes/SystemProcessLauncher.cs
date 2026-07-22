@@ -105,6 +105,16 @@ public sealed partial class SystemProcessLauncher : IProcessLauncher
             CreateNoWindow = true,
         };
 
+        if (startInfo.RedirectStandardOutput && spec.StandardOutputEncoding is not null)
+        {
+            startInfo.StandardOutputEncoding = spec.StandardOutputEncoding;
+        }
+
+        if (startInfo.RedirectStandardError && spec.StandardErrorEncoding is not null)
+        {
+            startInfo.StandardErrorEncoding = spec.StandardErrorEncoding;
+        }
+
         if (!spec.InheritEnvironment)
         {
             startInfo.Environment.Clear();

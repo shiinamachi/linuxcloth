@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace LinuxCloth.Runtime.Qemu.Processes;
 
 public sealed record ProcessSpec
@@ -10,7 +12,9 @@ public sealed record ProcessSpec
         string? standardOutputPath = null,
         string? standardErrorPath = null,
         bool inheritEnvironment = false,
-        string? identityExecutablePath = null)
+        string? identityExecutablePath = null,
+        Encoding? standardOutputEncoding = null,
+        Encoding? standardErrorEncoding = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
@@ -23,6 +27,8 @@ public sealed record ProcessSpec
         StandardOutputPath = standardOutputPath;
         StandardErrorPath = standardErrorPath;
         InheritEnvironment = inheritEnvironment;
+        StandardOutputEncoding = standardOutputEncoding;
+        StandardErrorEncoding = standardErrorEncoding;
         if (identityExecutablePath is not null &&
             (string.IsNullOrWhiteSpace(identityExecutablePath) ||
              !Path.IsPathFullyQualified(identityExecutablePath) ||
@@ -53,6 +59,10 @@ public sealed record ProcessSpec
     public bool InheritEnvironment { get; }
 
     public string? IdentityExecutablePath { get; }
+
+    public Encoding? StandardOutputEncoding { get; }
+
+    public Encoding? StandardErrorEncoding { get; }
 }
 
 public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError)

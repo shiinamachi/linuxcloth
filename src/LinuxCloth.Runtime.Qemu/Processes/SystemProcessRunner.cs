@@ -51,6 +51,16 @@ public sealed class SystemProcessRunner : IProcessRunner
             CreateNoWindow = true,
         };
 
+        if (spec.StandardOutputEncoding is not null)
+        {
+            startInfo.StandardOutputEncoding = spec.StandardOutputEncoding;
+        }
+
+        if (spec.StandardErrorEncoding is not null)
+        {
+            startInfo.StandardErrorEncoding = spec.StandardErrorEncoding;
+        }
+
         if (!spec.InheritEnvironment)
         {
             startInfo.Environment.Clear();
