@@ -100,11 +100,40 @@ public sealed class WindowsImageBuilderTests
             provenance.EvidenceKind);
         var autounattend = fixture.Runner.ProvisioningFiles[
             GuestBridgeProvisioningContract.AutounattendFileName];
-        Assert.NotNull(System.Xml.Linq.XDocument.Parse(autounattend).Root);
+        var document = System.Xml.Linq.XDocument.Parse(autounattend);
+        Assert.NotNull(document.Root);
+        System.Xml.Linq.XNamespace unattendNamespace = "urn:schemas-microsoft-com:unattend";
+        var productKey = Assert.Single(document.Descendants(unattendNamespace + "ProductKey"));
+        Assert.Empty(productKey.Elements(unattendNamespace + "Key"));
+        Assert.Equal(
+            "Never",
+            Assert.Single(productKey.Elements(unattendNamespace + "WillShowUI")).Value);
+        var oobeSettings = Assert.Single(
+            document.Descendants(unattendNamespace + "settings"),
+            element => string.Equals(
+                (string?)element.Attribute("pass"),
+                "oobeSystem",
+                StringComparison.Ordinal));
+        var oobeInternational = Assert.Single(
+            oobeSettings.Elements(unattendNamespace + "component"),
+            element => string.Equals(
+                (string?)element.Attribute("name"),
+                "Microsoft-Windows-International-Core",
+                StringComparison.Ordinal));
+        Assert.Equal("ko-KR", Assert.Single(oobeInternational.Elements(unattendNamespace + "InputLocale")).Value);
+        Assert.Equal("ko-KR", Assert.Single(oobeInternational.Elements(unattendNamespace + "SystemLocale")).Value);
+        Assert.Equal("ko-KR", Assert.Single(oobeInternational.Elements(unattendNamespace + "UILanguage")).Value);
+        Assert.Equal("ko-KR", Assert.Single(oobeInternational.Elements(unattendNamespace + "UserLocale")).Value);
         Assert.Contains("<HideOnlineAccountScreens>true</HideOnlineAccountScreens>", autounattend);
+        Assert.Contains("<HideLocalAccountScreen>true</HideLocalAccountScreen>", autounattend);
+        Assert.Contains("<HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>", autounattend);
         Assert.Contains("<WillWipeDisk>true</WillWipeDisk>", autounattend);
         Assert.Contains("<Key>/IMAGE/INDEX</Key><Value>6</Value>", autounattend);
-        Assert.Contains("<Path>E:\\vioscsi\\w11\\amd64</Path>", autounattend);
+        Assert.DoesNotContain("Microsoft-Windows-PnpCustomizationsWinPE", autounattend, StringComparison.Ordinal);
+        Assert.DoesNotContain("E:\\vioscsi", autounattend, StringComparison.Ordinal);
+        Assert.Equal(
+            "virtio-driver",
+            fixture.Runner.ProvisioningFiles["$WinPEDriver$/vioscsi/vioscsi.inf"]);
         Assert.Contains("<SetupUILanguage><UILanguage>ko-KR</UILanguage></SetupUILanguage>", autounattend);
         Assert.Contains("<InputLocale>ko-KR</InputLocale>", autounattend);
         Assert.Contains("<SystemLocale>ko-KR</SystemLocale>", autounattend);
@@ -115,9 +144,16 @@ public sealed class WindowsImageBuilderTests
         Assert.Contains("<AutoLogon>", autounattend);
         Assert.Contains("<LogonCount>1</LogonCount>", autounattend);
         Assert.DoesNotContain("<LogonCount>999</LogonCount>", autounattend);
+        Assert.DoesNotContain("SkipMachineOOBE", autounattend, StringComparison.Ordinal);
         Assert.Contains(GuestBridgeProvisioningContract.InstallScriptFileName, autounattend);
         var installScript = fixture.Runner.ProvisioningFiles[
             GuestBridgeProvisioningContract.InstallScriptFileName];
+        Assert.Contains("'NetKVM\\w11\\amd64\\netkvm.inf'", installScript);
+        Assert.Contains("'viorng\\w11\\amd64\\viorng.inf'", installScript);
+        Assert.Contains("'vioscsi\\w11\\amd64\\vioscsi.inf'", installScript);
+        Assert.Contains("'vioserial\\w11\\amd64\\vioser.inf'", installScript);
+        Assert.Contains("foreach ($relativePath in $virtioDriverPaths)", installScript);
+        Assert.DoesNotContain("/subdirs", installScript, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Register-ScheduledTask -TaskName 'linuxcloth GuestBridge'", installScript);
         Assert.DoesNotContain("-TaskPath", installScript, StringComparison.Ordinal);
         Assert.Contains("shutdown.exe /s", installScript);
@@ -132,6 +168,41 @@ public sealed class WindowsImageBuilderTests
                 StringComparison.Ordinal));
         Assert.All(fixture.Launcher.Processes, process => Assert.True(process.WasDisposed));
         Assert.False(Directory.Exists(prepared.SetupLocaleDirectory));
+    }
+
+    [Fact]
+    public async Task MissingBootCriticalVirtioDriverBlocksInstallerPreparation()
+    {
+        using var fixture = new ImageBuildFixture();
+        fixture.Runner.FailVirtioDriverExtraction = true;
+        var prepared = await fixture.BeginAsync();
+
+        var failure = await Assert.ThrowsAsync<WindowsImageBuildException>(
+            () => fixture.Builder.RunInstallerAsync(prepared));
+
+        Assert.Contains("virtio storage driver", failure.Message, StringComparison.Ordinal);
+        Assert.NotNull(failure.Staging);
+        Assert.True(Directory.Exists(failure.Staging.DirectoryPath));
+    }
+
+    [Fact]
+    public async Task UppercaseBootCriticalVirtioDriverEntriesAreNormalized()
+    {
+        using var fixture = new ImageBuildFixture();
+        fixture.Runner.UseUppercaseVirtioDriverEntries = true;
+        var prepared = await fixture.BeginAsync();
+
+        await fixture.Builder.RunInstallerAsync(prepared);
+
+        Assert.Equal(
+            "virtio-driver",
+            fixture.Runner.ProvisioningFiles["$WinPEDriver$/vioscsi/vioscsi.inf"]);
+        Assert.Equal(
+            "virtio-driver",
+            fixture.Runner.ProvisioningFiles["$WinPEDriver$/vioscsi/vioscsi.cat"]);
+        Assert.Equal(
+            "virtio-driver",
+            fixture.Runner.ProvisioningFiles["$WinPEDriver$/vioscsi/vioscsi.sys"]);
     }
 
     [Fact]
@@ -276,7 +347,7 @@ public sealed class WindowsImageBuilderTests
         Assert.Equal(installerKeyCount, fixture.QmpConnector.Monitor.SentKeys.Count);
         Assert.All(
             fixture.QmpConnector.Monitor.SentKeys,
-            keyCode => Assert.Equal(QmpKeyCode.Space, keyCode));
+            keyCode => Assert.Equal(QmpKeyCode.Enter, keyCode));
     }
 
     [Fact]

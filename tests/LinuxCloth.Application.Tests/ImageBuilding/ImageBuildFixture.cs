@@ -236,6 +236,8 @@ internal sealed class ImageBuildProcessRunner : IProcessRunner
     public Dictionary<string, string> ProvisioningFiles { get; } = new(StringComparer.Ordinal);
     public int FailCreateCount { get; set; }
     public bool CancelCreate { get; set; }
+    public bool FailVirtioDriverExtraction { get; set; }
+    public bool UseUppercaseVirtioDriverEntries { get; set; }
 
     public Task<ProcessResult> RunAsync(
         ProcessSpec spec,
@@ -288,14 +290,39 @@ internal sealed class ImageBuildProcessRunner : IProcessRunner
                 "[Available UI Languages]\r\nko-kr = 3\r\n");
         }
 
+        if (!FailVirtioDriverExtraction &&
+            string.Equals(identityExecutable, _sevenZipPath, StringComparison.Ordinal))
+        {
+            var driverEntry = spec.Arguments.LastOrDefault(
+                argument => argument.EndsWith("vioscsi.inf", StringComparison.OrdinalIgnoreCase) ||
+                            argument.EndsWith("vioscsi.cat", StringComparison.OrdinalIgnoreCase) ||
+                            argument.EndsWith("vioscsi.sys", StringComparison.OrdinalIgnoreCase));
+            if (driverEntry is not null)
+            {
+                var isUppercaseEntry = driverEntry.StartsWith("VIOSCSI/", StringComparison.Ordinal);
+                if (UseUppercaseVirtioDriverEntries != isUppercaseEntry)
+                {
+                    return Task.FromResult(new ProcessResult(0, string.Empty, string.Empty));
+                }
+
+                var output = spec.Arguments.Single(
+                    argument => argument.StartsWith("-o", StringComparison.Ordinal))[2..];
+                File.WriteAllText(
+                    Path.Combine(output, Path.GetFileName(driverEntry)),
+                    "virtio-driver");
+            }
+        }
+
         if (spec.Arguments.Contains("mkisofs", StringComparer.Ordinal))
         {
             var outputIndex = spec.Arguments.ToList().IndexOf("-o");
             var output = spec.Arguments[outputIndex + 1];
             var sourceDirectory = spec.Arguments[^1];
-            foreach (var path in Directory.EnumerateFiles(sourceDirectory))
+            foreach (var path in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
             {
-                ProvisioningFiles[Path.GetFileName(path)] = File.ReadAllText(path);
+                var relativePath = Path.GetRelativePath(sourceDirectory, path)
+                    .Replace(Path.DirectorySeparatorChar, '/');
+                ProvisioningFiles[relativePath] = File.ReadAllText(path);
             }
 
             File.WriteAllText(output, "test provisioning iso");

@@ -2,7 +2,7 @@ namespace LinuxCloth.Runtime.Qemu.Qmp;
 
 public enum QmpKeyCode
 {
-    Space,
+    Enter,
 }
 
 public interface IQmpMonitor : IAsyncDisposable

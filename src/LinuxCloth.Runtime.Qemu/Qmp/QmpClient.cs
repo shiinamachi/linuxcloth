@@ -139,7 +139,7 @@ public sealed partial class QmpClient : IQmpMonitor
     {
         var qcode = keyCode switch
         {
-            QmpKeyCode.Space => "spc",
+            QmpKeyCode.Enter => "ret",
             _ => throw new ArgumentOutOfRangeException(nameof(keyCode)),
         };
         using var response = await ExecuteAsync(

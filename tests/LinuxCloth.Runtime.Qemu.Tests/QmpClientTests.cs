@@ -30,7 +30,7 @@ public sealed class QmpClientTests : IAsyncLifetime
 
         await using var client = await QmpClient.ConnectAsync(socketPath, TimeSpan.FromSeconds(2));
 
-        await client.SendKeyAsync(QmpKeyCode.Space);
+        await client.SendKeyAsync(QmpKeyCode.Enter);
         Assert.Equal("running", await client.QueryStatusAsync());
         Assert.Equal("RESUME", (await client.WaitForEventAsync("RESUME", TimeSpan.FromSeconds(1))).Name);
         await server;
@@ -96,7 +96,7 @@ public sealed class QmpClientTests : IAsyncLifetime
             Assert.Equal("send-key", command.RootElement.GetProperty("execute").GetString());
             var key = command.RootElement.GetProperty("arguments").GetProperty("keys")[0];
             Assert.Equal("qcode", key.GetProperty("type").GetString());
-            Assert.Equal("spc", key.GetProperty("data").GetString());
+            Assert.Equal("ret", key.GetProperty("data").GetString());
         }
 
         await WriteAsync(stream, "{\"return\":{},\"id\":\"2\"}");

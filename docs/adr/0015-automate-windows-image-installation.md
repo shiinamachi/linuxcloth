@@ -15,11 +15,20 @@ selected index, edition ID, and display name are stored in the durable image
 build state and checked against the GuestBridge report after installation.
 
 The provisioning ISO contains a complete `windowsPE` answer-file pass. It loads
-the Windows 11 amd64 `vioscsi` driver, wipes only disk 0, creates deterministic
-UEFI/GPT system, reserved, Windows, and recovery partitions, and installs the
-reviewed WIM/ESD image index into the Windows partition. QEMU command generation
-rejects any installer topology other than one staging-owned writable qcow2 disk
-and three read-only installation-media drives.
+the Windows 11 amd64 `vioscsi` driver from a staged `$WinPEDriver$` directory,
+without relying on a setup-time CD drive letter. It wipes only disk 0, creates
+deterministic UEFI/GPT system, reserved, Windows, and recovery partitions, and
+installs the reviewed WIM/ESD image index into the Windows partition. First-logon
+provisioning installs only the Windows 11 amd64 storage, network, random-number,
+and serial drivers used by linuxcloth, one at a time. Legacy and unrelated
+packages therefore cannot make a successful operation report failure.
+Product-key UI is suppressed without embedding or applying a product key;
+activation remains outside linuxcloth. The `oobeSystem` pass fixes the same
+media-derived locale, creates the disposable local administrator, and configures
+every Microsoft-documented OOBE suppression setting instead of using
+`SkipMachineOOBE`. QEMU command generation rejects any installer topology other
+than one staging-owned
+writable qcow2 disk and three read-only installation-media drives.
 
 Installation and verification virtual machines run without opening a viewer.
 They retain a local SPICE endpoint for an explicit diagnostic viewer action,
@@ -34,7 +43,8 @@ host provisioning directory and ISO are deleted before base-only verification.
 
 ## Consequences
 
-- Windows Setup no longer asks for an edition, storage driver, or target disk
+- Windows Setup no longer asks for language, product key, edition, storage
+  driver, target disk, region, keyboard, network, license, or account input
   during a normal image build.
 - `WindowsImageBuildState` schema version 2 records the approved installation
   image. Older staging manifests fail closed and are preserved for diagnosis.

@@ -16,6 +16,17 @@ public sealed class WindowsImageBuilder
     private static readonly TimeSpan InstallationVmTimeout = TimeSpan.FromHours(4);
     private static readonly TimeSpan ProcessStopTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan VerificationVmTimeout = TimeSpan.FromMinutes(30);
+    private static readonly string[] VirtioStorageDriverRoots =
+    [
+        "/vioscsi/w11/amd64",
+        "/VIOSCSI/W11/AMD64",
+    ];
+    private static readonly string[] VirtioStorageDriverFiles =
+    [
+        "vioscsi.inf",
+        "vioscsi.cat",
+        "vioscsi.sys",
+    ];
     private const int InstallerBootKeyAttempts = 40;
     private readonly ManagedImageRegistry _registry;
     private readonly IProcessRunner _processRunner;
@@ -627,6 +638,7 @@ public sealed class WindowsImageBuilder
                 workspace.ProvisioningSourceDirectory,
                 GuestBridgeProvisioningContract.ReadmeFileName),
             CreateProvisioningReadme());
+        await StageBootCriticalVirtioDriversAsync(workspace, cancellationToken).ConfigureAwait(false);
 
         var result = await _processRunner.RunAsync(
                 ImageBuilderCommandFactory.BuildProvisioningIso(workspace),
@@ -650,6 +662,74 @@ public sealed class WindowsImageBuilder
         }
 
         SetPrivateFileMode(provisioningIso);
+    }
+
+    private async Task StageBootCriticalVirtioDriversAsync(
+        WindowsImageBuildWorkspace workspace,
+        CancellationToken cancellationToken)
+    {
+        var driverDirectory = Path.Combine(
+            workspace.ProvisioningSourceDirectory,
+            "$WinPEDriver$",
+            "vioscsi");
+        foreach (var root in VirtioStorageDriverRoots)
+        {
+            ImageBuildPathGuard.DeleteTreeWithoutFollowingLinks(driverDirectory);
+            Directory.CreateDirectory(driverDirectory);
+            SetPrivateDirectoryMode(driverDirectory);
+            var extractedAllFiles = true;
+            foreach (var fileName in VirtioStorageDriverFiles)
+            {
+                var sourceFileName = root.StartsWith("/VIOSCSI/", StringComparison.Ordinal)
+                    ? fileName.ToUpperInvariant()
+                    : fileName;
+                var result = await _processRunner.RunAsync(
+                        WindowsInstallationPlanner.BuildConfinedExtraction(
+                            workspace.State.Toolchain.Bubblewrap,
+                            workspace.State.Toolchain.SevenZip,
+                            workspace.State.VirtioWinIso.Path,
+                            $"{root}/{sourceFileName}",
+                            driverDirectory),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                var extractedPath = Path.Combine(driverDirectory, sourceFileName);
+                if (!result.IsSuccess || !File.Exists(extractedPath))
+                {
+                    extractedAllFiles = false;
+                    break;
+                }
+
+                if (!string.Equals(sourceFileName, fileName, StringComparison.Ordinal))
+                {
+                    var normalizedPath = Path.Combine(driverDirectory, fileName);
+                    File.Move(extractedPath, normalizedPath);
+                    extractedPath = normalizedPath;
+                }
+
+                var driverFile = ImageBuildPathGuard.RequireRegularFile(
+                    extractedPath,
+                    $"staged Windows PE {fileName}");
+                var length = new FileInfo(driverFile).Length;
+                if (length is <= 0 or > 16 * 1024 * 1024)
+                {
+                    throw new WindowsImageBuildException(
+                        $"The staged Windows PE {fileName} has an invalid size.",
+                        workspace.Staging);
+                }
+
+                SetPrivateFileMode(driverFile);
+            }
+
+            if (extractedAllFiles)
+            {
+                return;
+            }
+        }
+
+        ImageBuildPathGuard.DeleteTreeWithoutFollowingLinks(driverDirectory);
+        throw new WindowsImageBuildException(
+            "The Windows 11 amd64 virtio storage driver could not be staged for Windows PE.",
+            workspace.Staging);
     }
 
     private async Task<WindowsImageBuildWorkspace> ExecuteVmAsync(
@@ -808,7 +888,7 @@ public sealed class WindowsImageBuilder
                 .ConfigureAwait(false);
             for (var attempt = 0; attempt < InstallerBootKeyAttempts; attempt++)
             {
-                await monitor.SendKeyAsync(QmpKeyCode.Space, cancellationToken).ConfigureAwait(false);
+                await monitor.SendKeyAsync(QmpKeyCode.Enter, cancellationToken).ConfigureAwait(false);
                 if (attempt + 1 < InstallerBootKeyAttempts)
                 {
                     await Task.Delay(InstallerBootKeyInterval, cancellationToken).ConfigureAwait(false);
@@ -1389,8 +1469,24 @@ public sealed class WindowsImageBuilder
             Select-Object -First 1
         if (-not $virtioRoot) { throw 'The pinned virtio-win Windows 11 amd64 driver media was not found.' }
         $virtioDrive = [System.IO.Path]::GetPathRoot($virtioRoot)
-        & pnputil.exe /add-driver (Join-Path $virtioDrive '*.inf') /subdirs /install
-        if ($LASTEXITCODE -notin 0, 259, 3010) { throw "virtio driver installation failed: $LASTEXITCODE" }
+        $virtioDriverPaths = @(
+            'NetKVM\w11\amd64\netkvm.inf',
+            'viorng\w11\amd64\viorng.inf',
+            'vioscsi\w11\amd64\vioscsi.inf',
+            'vioserial\w11\amd64\vioser.inf'
+        )
+        foreach ($relativePath in $virtioDriverPaths) {
+            $driverPath = Join-Path $virtioDrive $relativePath
+            if (-not (Test-Path -LiteralPath $driverPath -PathType Leaf)) {
+                throw "Required pinned virtio driver not found: $relativePath"
+            }
+            Write-Host "Installing pinned virtio driver: $driverPath"
+            & pnputil.exe /add-driver $driverPath /install
+            $driverExitCode = $LASTEXITCODE
+            if ($driverExitCode -notin 0, 259, 1641, 3010) {
+                throw "virtio driver installation failed for ${relativePath}: $driverExitCode"
+            }
+        }
 
         $destinationDirectory = Join-Path $env:ProgramFiles 'linuxcloth'
         $destination = Join-Path $destinationDirectory '{{GuestBridgeProvisioningContract.ExecutableFileName}}'
@@ -1452,13 +1548,6 @@ public sealed class WindowsImageBuilder
               <UILanguage>{{setupLocale}}</UILanguage>
               <UserLocale>{{setupLocale}}</UserLocale>
             </component>
-            <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
-              <DriverPaths>
-                <PathAndCredentials wcm:action="add" wcm:keyValue="1">
-                  <Path>E:\vioscsi\w11\amd64</Path>
-                </PathAndCredentials>
-              </DriverPaths>
-            </component>
             <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
               <DiskConfiguration>
                 <Disk wcm:action="add">
@@ -1493,13 +1582,24 @@ public sealed class WindowsImageBuilder
                 <AcceptEula>true</AcceptEula>
                 <FullName>linuxcloth</FullName>
                 <Organization>linuxcloth</Organization>
+                <ProductKey>
+                  <WillShowUI>Never</WillShowUI>
+                </ProductKey>
               </UserData>
             </component>
           </settings>
           <settings pass="oobeSystem">
+            <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+              <InputLocale>{{setupLocale}}</InputLocale>
+              <SystemLocale>{{setupLocale}}</SystemLocale>
+              <UILanguage>{{setupLocale}}</UILanguage>
+              <UserLocale>{{setupLocale}}</UserLocale>
+            </component>
             <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
               <OOBE>
                 <HideEULAPage>true</HideEULAPage>
+                <HideLocalAccountScreen>true</HideLocalAccountScreen>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
                 <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
                 <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
                 <ProtectYourPC>3</ProtectYourPC>
