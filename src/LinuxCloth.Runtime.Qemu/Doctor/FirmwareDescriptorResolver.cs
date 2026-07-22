@@ -8,10 +8,16 @@ public sealed class FirmwareDescriptorResolver
     public const int MaximumDescriptorBytes = 128 * 1024;
     public const int MaximumDescriptorCount = 256;
 
-    private static readonly string[] RequiredFeatures =
+    private static readonly string[] EnrolledSecureBootFeatures =
     [
         "secure-boot",
         "enrolled-keys",
+        "requires-smm",
+    ];
+
+    private static readonly string[] SecureBootCapableFeatures =
+    [
+        "secure-boot",
         "requires-smm",
     ];
 
@@ -22,25 +28,41 @@ public sealed class FirmwareDescriptorResolver
         MaxDepth = 32,
     };
 
-    private readonly string _descriptorDirectory;
+    private readonly IReadOnlyList<string> _descriptorDirectories;
 
     public FirmwareDescriptorResolver(string descriptorDirectory = DefaultDescriptorDirectory)
+        : this([descriptorDirectory])
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(descriptorDirectory);
-        _descriptorDirectory = descriptorDirectory;
     }
 
-    public FirmwareResolution Resolve()
+    public FirmwareDescriptorResolver(IEnumerable<string> descriptorDirectories)
     {
-        var diagnostics = new List<FirmwareDiagnostic>();
-        if (!Directory.Exists(_descriptorDirectory))
+        ArgumentNullException.ThrowIfNull(descriptorDirectories);
+        var normalized = descriptorDirectories
+            .Select(path =>
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(path);
+                return Path.GetFullPath(path);
+            })
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (normalized.Length == 0)
         {
-            diagnostics.Add(new FirmwareDiagnostic(
-                FirmwareDiagnosticCode.DescriptorDirectoryNotFound,
-                $"The firmware descriptor directory '{_descriptorDirectory}' does not exist."));
-            return CreateResolution(null, diagnostics);
+            throw new ArgumentException(
+                "At least one firmware descriptor directory is required.",
+                nameof(descriptorDirectories));
         }
 
+        _descriptorDirectories = normalized;
+    }
+
+    public FirmwareResolution Resolve() => Resolve(EnrolledSecureBootFeatures);
+
+    public FirmwareResolution ResolveSecureBootCapable() => Resolve(SecureBootCapableFeatures);
+
+    private FirmwareResolution Resolve(IReadOnlyList<string> requiredFeatures)
+    {
+        var diagnostics = new List<FirmwareDiagnostic>();
         var descriptorPaths = EnumerateDescriptorPaths(diagnostics);
         if (descriptorPaths is null)
         {
@@ -49,7 +71,7 @@ public sealed class FirmwareDescriptorResolver
 
         foreach (var descriptorPath in descriptorPaths)
         {
-            var pair = ResolveDescriptor(descriptorPath, diagnostics);
+            var pair = ResolveDescriptor(descriptorPath, requiredFeatures, diagnostics);
             if (pair is not null)
             {
                 return CreateResolution(pair, diagnostics);
@@ -71,30 +93,41 @@ public sealed class FirmwareDescriptorResolver
     {
         var paths = new List<string>();
 
-        try
+        foreach (var descriptorDirectory in _descriptorDirectories)
         {
-            foreach (var path in Directory.EnumerateFiles(
-                         _descriptorDirectory,
-                         "*.json",
-                         SearchOption.TopDirectoryOnly))
+            if (!Directory.Exists(descriptorDirectory))
             {
-                if (paths.Count == MaximumDescriptorCount)
-                {
-                    diagnostics.Add(new FirmwareDiagnostic(
-                        FirmwareDiagnosticCode.DescriptorCountLimitExceeded,
-                        $"The descriptor directory contains more than the {MaximumDescriptorCount}-file limit."));
-                    return null;
-                }
-
-                paths.Add(path);
+                diagnostics.Add(new FirmwareDiagnostic(
+                    FirmwareDiagnosticCode.DescriptorDirectoryNotFound,
+                    $"The firmware descriptor directory '{descriptorDirectory}' does not exist."));
+                continue;
             }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            diagnostics.Add(new FirmwareDiagnostic(
-                FirmwareDiagnosticCode.DescriptorEnumerationFailed,
-                $"Firmware descriptors could not be enumerated: {exception.Message}"));
-            return null;
+
+            try
+            {
+                foreach (var path in Directory.EnumerateFiles(
+                             descriptorDirectory,
+                             "*.json",
+                             SearchOption.TopDirectoryOnly))
+                {
+                    if (paths.Count == MaximumDescriptorCount)
+                    {
+                        diagnostics.Add(new FirmwareDiagnostic(
+                            FirmwareDiagnosticCode.DescriptorCountLimitExceeded,
+                            $"The descriptor directories contain more than the {MaximumDescriptorCount}-file limit."));
+                        return null;
+                    }
+
+                    paths.Add(path);
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                diagnostics.Add(new FirmwareDiagnostic(
+                    FirmwareDiagnosticCode.DescriptorEnumerationFailed,
+                    $"Firmware descriptors in '{descriptorDirectory}' could not be enumerated: {exception.Message}"));
+                return null;
+            }
         }
 
         paths.Sort(StringComparer.Ordinal);
@@ -103,6 +136,7 @@ public sealed class FirmwareDescriptorResolver
 
     private static FirmwarePair? ResolveDescriptor(
         string descriptorPath,
+        IReadOnlyList<string> requiredFeatures,
         List<FirmwareDiagnostic> diagnostics)
     {
         var documentBytes = ReadDescriptor(descriptorPath, diagnostics);
@@ -114,7 +148,7 @@ public sealed class FirmwareDescriptorResolver
         try
         {
             using var document = JsonDocument.Parse(documentBytes.Value, JsonOptions);
-            return ParseDescriptor(document.RootElement, descriptorPath, diagnostics);
+            return ParseDescriptor(document.RootElement, descriptorPath, requiredFeatures, diagnostics);
         }
         catch (JsonException exception)
         {
@@ -188,6 +222,7 @@ public sealed class FirmwareDescriptorResolver
     private static FirmwarePair? ParseDescriptor(
         JsonElement root,
         string descriptorPath,
+        IReadOnlyList<string> requiredFeatures,
         List<FirmwareDiagnostic> diagnostics)
     {
         if (root.ValueKind != JsonValueKind.Object || ContainsDuplicateProperty(root))
@@ -220,7 +255,7 @@ public sealed class FirmwareDescriptorResolver
             return null;
         }
 
-        var missingFeatures = RequiredFeatures
+        var missingFeatures = requiredFeatures
             .Where(required => !features.Contains(required, StringComparer.Ordinal))
             .ToArray();
         if (missingFeatures.Length > 0)

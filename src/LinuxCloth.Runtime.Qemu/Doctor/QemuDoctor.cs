@@ -43,7 +43,9 @@ public sealed class QemuDoctor
         _host = host ?? throw new ArgumentNullException(nameof(host));
 
         ValidateOptions(options);
-        _firmwareResolver = new FirmwareDescriptorResolver(options.FirmwareDescriptorDirectory);
+        _firmwareResolver = new FirmwareDescriptorResolver(
+            new[] { options.FirmwareDescriptorDirectory }
+                .Concat(options.AdditionalFirmwareDescriptorDirectories));
     }
 
     public async Task<DoctorReport> InspectAsync(CancellationToken cancellationToken = default) =>
@@ -337,6 +339,7 @@ public sealed class QemuDoctor
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(options.KvmDevicePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.FirmwareDescriptorDirectory);
+        ArgumentNullException.ThrowIfNull(options.AdditionalFirmwareDescriptorDirectories);
 
         if (!Path.IsPathFullyQualified(options.KvmDevicePath))
         {
@@ -346,6 +349,15 @@ public sealed class QemuDoctor
         if (!Path.IsPathFullyQualified(options.FirmwareDescriptorDirectory))
         {
             throw new ArgumentException("The firmware descriptor directory must be absolute.", nameof(options));
+        }
+
+        if (options.AdditionalFirmwareDescriptorDirectories.Count > 8 ||
+            options.AdditionalFirmwareDescriptorDirectories.Any(path =>
+                string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)))
+        {
+            throw new ArgumentException(
+                "Additional firmware descriptor directories must be absolute and limited to eight entries.",
+                nameof(options));
         }
 
         if (options.MaximumUnixSocketPathBytes is <= 0 or > QemuDoctorOptions.MaximumSessionSocketPathBytes)

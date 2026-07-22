@@ -40,6 +40,35 @@ public sealed class FirmwareDescriptorResolverTests
     }
 
     [Fact]
+    public void ResolvesSecureBootCapableFirmwareBeforeKeysAreEnrolled()
+    {
+        using var fixture = new FirmwareDescriptorFixture();
+        fixture.WriteDescriptor(features: ["secure-boot", "requires-smm"]);
+
+        var result = new FirmwareDescriptorResolver(fixture.DescriptorDirectory)
+            .ResolveSecureBootCapable();
+
+        Assert.True(result.IsResolved);
+        Assert.NotNull(result.Pair);
+    }
+
+    [Fact]
+    public void ResolvesFirmwareAcrossSystemAndManagedDescriptorDirectories()
+    {
+        using var system = new FirmwareDescriptorFixture();
+        using var managed = new FirmwareDescriptorFixture();
+        system.WriteDescriptor(features: ["secure-boot", "requires-smm"]);
+        var managedDescriptor = managed.WriteDescriptor();
+
+        var result = new FirmwareDescriptorResolver(
+                [system.DescriptorDirectory, managed.DescriptorDirectory])
+            .Resolve();
+
+        Assert.True(result.IsResolved);
+        Assert.Equal(managedDescriptor, result.Pair?.DescriptorPath);
+    }
+
+    [Fact]
     public void RejectsRelativeAndTraversalMappingPaths()
     {
         using var fixture = new FirmwareDescriptorFixture();

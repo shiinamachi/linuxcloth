@@ -28,6 +28,8 @@ public sealed class QemuDoctorOptions
     public string FirmwareDescriptorDirectory { get; init; } =
         FirmwareDescriptorResolver.DefaultDescriptorDirectory;
 
+    public IReadOnlyList<string> AdditionalFirmwareDescriptorDirectories { get; init; } = [];
+
     public string? XdgRuntimeDirectory { get; init; } =
         Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
 
