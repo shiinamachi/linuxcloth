@@ -7,6 +7,7 @@ using LinuxCloth.Application.Launching;
 using LinuxCloth.Catalog;
 using LinuxCloth.Core;
 using LinuxCloth.Desktop.Infrastructure;
+using LinuxCloth.Desktop.Localization;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Runtime.Qemu.Doctor;
 
@@ -18,23 +19,27 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly DesktopRuntime _runtime;
     private readonly CancellationTokenSource _shutdown = new();
     private bool _canHostLaunch;
-    private string _doctorSummary = "확인 중";
+    private string _doctorSummary;
     private string? _errorMessage;
     private bool _hasUnresolvedRecovery;
     private bool _isBusy;
     private bool _isInitialized;
+    private QemuDoctorResult? _lastDoctor;
     private IRunningLinuxClothSession? _runningSession;
     private string _searchText = string.Empty;
     private CategoryFilterViewModel? _selectedCategory;
     private ImageChoiceViewModel? _selectedImage;
     private ServiceCardViewModel? _selectedService;
-    private string _sessionStatus = "서비스를 선택하세요.";
+    private string _sessionStatus;
 
     public MainWindowViewModel(DesktopRuntime runtime)
     {
         _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
-        Categories.Add(new CategoryFilterViewModel("전체", null));
+        _doctorSummary = Text("Catalog.Status.Checking");
+        _sessionStatus = Text("Catalog.Status.ChooseService");
+        Categories.Add(new CategoryFilterViewModel(Text("Catalog.Category.All"), null));
         SelectedCategory = Categories[0];
+        UiStrings.Instance.CultureChanged += OnCultureChanged;
         RefreshDoctorCommand = new AsyncCommand(
             RefreshDoctorAsync,
             () => !IsBusy,
@@ -181,7 +186,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         IsBusy = true;
         ErrorMessage = null;
-        SessionStatus = "준비 중…";
+        SessionStatus = Text("Catalog.Status.GettingReady");
         try
         {
             LoadCatalog(startup.Catalog.Services);
@@ -190,7 +195,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _hasUnresolvedRecovery = startup.Recovery.Any(result => !result.IsCleaned);
             if (_hasUnresolvedRecovery)
             {
-                ErrorMessage = "이전 작업을 정리하지 못했습니다. 상태를 확인한 뒤 다시 시도하세요.";
+                ErrorMessage = Text("Catalog.Error.Recovery");
                 OnPropertyChanged(nameof(IsReady));
             }
 
@@ -219,8 +224,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             LoadImages(await _runtime.ListImagesAsync(_shutdown.Token));
             SessionStatus = HasImages
-                ? "서비스를 선택하세요."
-                : "Windows 환경을 먼저 준비하세요.";
+                ? Text("Catalog.Status.ChooseService")
+                : Text("Catalog.Status.PrepareEnvironment");
         }
         catch (Exception exception)
         {
@@ -248,6 +253,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             service.Dispose();
         }
 
+        UiStrings.Instance.CultureChanged -= OnCultureChanged;
         _shutdown.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -258,12 +264,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Trace.TraceError("Desktop catalog operation failed: {0}", exception);
         ErrorMessage = exception switch
         {
-            LaunchPrerequisiteException => "실행 준비가 되지 않았습니다. 준비 상태를 확인하세요.",
-            ImageVerificationException => "Windows 환경을 확인하지 못했습니다. 다시 준비하세요.",
-            OperationCanceledException => "작업이 취소되었습니다.",
-            _ => "작업 중 오류가 발생했습니다.",
+            LaunchPrerequisiteException => Text("Catalog.Error.Prerequisite"),
+            ImageVerificationException => Text("Catalog.Error.Image"),
+            OperationCanceledException => Text("Catalog.Error.Canceled"),
+            _ => Text("Catalog.Error.Generic"),
         };
-        SessionStatus = "완료하지 못했습니다.";
+        SessionStatus = Text("Catalog.Status.Failed");
     }
 
     private async Task RefreshDoctorAsync()
@@ -314,7 +320,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await session.Completion;
-            SessionStatus = "닫았고 변경사항을 삭제했습니다.";
+            SessionStatus = Text("Catalog.Status.Deleted");
         }
         catch (Exception exception)
         {
@@ -347,7 +353,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        SessionStatus = "닫고 삭제하는 중…";
+        SessionStatus = Text("Catalog.Status.Deleting");
         await _runningSession.StopAsync(_shutdown.Token);
     }
 
@@ -360,8 +366,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         _allServices.Clear();
         _allServices.AddRange(services.Select(service => new ServiceCardViewModel(service)));
+        RebuildCategories();
+    }
+
+    private void RebuildCategories(CatalogCategory? selectedCategory = null)
+    {
         Categories.Clear();
-        Categories.Add(new CategoryFilterViewModel("전체", null));
+        Categories.Add(new CategoryFilterViewModel(Text("Catalog.Category.All"), null));
         CatalogCategory[] categoryOrder =
         [
             CatalogCategory.Banking,
@@ -381,7 +392,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Categories.Add(new CategoryFilterViewModel(ServiceCardViewModel.CategoryName(category), category));
         }
 
-        SelectedCategory = Categories[0];
+        SelectedCategory = Categories.FirstOrDefault(category => category.Value == selectedCategory) ??
+                           Categories[0];
         ApplyFilter();
     }
 
@@ -402,6 +414,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void ApplyDoctor(QemuDoctorResult result)
     {
+        _lastDoctor = result;
         DoctorChecks.Clear();
         foreach (var check in result.Report.Checks)
         {
@@ -415,8 +428,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _canHostLaunch = result.CanLaunch;
         var missing = result.Report.Checks.Count(check => check.IsRequired && !check.IsAvailable);
         DoctorSummary = result.CanLaunch
-            ? "준비됨"
-            : $"설정 {missing}개 필요";
+            ? Text("Catalog.Status.Ready")
+            : UiStrings.Instance.Format("Catalog.Status.SetupNeeded", missing);
         if (_isInitialized && _runningSession is null && !IsBusy)
         {
             SessionStatus = ComposeSessionStatus();
@@ -430,19 +443,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         if (_hasUnresolvedRecovery)
         {
-            return "이전 작업 정리가 필요합니다";
+            return Text("Catalog.Status.RecoveryNeeded");
         }
 
         if (!HasImages)
         {
             return IsReady
-                ? "준비됨 · Windows 환경을 먼저 준비하세요"
-                : "Windows 환경을 먼저 준비하세요";
+                ? Text("Catalog.Status.ReadyPrepareEnvironment")
+                : Text("Catalog.Status.PrepareEnvironment");
         }
 
         return IsReady
-            ? "준비됨 · 서비스를 선택하세요"
-            : "서비스를 선택하세요";
+            ? Text("Catalog.Status.ReadyChooseService")
+            : Text("Catalog.Status.ChooseService");
     }
 
     private void ApplyFilter()
@@ -474,30 +487,56 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         RefreshDoctorCommand.RaiseCanExecuteChanged();
     }
 
+    private void OnCultureChanged(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        var selectedCategory = SelectedCategory?.Value;
+        RebuildCategories(selectedCategory);
+        if (_lastDoctor is not null)
+        {
+            ApplyDoctor(_lastDoctor);
+        }
+        else
+        {
+            DoctorSummary = Text("Catalog.Status.Checking");
+        }
+
+        SessionStatus = IsSessionRunning
+            ? Text("Catalog.Session.Running")
+            : ComposeSessionStatus();
+        if (HasError)
+        {
+            ErrorMessage = Text("Catalog.Error.Generic");
+        }
+    }
+
     private static string StateText(SessionState state) => state switch
     {
-        SessionState.Validating => "확인 중…",
-        SessionState.PreparingOverlay => "환경 준비 중…",
-        SessionState.PreparingConfigDisk => "실행 설정 준비 중…",
-        SessionState.StartingNetwork => "연결 준비 중…",
-        SessionState.StartingVm => "시작 중…",
-        SessionState.WaitingForGuest => "준비 대기 중…",
-        SessionState.Running => "서비스 실행 중",
-        SessionState.Stopping => "종료 중…",
-        SessionState.Cleaning => "삭제 중…",
-        SessionState.Completed => "정리 완료",
-        SessionState.Failed => "열지 못했습니다.",
-        _ => "준비 중…",
+        SessionState.Validating => Text("Catalog.Session.Validating"),
+        SessionState.PreparingOverlay => Text("Catalog.Session.Preparing"),
+        SessionState.PreparingConfigDisk => Text("Catalog.Session.Config"),
+        SessionState.StartingNetwork => Text("Catalog.Session.Network"),
+        SessionState.StartingVm => Text("Catalog.Session.Starting"),
+        SessionState.WaitingForGuest => Text("Catalog.Session.Waiting"),
+        SessionState.Running => Text("Catalog.Session.Running"),
+        SessionState.Stopping => Text("Catalog.Session.Stopping"),
+        SessionState.Cleaning => Text("Catalog.Session.Cleaning"),
+        SessionState.Completed => Text("Catalog.Session.Completed"),
+        SessionState.Failed => Text("Catalog.Session.Failed"),
+        _ => Text("Catalog.Status.GettingReady"),
     };
 
     private static string CheckLabel(string code) => code switch
     {
-        QemuDoctorCheckCodes.Platform => "운영체제",
-        QemuDoctorCheckCodes.Kvm => "가상화",
-        QemuDoctorCheckCodes.Firmware => "Windows 시작",
-        QemuDoctorCheckCodes.RuntimeDirectory => "작업 공간",
-        QemuDoctorCheckCodes.RemoteViewer => "Windows 화면",
-        QemuDoctorCheckCodes.Bubblewrap => "프로세스 격리",
+        QemuDoctorCheckCodes.Platform => Text("Catalog.Check.Platform"),
+        QemuDoctorCheckCodes.Kvm => Text("Catalog.Check.Virtualization"),
+        QemuDoctorCheckCodes.Firmware => Text("Catalog.Check.Firmware"),
+        QemuDoctorCheckCodes.RuntimeDirectory => Text("Catalog.Check.Workspace"),
+        QemuDoctorCheckCodes.RemoteViewer => Text("Catalog.Check.Display"),
+        QemuDoctorCheckCodes.Bubblewrap => Text("Catalog.Check.Isolation"),
         _ => code,
     };
+
+    private static string Text(string key) => UiStrings.Instance[key];
 }

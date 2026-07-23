@@ -323,8 +323,8 @@
     <Setter Property="BorderThickness" Value="0" />
   </Style>
   <Style Selector="ListBox.service-grid > ListBoxItem">
-    <Setter Property="Width" Value="88" />
-    <Setter Property="MinHeight" Value="100" />
+    <Setter Property="Width" Value="112" />
+    <Setter Property="MinHeight" Value="124" />
     <Setter Property="Padding" Value="6,8" />
     <Setter Property="Margin" Value="4" />
     <Setter Property="Background" Value="Transparent" />

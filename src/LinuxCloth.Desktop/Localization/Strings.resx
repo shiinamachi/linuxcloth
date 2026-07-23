@@ -426,4 +426,250 @@
   <data name="Setup.Resource.Memory" xml:space="preserve">
     <value>메모리 설정이 현재 사용 가능한 메모리의 75%를 초과합니다.</value>
   </data>
+  <data name="Catalog.Environment.Short" xml:space="preserve">
+    <value>환경</value>
+  </data>
+  <data name="Catalog.WindowsEnvironment" xml:space="preserve">
+    <value>Windows 환경</value>
+  </data>
+  <data name="Catalog.WindowsEnvironment.Manage" xml:space="preserve">
+    <value>Windows 환경 관리</value>
+  </data>
+  <data name="Catalog.WindowsEnvironment.Select" xml:space="preserve">
+    <value>Windows 환경 선택</value>
+  </data>
+  <data name="Catalog.Search" xml:space="preserve">
+    <value>서비스 검색</value>
+  </data>
+  <data name="Catalog.Search.Help" xml:space="preserve">
+    <value>서비스 이름으로 카탈로그를 검색합니다.</value>
+  </data>
+  <data name="Catalog.Categories" xml:space="preserve">
+    <value>서비스 분류</value>
+  </data>
+  <data name="Catalog.Category" xml:space="preserve">
+    <value>분류</value>
+  </data>
+  <data name="Catalog.Readiness" xml:space="preserve">
+    <value>실행 준비 상태</value>
+  </data>
+  <data name="Catalog.Refresh" xml:space="preserve">
+    <value>다시 확인</value>
+  </data>
+  <data name="Catalog.TechnicalDetails" xml:space="preserve">
+    <value>기술 세부정보</value>
+  </data>
+  <data name="Catalog.Instruction" xml:space="preserve">
+    <value>접속하려는 사이트를 선택하거나, 검색창에서 검색어를 입력하세요.</value>
+  </data>
+  <data name="Catalog.Services" xml:space="preserve">
+    <value>서비스 목록</value>
+  </data>
+  <data name="Catalog.SelectService" xml:space="preserve">
+    <value>서비스를 선택하세요</value>
+  </data>
+  <data name="Catalog.Progress" xml:space="preserve">
+    <value>작업 진행 중</value>
+  </data>
+  <data name="Catalog.Stop" xml:space="preserve">
+    <value>닫고 삭제</value>
+  </data>
+  <data name="Catalog.Stop.Name" xml:space="preserve">
+    <value>Windows 환경 닫기 및 삭제</value>
+  </data>
+  <data name="Catalog.Details.Close" xml:space="preserve">
+    <value>서비스 상세정보 닫기</value>
+  </data>
+  <data name="Catalog.Details.Title" xml:space="preserve">
+    <value>서비스 상세</value>
+  </data>
+  <data name="Catalog.Details.DeleteNotice" xml:space="preserve">
+    <value>닫으면 이번 실행의 파일과 변경사항이 삭제됩니다.</value>
+  </data>
+  <data name="Catalog.Details.EnvironmentName" xml:space="preserve">
+    <value>서비스를 열 Windows 환경</value>
+  </data>
+  <data name="Catalog.Details.PrepareEnvironment" xml:space="preserve">
+    <value>Windows 환경 준비</value>
+  </data>
+  <data name="Catalog.Details.EnglishName" xml:space="preserve">
+    <value>영문 이름</value>
+  </data>
+  <data name="Catalog.Details.LaunchConfig" xml:space="preserve">
+    <value>실행 구성</value>
+  </data>
+  <data name="Catalog.Details.CustomBootstrap" xml:space="preserve">
+    <value>추가 준비 단계를 사용합니다.</value>
+  </data>
+  <data name="Catalog.Details.Launch" xml:space="preserve">
+    <value>실행하기</value>
+  </data>
+  <data name="Catalog.Details.LaunchName" xml:space="preserve">
+    <value>선택한 서비스 열기</value>
+  </data>
+  <data name="Catalog.Status.Checking" xml:space="preserve">
+    <value>확인 중</value>
+  </data>
+  <data name="Catalog.Status.GettingReady" xml:space="preserve">
+    <value>준비 중…</value>
+  </data>
+  <data name="Catalog.Status.Ready" xml:space="preserve">
+    <value>준비됨</value>
+  </data>
+  <data name="Catalog.Status.SetupNeeded" xml:space="preserve">
+    <value>설정 {0}개 필요</value>
+  </data>
+  <data name="Catalog.Status.RecoveryNeeded" xml:space="preserve">
+    <value>이전 작업 정리가 필요합니다</value>
+  </data>
+  <data name="Catalog.Status.ChooseService" xml:space="preserve">
+    <value>서비스를 선택하세요.</value>
+  </data>
+  <data name="Catalog.Status.PrepareEnvironment" xml:space="preserve">
+    <value>Windows 환경을 먼저 준비하세요.</value>
+  </data>
+  <data name="Catalog.Status.ReadyChooseService" xml:space="preserve">
+    <value>준비됨 · 서비스를 선택하세요</value>
+  </data>
+  <data name="Catalog.Status.ReadyPrepareEnvironment" xml:space="preserve">
+    <value>준비됨 · Windows 환경을 먼저 준비하세요</value>
+  </data>
+  <data name="Catalog.Status.Deleted" xml:space="preserve">
+    <value>닫았고 변경사항을 삭제했습니다.</value>
+  </data>
+  <data name="Catalog.Status.Deleting" xml:space="preserve">
+    <value>닫고 삭제하는 중…</value>
+  </data>
+  <data name="Catalog.Status.Failed" xml:space="preserve">
+    <value>완료하지 못했습니다.</value>
+  </data>
+  <data name="Catalog.Error.Recovery" xml:space="preserve">
+    <value>이전 작업을 정리하지 못했습니다. 상태를 확인한 뒤 다시 시도하세요.</value>
+  </data>
+  <data name="Catalog.Error.Prerequisite" xml:space="preserve">
+    <value>실행 준비가 되지 않았습니다. 준비 상태를 확인하세요.</value>
+  </data>
+  <data name="Catalog.Error.Image" xml:space="preserve">
+    <value>Windows 환경을 확인하지 못했습니다. 다시 준비하세요.</value>
+  </data>
+  <data name="Catalog.Error.Canceled" xml:space="preserve">
+    <value>작업이 취소되었습니다.</value>
+  </data>
+  <data name="Catalog.Error.Generic" xml:space="preserve">
+    <value>작업 중 오류가 발생했습니다.</value>
+  </data>
+  <data name="Catalog.Session.Validating" xml:space="preserve">
+    <value>확인 중…</value>
+  </data>
+  <data name="Catalog.Session.Preparing" xml:space="preserve">
+    <value>환경 준비 중…</value>
+  </data>
+  <data name="Catalog.Session.Config" xml:space="preserve">
+    <value>실행 설정 준비 중…</value>
+  </data>
+  <data name="Catalog.Session.Network" xml:space="preserve">
+    <value>연결 준비 중…</value>
+  </data>
+  <data name="Catalog.Session.Starting" xml:space="preserve">
+    <value>시작 중…</value>
+  </data>
+  <data name="Catalog.Session.Waiting" xml:space="preserve">
+    <value>준비 대기 중…</value>
+  </data>
+  <data name="Catalog.Session.Running" xml:space="preserve">
+    <value>서비스 실행 중</value>
+  </data>
+  <data name="Catalog.Session.Stopping" xml:space="preserve">
+    <value>종료 중…</value>
+  </data>
+  <data name="Catalog.Session.Cleaning" xml:space="preserve">
+    <value>삭제 중…</value>
+  </data>
+  <data name="Catalog.Session.Completed" xml:space="preserve">
+    <value>정리 완료</value>
+  </data>
+  <data name="Catalog.Session.Failed" xml:space="preserve">
+    <value>열지 못했습니다.</value>
+  </data>
+  <data name="Catalog.Check.Platform" xml:space="preserve">
+    <value>운영체제</value>
+  </data>
+  <data name="Catalog.Check.Virtualization" xml:space="preserve">
+    <value>가상화</value>
+  </data>
+  <data name="Catalog.Check.Firmware" xml:space="preserve">
+    <value>Windows 시작</value>
+  </data>
+  <data name="Catalog.Check.Workspace" xml:space="preserve">
+    <value>작업 공간</value>
+  </data>
+  <data name="Catalog.Check.Display" xml:space="preserve">
+    <value>Windows 화면</value>
+  </data>
+  <data name="Catalog.Check.Isolation" xml:space="preserve">
+    <value>프로세스 격리</value>
+  </data>
+  <data name="Catalog.Category.All" xml:space="preserve">
+    <value>전체</value>
+  </data>
+  <data name="Catalog.Category.Banking" xml:space="preserve">
+    <value>은행</value>
+  </data>
+  <data name="Catalog.Category.Financing" xml:space="preserve">
+    <value>금융</value>
+  </data>
+  <data name="Catalog.Category.Security" xml:space="preserve">
+    <value>증권</value>
+  </data>
+  <data name="Catalog.Category.Insurance" xml:space="preserve">
+    <value>보험</value>
+  </data>
+  <data name="Catalog.Category.CreditCard" xml:space="preserve">
+    <value>카드</value>
+  </data>
+  <data name="Catalog.Category.Government" xml:space="preserve">
+    <value>정부</value>
+  </data>
+  <data name="Catalog.Category.Education" xml:space="preserve">
+    <value>교육</value>
+  </data>
+  <data name="Catalog.Category.Other" xml:space="preserve">
+    <value>기타</value>
+  </data>
+  <data name="Catalog.Compatibility.Verified" xml:space="preserve">
+    <value>호환 확인됨</value>
+  </data>
+  <data name="Catalog.Compatibility.Partial" xml:space="preserve">
+    <value>제한 있음</value>
+  </data>
+  <data name="Catalog.Compatibility.Blocked" xml:space="preserve">
+    <value>이용 불가</value>
+  </data>
+  <data name="Catalog.Compatibility.Unknown" xml:space="preserve">
+    <value>미확인</value>
+  </data>
+  <data name="Catalog.Compatibility.VerifiedDescription" xml:space="preserve">
+    <value>이 환경에서 이용할 수 있습니다.</value>
+  </data>
+  <data name="Catalog.Compatibility.PartialDescription" xml:space="preserve">
+    <value>일부 기능에 제한이 있을 수 있습니다.</value>
+  </data>
+  <data name="Catalog.Compatibility.BlockedDescription" xml:space="preserve">
+    <value>현재 환경에서는 열 수 없습니다.</value>
+  </data>
+  <data name="Catalog.Compatibility.UnknownDescription" xml:space="preserve">
+    <value>이 환경에서의 지원 상태가 아직 확인되지 않았습니다.</value>
+  </data>
+  <data name="Catalog.PackageSummary" xml:space="preserve">
+    <value>패키지 {0} · Edge 확장 {1}</value>
+  </data>
+  <data name="Catalog.Check.Available" xml:space="preserve">
+    <value>사용 가능</value>
+  </data>
+  <data name="Catalog.Check.Required" xml:space="preserve">
+    <value>설정 필요</value>
+  </data>
+  <data name="Catalog.Check.Recommended" xml:space="preserve">
+    <value>권장</value>
+  </data>
 </root>

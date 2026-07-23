@@ -1,11 +1,14 @@
 <UserControl
     x:Class="LinuxCloth.Desktop.Controls.ServiceDetails"
     xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:localization="using:LinuxCloth.Desktop.Localization">
   <Grid RowDefinitions="*,Auto">
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
       <StackPanel Spacing="14">
-        <TextBlock Text="서비스 상세" Classes="section-title" />
+        <TextBlock
+            Text="{Binding [Catalog.Details.Title], Source={x:Static localization:UiStrings.Instance}}"
+            Classes="section-title" />
 
         <Grid ColumnDefinitions="96,*" ColumnSpacing="12">
           <Border Classes="logo-frame" Width="88" Height="88" HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -72,7 +75,7 @@
                 Margin="0,1,0,0" />
             <TextBlock
                 Grid.Column="1"
-                Text="닫으면 이번 실행의 파일과 변경사항이 삭제됩니다."
+                Text="{Binding [Catalog.Details.DeleteNotice], Source={x:Static localization:UiStrings.Instance}}"
                 TextWrapping="Wrap"
                 Classes="caption warning"
                 FontWeight="SemiBold" />
@@ -80,13 +83,16 @@
         </Border>
 
         <StackPanel Spacing="6">
-          <TextBlock Text="Windows 환경" FontWeight="SemiBold" Classes="caption" />
+          <TextBlock
+              Text="{Binding [Catalog.WindowsEnvironment], Source={x:Static localization:UiStrings.Instance}}"
+              FontWeight="SemiBold"
+              Classes="caption" />
           <ComboBox
               ItemsSource="{Binding Images}"
               SelectedItem="{Binding SelectedImage}"
               HorizontalAlignment="Stretch"
               AutomationProperties.AutomationId="Catalog.Details.WindowsEnvironment"
-              AutomationProperties.Name="서비스를 열 Windows 환경">
+              AutomationProperties.Name="{Binding [Catalog.Details.EnvironmentName], Source={x:Static localization:UiStrings.Instance}}">
             <ComboBox.ItemTemplate>
               <DataTemplate>
                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -104,7 +110,7 @@
           <Button
               IsVisible="{Binding !HasImages}"
               Classes="secondary"
-              Content="Windows 환경 준비"
+              Content="{Binding [Catalog.Details.PrepareEnvironment], Source={x:Static localization:UiStrings.Instance}}"
               Click="OnOpenSetup"
               AutomationProperties.AutomationId="Catalog.Details.PrepareWindowsEnvironment"
               HorizontalAlignment="Left" />
@@ -112,20 +118,24 @@
 
         <Expander
             Classes="technical"
-            Header="기술 세부정보"
+            Header="{Binding [Catalog.TechnicalDetails], Source={x:Static localization:UiStrings.Instance}}"
             AutomationProperties.AutomationId="Catalog.Details.TechnicalDetails">
           <StackPanel Spacing="8" Margin="0,8,0,0">
             <StackPanel Spacing="2">
-              <TextBlock Text="영문 이름" Classes="meta" />
+              <TextBlock
+                  Text="{Binding [Catalog.Details.EnglishName], Source={x:Static localization:UiStrings.Instance}}"
+                  Classes="meta" />
               <TextBlock Text="{Binding SelectedService.EnglishDisplayName}" TextWrapping="Wrap" Classes="caption" />
             </StackPanel>
             <StackPanel Spacing="2">
-              <TextBlock Text="실행 구성" Classes="meta" />
+              <TextBlock
+                  Text="{Binding [Catalog.Details.LaunchConfig], Source={x:Static localization:UiStrings.Instance}}"
+                  Classes="meta" />
               <TextBlock Text="{Binding SelectedService.PackageSummary}" TextWrapping="Wrap" Classes="caption" />
             </StackPanel>
             <TextBlock
                 IsVisible="{Binding SelectedService.HasCustomBootstrap}"
-                Text="추가 준비 단계를 사용합니다."
+                Text="{Binding [Catalog.Details.CustomBootstrap], Source={x:Static localization:UiStrings.Instance}}"
                 TextWrapping="Wrap"
                 Classes="caption" />
             <TextBlock Text="{Binding SelectedService.Url}" Classes="meta mono" TextWrapping="Wrap" />
@@ -139,12 +149,12 @@
         Classes="primary"
         Margin="0,16,0,0"
         MinHeight="40"
-        Content="실행하기"
+        Content="{Binding [Catalog.Details.Launch], Source={x:Static localization:UiStrings.Instance}}"
         Command="{Binding LaunchCommand}"
         IsEnabled="{Binding CanLaunch}"
         HorizontalAlignment="Stretch"
         HorizontalContentAlignment="Center"
         AutomationProperties.AutomationId="Catalog.Launch"
-        AutomationProperties.Name="선택한 서비스 열기" />
+        AutomationProperties.Name="{Binding [Catalog.Details.LaunchName], Source={x:Static localization:UiStrings.Instance}}" />
   </Grid>
 </UserControl>

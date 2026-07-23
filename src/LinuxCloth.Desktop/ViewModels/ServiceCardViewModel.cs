@@ -4,6 +4,7 @@ using LinuxCloth.Application.Images;
 using LinuxCloth.Catalog;
 using LinuxCloth.Core;
 using LinuxCloth.Desktop.Infrastructure;
+using LinuxCloth.Desktop.Localization;
 
 namespace LinuxCloth.Desktop.ViewModels;
 
@@ -14,6 +15,7 @@ public sealed class ServiceCardViewModel : ObservableObject, IDisposable
     public ServiceCardViewModel(CatalogServiceEntry entry)
     {
         _entry = entry ?? throw new ArgumentNullException(nameof(entry));
+        UiStrings.Instance.CultureChanged += OnCultureChanged;
         if (entry.Image is not null)
         {
             try
@@ -29,7 +31,11 @@ public sealed class ServiceCardViewModel : ObservableObject, IDisposable
 
     public ServiceId Id => _entry.Service.Id;
 
-    public string DisplayName => _entry.Service.DisplayName;
+    public string DisplayName =>
+        UiStrings.Instance.CurrentCulture.TwoLetterISOLanguageName == "en" &&
+        !string.IsNullOrWhiteSpace(EnglishDisplayName)
+            ? EnglishDisplayName
+            : _entry.Service.DisplayName;
 
     public string EnglishDisplayName => _entry.Service.EnglishDisplayName ?? string.Empty;
 
@@ -46,10 +52,10 @@ public sealed class ServiceCardViewModel : ObservableObject, IDisposable
 
     public string CompatibilityLabel => _entry.Compatibility.Status switch
     {
-        CompatibilityStatus.Verified => "이용 가능",
-        CompatibilityStatus.Partial => "제한 있음",
-        CompatibilityStatus.Blocked => "이용 불가",
-        _ => "미확인",
+        CompatibilityStatus.Verified => Text("Catalog.Compatibility.Verified"),
+        CompatibilityStatus.Partial => Text("Catalog.Compatibility.Partial"),
+        CompatibilityStatus.Blocked => Text("Catalog.Compatibility.Blocked"),
+        _ => Text("Catalog.Compatibility.Unknown"),
     };
 
     public bool IsVerified => _entry.Compatibility.Status == CompatibilityStatus.Verified;
@@ -75,15 +81,17 @@ public sealed class ServiceCardViewModel : ObservableObject, IDisposable
     public string CompatibilityDescription => string.IsNullOrWhiteSpace(CompatibilityNotes)
         ? _entry.Compatibility.Status switch
         {
-            CompatibilityStatus.Verified => "이 환경에서 이용할 수 있습니다.",
-            CompatibilityStatus.Partial => "일부 기능에 제한이 있을 수 있습니다.",
-            CompatibilityStatus.Blocked => "현재 환경에서는 열 수 없습니다.",
-            _ => "이 환경에서의 지원 상태가 아직 확인되지 않았습니다.",
+            CompatibilityStatus.Verified => Text("Catalog.Compatibility.VerifiedDescription"),
+            CompatibilityStatus.Partial => Text("Catalog.Compatibility.PartialDescription"),
+            CompatibilityStatus.Blocked => Text("Catalog.Compatibility.BlockedDescription"),
+            _ => Text("Catalog.Compatibility.UnknownDescription"),
         }
         : CompatibilityNotes;
 
-    public string PackageSummary =>
-        $"패키지 {_entry.Service.Packages.Count} · Edge 확장 {_entry.Service.EdgeExtensions.Count}";
+    public string PackageSummary => UiStrings.Instance.Format(
+        "Catalog.PackageSummary",
+        _entry.Service.Packages.Count,
+        _entry.Service.EdgeExtensions.Count);
 
     public bool HasCustomBootstrap => _entry.Service.HasCustomBootstrap;
 
@@ -91,21 +99,35 @@ public sealed class ServiceCardViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        UiStrings.Instance.CultureChanged -= OnCultureChanged;
         Image?.Dispose();
         GC.SuppressFinalize(this);
     }
 
     public static string CategoryName(CatalogCategory category) => category switch
     {
-        CatalogCategory.Banking => "은행",
-        CatalogCategory.Financing => "금융",
-        CatalogCategory.Security => "증권",
-        CatalogCategory.Insurance => "보험",
-        CatalogCategory.CreditCard => "카드",
-        CatalogCategory.Government => "정부",
-        CatalogCategory.Education => "교육",
-        _ => "기타",
+        CatalogCategory.Banking => Text("Catalog.Category.Banking"),
+        CatalogCategory.Financing => Text("Catalog.Category.Financing"),
+        CatalogCategory.Security => Text("Catalog.Category.Security"),
+        CatalogCategory.Insurance => Text("Catalog.Category.Insurance"),
+        CatalogCategory.CreditCard => Text("Catalog.Category.CreditCard"),
+        CatalogCategory.Government => Text("Catalog.Category.Government"),
+        CatalogCategory.Education => Text("Catalog.Category.Education"),
+        _ => Text("Catalog.Category.Other"),
     };
+
+    private void OnCultureChanged(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        OnPropertyChanged(nameof(DisplayName));
+        OnPropertyChanged(nameof(Category));
+        OnPropertyChanged(nameof(CompatibilityLabel));
+        OnPropertyChanged(nameof(CompatibilityDescription));
+        OnPropertyChanged(nameof(PackageSummary));
+    }
+
+    private static string Text(string key) => UiStrings.Instance[key];
 }
 
 public sealed record CategoryFilterViewModel(string Label, CatalogCategory? Value);
@@ -116,5 +138,9 @@ public sealed record DoctorCheckViewModel(string Label, bool IsAvailable, bool I
 {
     public string Status => IsAvailable ? "✓" : "!";
 
-    public string StatusLabel => IsAvailable ? "사용 가능" : IsRequired ? "설정 필요" : "권장";
+    public string StatusLabel => IsAvailable
+        ? UiStrings.Instance["Catalog.Check.Available"]
+        : IsRequired
+            ? UiStrings.Instance["Catalog.Check.Required"]
+            : UiStrings.Instance["Catalog.Check.Recommended"];
 }

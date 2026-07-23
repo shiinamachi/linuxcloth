@@ -51,7 +51,9 @@ public sealed class UiStrings : INotifyPropertyChanged
             _selectedLanguage = supported;
             ApplyCulture(supported);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedLanguage)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item"));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
             CultureChanged?.Invoke(this, EventArgs.Empty);
         }
     }

@@ -12,6 +12,8 @@ public sealed partial class MainWindow : UserControl
 {
     private const double CompactBreakpoint = 820;
     private const double WideBreakpoint = 1180;
+    private const double CategoryRailWidth = 208;
+    private const double DetailsPanelWidth = 368;
     private MainWindowViewModel? _subscribedViewModel;
 
     public MainWindow()
@@ -132,13 +134,13 @@ public sealed partial class MainWindow : UserControl
         WideDetailsPanel.IsVisible = isWide;
         AdaptiveFilterBar.IsVisible = !isWide && !isCompact;
 
-        ContentGrid.ColumnDefinitions[0].Width = new GridLength(isWide ? 168 : 0);
-        ContentGrid.ColumnDefinitions[2].Width = new GridLength(isWide ? 340 : 0);
+        ContentGrid.ColumnDefinitions[0].Width = new GridLength(isWide ? CategoryRailWidth : 0);
+        ContentGrid.ColumnDefinitions[2].Width = new GridLength(isWide ? DetailsPanelWidth : 0);
         ServicesContent.Margin = isWide
-            ? new Thickness(0)
+            ? new Thickness(24, 20, 24, 12)
             : isCompact
-                ? new Thickness(4)
-                : new Thickness(4, 0);
+                ? new Thickness(8, 12, 8, 8)
+                : new Thickness(20, 16, 20, 12);
 
         var hasSelectedService = _subscribedViewModel?.HasSelectedService == true;
         DetailsOverlay.IsVisible = !isWide && hasSelectedService;

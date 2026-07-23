@@ -3,6 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:LinuxCloth.Desktop.Controls"
+    xmlns:localization="using:LinuxCloth.Desktop.Localization"
     Background="{DynamicResource AppBackgroundBrush}"
     KeyDown="OnKeyDown">
   <Grid RowDefinitions="Auto,*,Auto">
@@ -12,7 +13,7 @@
         Grid.Row="0"
         IsVisible="False"
         Classes="chrome-bar"
-        Padding="12,10">
+        Padding="12,52,12,10">
       <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
           <TextBlock Text="linuxcloth" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
@@ -41,11 +42,11 @@
           <Button
               Grid.Column="2"
               Classes="secondary"
-              Content="환경"
+              Content="{Binding [Catalog.Environment.Short], Source={x:Static localization:UiStrings.Instance}}"
               Click="OnOpenImageSetup"
               IsEnabled="{Binding CanConfigureImages}"
               AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Compact"
-              AutomationProperties.Name="Windows 환경 관리" />
+              AutomationProperties.Name="{Binding [Catalog.WindowsEnvironment.Manage], Source={x:Static localization:UiStrings.Instance}}" />
         </Grid>
         <Grid Grid.Row="1" ColumnDefinitions="*,140" ColumnSpacing="6">
           <Border Classes="search-field">
@@ -62,9 +63,9 @@
                   Grid.Column="1"
                   Classes="search"
                   Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                  PlaceholderText="서비스 검색"
+                  PlaceholderText="{Binding [Catalog.Search], Source={x:Static localization:UiStrings.Instance}}"
                   AutomationProperties.AutomationId="Catalog.Search.Compact"
-                  AutomationProperties.Name="서비스 검색" />
+                  AutomationProperties.Name="{Binding [Catalog.Search], Source={x:Static localization:UiStrings.Instance}}" />
             </Grid>
           </Border>
           <ComboBox
@@ -73,7 +74,7 @@
               SelectedItem="{Binding SelectedCategory}"
               HorizontalContentAlignment="Stretch"
               AutomationProperties.AutomationId="Catalog.Category.Compact"
-              AutomationProperties.Name="서비스 분류">
+              AutomationProperties.Name="{Binding [Catalog.Categories], Source={x:Static localization:UiStrings.Instance}}">
             <ComboBox.ItemTemplate>
               <DataTemplate>
                 <TextBlock Text="{Binding Label}" />
@@ -89,7 +90,7 @@
         x:Name="DesktopHeader"
         Grid.Row="0"
         Classes="chrome-bar"
-        Padding="16,10"
+        Padding="20,10,160,10"
         BorderBrush="{DynamicResource BorderSubtleBrush}"
         BorderThickness="0,0,0,1"
         Background="{DynamicResource SurfaceRaisedBrush}">
@@ -102,7 +103,7 @@
             Padding="8,4"
             VerticalAlignment="Center"
             AutomationProperties.AutomationId="Catalog.Readiness"
-            AutomationProperties.Name="실행 준비 상태">
+            AutomationProperties.Name="{Binding [Catalog.Readiness], Source={x:Static localization:UiStrings.Instance}}">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
               <Border Classes="card" Width="340">
@@ -126,13 +127,13 @@
                   </StackPanel>
                   <Button
                       Classes="secondary"
-                      Content="다시 확인"
+                      Content="{Binding [Catalog.Refresh], Source={x:Static localization:UiStrings.Instance}}"
                       Command="{Binding RefreshDoctorCommand}"
                       HorizontalAlignment="Left"
                       AutomationProperties.AutomationId="Catalog.Readiness.Refresh" />
                   <Expander
                       Classes="technical"
-                      Header="기술 세부정보"
+                      Header="{Binding [Catalog.TechnicalDetails], Source={x:Static localization:UiStrings.Instance}}"
                       AutomationProperties.AutomationId="Catalog.Readiness.TechnicalDetails">
                     <ItemsControl ItemsSource="{Binding DoctorChecks}" Margin="0,6,0,0">
                       <ItemsControl.ItemTemplate>
@@ -203,23 +204,25 @@
             IsEnabled="{Binding CanConfigureImages}"
             VerticalAlignment="Center"
             AutomationProperties.AutomationId="Catalog.WindowsEnvironment"
-            AutomationProperties.Name="Windows 환경 관리">
+            AutomationProperties.Name="{Binding [Catalog.WindowsEnvironment.Manage], Source={x:Static localization:UiStrings.Instance}}">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <PathIcon Width="14" Height="14" Data="{StaticResource IconDesktop}" VerticalAlignment="Center" />
-            <TextBlock Text="Windows 환경" VerticalAlignment="Center" />
+            <TextBlock
+                Text="{Binding [Catalog.WindowsEnvironment], Source={x:Static localization:UiStrings.Instance}}"
+                VerticalAlignment="Center" />
           </StackPanel>
         </Button>
       </Grid>
     </Border>
 
-    <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="168,*,340">
+    <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="208,*,368">
       <Border
           x:Name="CategoryRail"
           Grid.Column="0"
           Background="{DynamicResource SurfaceRaisedBrush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
           BorderThickness="0,0,1,0"
-          Padding="4,12,4,12">
+          Padding="8,20,8,12">
         <Grid RowDefinitions="*,Auto">
           <ListBox
               Grid.Row="0"
@@ -227,7 +230,7 @@
               ItemsSource="{Binding Categories}"
               SelectedItem="{Binding SelectedCategory}"
               AutomationProperties.AutomationId="Catalog.Categories"
-              AutomationProperties.Name="서비스 분류">
+              AutomationProperties.Name="{Binding [Catalog.Categories], Source={x:Static localization:UiStrings.Instance}}">
             <ListBox.ItemTemplate>
               <DataTemplate>
                 <StackPanel Orientation="Horizontal" Spacing="10">
@@ -251,7 +254,7 @@
                 SelectedItem="{Binding SelectedImage}"
                 HorizontalAlignment="Stretch"
                 AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Select"
-                AutomationProperties.Name="Windows 환경 선택">
+                AutomationProperties.Name="{Binding [Catalog.WindowsEnvironment.Select], Source={x:Static localization:UiStrings.Instance}}">
               <ComboBox.ItemTemplate>
                 <DataTemplate>
                   <StackPanel Orientation="Horizontal" Spacing="6">
@@ -270,12 +273,12 @@
         </Grid>
       </Border>
 
-      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="16,12,16,8">
+      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="24,20,24,12">
         <StackPanel Grid.Row="0" Spacing="10">
           <TextBlock
               Classes="instruction"
               TextWrapping="Wrap"
-              Text="접속하려는 사이트를 선택하거나, 검색창에서 검색어를 입력하세요." />
+              Text="{Binding [Catalog.Instruction], Source={x:Static localization:UiStrings.Instance}}" />
           <Border Classes="search-field">
             <Grid ColumnDefinitions="Auto,*" Margin="10,0">
               <PathIcon
@@ -290,10 +293,10 @@
                   Grid.Column="1"
                   Classes="search"
                   Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                  PlaceholderText="서비스 검색"
+                  PlaceholderText="{Binding [Catalog.Search], Source={x:Static localization:UiStrings.Instance}}"
                   AutomationProperties.AutomationId="Catalog.Search"
-                  AutomationProperties.Name="서비스 검색"
-                  AutomationProperties.HelpText="서비스 이름으로 카탈로그를 검색합니다." />
+                  AutomationProperties.Name="{Binding [Catalog.Search], Source={x:Static localization:UiStrings.Instance}}"
+                  AutomationProperties.HelpText="{Binding [Catalog.Search.Help], Source={x:Static localization:UiStrings.Instance}}" />
             </Grid>
           </Border>
         </StackPanel>
@@ -304,7 +307,11 @@
             IsVisible="False"
             Margin="0,10,0,0"
             ColumnDefinitions="Auto,*">
-          <TextBlock Text="분류" Classes="caption" VerticalAlignment="Center" Margin="0,0,8,0" />
+          <TextBlock
+              Text="{Binding [Catalog.Category], Source={x:Static localization:UiStrings.Instance}}"
+              Classes="caption"
+              VerticalAlignment="Center"
+              Margin="0,0,8,0" />
           <ComboBox
               Grid.Column="1"
               MaxWidth="220"
@@ -312,7 +319,7 @@
               ItemsSource="{Binding Categories}"
               SelectedItem="{Binding SelectedCategory}"
               AutomationProperties.AutomationId="Catalog.Category.Medium"
-              AutomationProperties.Name="서비스 분류">
+              AutomationProperties.Name="{Binding [Catalog.Categories], Source={x:Static localization:UiStrings.Instance}}">
             <ComboBox.ItemTemplate>
               <DataTemplate>
                 <TextBlock Text="{Binding Label}" />
@@ -330,7 +337,7 @@
             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             Margin="0,8,0,0"
             AutomationProperties.AutomationId="Catalog.Services"
-            AutomationProperties.Name="서비스 목록">
+            AutomationProperties.Name="{Binding [Catalog.Services], Source={x:Static localization:UiStrings.Instance}}">
           <ListBox.ItemsPanel>
             <ItemsPanelTemplate>
               <WrapPanel Orientation="Horizontal" />
@@ -338,17 +345,17 @@
           </ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <Grid Width="72" MinHeight="92" VerticalAlignment="Top">
+              <Grid Width="96" MinHeight="108" VerticalAlignment="Top">
                 <Grid.RowDefinitions>
-                  <RowDefinition Height="48" />
-                  <RowDefinition Height="4" />
+                  <RowDefinition Height="60" />
+                  <RowDefinition Height="6" />
                   <RowDefinition Height="Auto" MinHeight="36" />
                 </Grid.RowDefinitions>
                 <Border
                     Grid.Row="0"
                     Classes="logo-frame"
-                    Width="48"
-                    Height="48"
+                  Width="60"
+                  Height="60"
                     Padding="4"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
@@ -379,10 +386,10 @@
           Background="{DynamicResource SurfaceRaisedBrush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
           BorderThickness="1,0,0,0"
-          Padding="16">
+          Padding="24">
         <Grid>
           <TextBlock
-              Text="사이트를 선택하세요"
+              Text="{Binding [Catalog.SelectService], Source={x:Static localization:UiStrings.Instance}}"
               Classes="caption"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
@@ -400,7 +407,7 @@
               IsIndeterminate="True"
               IsVisible="{Binding IsBusy}"
               VerticalAlignment="Center"
-              AutomationProperties.Name="작업 진행 중" />
+              AutomationProperties.Name="{Binding [Catalog.Progress], Source={x:Static localization:UiStrings.Instance}}" />
           <PathIcon
               Width="14"
               Height="14"
@@ -434,11 +441,11 @@
         <Button
             Grid.Column="3"
             Classes="danger"
-            Content="닫고 삭제"
+            Content="{Binding [Catalog.Stop], Source={x:Static localization:UiStrings.Instance}}"
             Command="{Binding StopCommand}"
             IsVisible="{Binding IsSessionRunning}"
             AutomationProperties.AutomationId="Catalog.Session.Stop"
-            AutomationProperties.Name="Windows 환경 닫기 및 삭제" />
+            AutomationProperties.Name="{Binding [Catalog.Stop.Name], Source={x:Static localization:UiStrings.Instance}}" />
       </Grid>
     </Border>
 
@@ -466,10 +473,13 @@
               Margin="0,0,0,8"
               Click="OnCloseDetails"
               AutomationProperties.AutomationId="Catalog.Details.Close"
-              AutomationProperties.Name="서비스 상세정보 닫기">
+              AutomationProperties.Name="{Binding [Catalog.Details.Close], Source={x:Static localization:UiStrings.Instance}}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <PathIcon Width="14" Height="14" Data="{StaticResource IconClose}" VerticalAlignment="Center" />
-              <TextBlock Text="서비스 상세정보 닫기" Classes="caption" VerticalAlignment="Center" />
+              <TextBlock
+                  Text="{Binding [Catalog.Details.Close], Source={x:Static localization:UiStrings.Instance}}"
+                  Classes="caption"
+                  VerticalAlignment="Center" />
             </StackPanel>
           </Button>
           <controls:ServiceDetails Grid.Row="1" />
