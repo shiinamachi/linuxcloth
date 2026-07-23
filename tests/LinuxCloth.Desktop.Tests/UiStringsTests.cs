@@ -1,3 +1,4 @@
+using Avalonia.Headless;
 using LinuxCloth.Desktop.Localization;
 using LinuxCloth.Desktop.ViewModels;
 
@@ -6,24 +7,36 @@ namespace LinuxCloth.Desktop.Tests;
 [Collection(HeadlessUiTestGroup.Name)]
 public sealed class UiStringsTests
 {
-    [Fact]
-    public void SwitchesBetweenKoreanAndEnglishResources()
-    {
-        var strings = UiStrings.Instance;
-        var originalCulture = strings.SelectedLanguage.CultureName;
-        try
-        {
-            strings.SelectCulture("ko-KR");
-            Assert.Equal("준비 중…", strings["Startup.Status"]);
+    private readonly HeadlessUnitTestSession _session;
 
-            strings.SelectCulture("en-US");
-            Assert.Equal("Getting ready…", strings["Startup.Status"]);
-            Assert.Equal("en-US", strings.CurrentCulture.Name);
-        }
-        finally
-        {
-            strings.SelectCulture(originalCulture);
-        }
+    public UiStringsTests(HeadlessUiFixture fixture)
+    {
+        _session = fixture.Session;
+    }
+
+    [Fact]
+    public async Task SwitchesBetweenKoreanAndEnglishResources()
+    {
+        await _session.Dispatch(
+            () =>
+            {
+                var strings = UiStrings.Instance;
+                var originalCulture = strings.SelectedLanguage.CultureName;
+                try
+                {
+                    strings.SelectCulture("ko-KR");
+                    Assert.Equal("준비 중…", strings["Startup.Status"]);
+
+                    strings.SelectCulture("en-US");
+                    Assert.Equal("Getting ready…", strings["Startup.Status"]);
+                    Assert.Equal("en-US", strings.CurrentCulture.Name);
+                }
+                finally
+                {
+                    strings.SelectCulture(originalCulture);
+                }
+            },
+            CancellationToken.None);
     }
 
     [Fact]
@@ -46,25 +59,30 @@ public sealed class UiStringsTests
     }
 
     [Fact]
-    public void SetupPhaseCopyUpdatesWithSelectedLanguage()
+    public async Task SetupPhaseCopyUpdatesWithSelectedLanguage()
     {
-        var strings = UiStrings.Instance;
-        var originalCulture = strings.SelectedLanguage.CultureName;
-        using var phase = new SetupFlowPhaseItemViewModel(1, "Setup.Phase.System");
-        try
-        {
-            strings.SelectCulture("ko-KR");
-            phase.Update(isComplete: false, isCurrent: true);
-            Assert.Equal("시스템 확인", phase.Title);
-            Assert.Equal("진행 중", phase.Marker);
+        await _session.Dispatch(
+            () =>
+            {
+                var strings = UiStrings.Instance;
+                var originalCulture = strings.SelectedLanguage.CultureName;
+                using var phase = new SetupFlowPhaseItemViewModel(1, "Setup.Phase.System");
+                try
+                {
+                    strings.SelectCulture("ko-KR");
+                    phase.Update(isComplete: false, isCurrent: true);
+                    Assert.Equal("시스템 확인", phase.Title);
+                    Assert.Equal("진행 중", phase.Marker);
 
-            strings.SelectCulture("en-US");
-            Assert.Equal("System check", phase.Title);
-            Assert.Equal("In progress", phase.Marker);
-        }
-        finally
-        {
-            strings.SelectCulture(originalCulture);
-        }
+                    strings.SelectCulture("en-US");
+                    Assert.Equal("System check", phase.Title);
+                    Assert.Equal("In progress", phase.Marker);
+                }
+                finally
+                {
+                    strings.SelectCulture(originalCulture);
+                }
+            },
+            CancellationToken.None);
     }
 }

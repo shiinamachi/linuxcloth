@@ -77,7 +77,14 @@ public sealed partial class MainWindow : UserControl
             viewModel.SelectedService = null;
         }
 
-        ServicesList.Focus();
+        if (ServicesList.ContainerFromIndex(0) is ListBoxItem firstService)
+        {
+            firstService.Focus();
+        }
+        else
+        {
+            ServicesList.Focus();
+        }
     }
 
     private void SubscribeToViewModel()
@@ -115,6 +122,10 @@ public sealed partial class MainWindow : UserControl
             nameof(MainWindowViewModel.HasSelectedService))
         {
             ApplyResponsiveLayout();
+            if (DetailsOverlay.IsVisible)
+            {
+                CloseDetailsButton.Focus();
+            }
         }
     }
 

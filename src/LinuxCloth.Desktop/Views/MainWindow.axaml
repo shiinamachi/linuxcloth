@@ -467,6 +467,7 @@
           VerticalAlignment="Stretch">
         <Grid RowDefinitions="Auto,*">
           <Button
+              x:Name="CloseDetailsButton"
               Grid.Row="0"
               Classes="ghost"
               HorizontalAlignment="Left"

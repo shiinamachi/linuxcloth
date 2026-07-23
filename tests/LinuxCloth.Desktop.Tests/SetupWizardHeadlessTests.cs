@@ -10,12 +10,17 @@ namespace LinuxCloth.Desktop.Tests;
 [Collection(HeadlessUiTestGroup.Name)]
 public sealed class SetupWizardHeadlessTests
 {
+    private readonly HeadlessUnitTestSession _session;
+
+    public SetupWizardHeadlessTests(HeadlessUiFixture fixture)
+    {
+        _session = fixture.Session;
+    }
+
     [Fact]
     public async Task RendersSinglePreparationActionWithAccessibleFilePickers()
     {
-        using var session = HeadlessUnitTestSession.StartNew(typeof(App));
-
-        await session.Dispatch(
+        await _session.Dispatch(
             () =>
             {
                 var view = new SetupWizardView();
@@ -84,9 +89,7 @@ public sealed class SetupWizardHeadlessTests
     [Fact]
     public async Task KeepsAllContentScrollableAtMinimumSizeAndTwoHundredPercentScaling()
     {
-        using var session = HeadlessUnitTestSession.StartNew(typeof(App));
-
-        await session.Dispatch(
+        await _session.Dispatch(
             () =>
             {
                 var view = new SetupWizardView();
@@ -108,6 +111,44 @@ public sealed class SetupWizardHeadlessTests
                     Assert.Equal(2, window.RenderScaling);
                     Assert.Equal(720, window.ClientSize.Width);
                     Assert.Equal(480, window.ClientSize.Height);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            },
+            CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(720, 480, 1.0)]
+    [InlineData(960, 540, 1.25)]
+    [InlineData(1280, 720, 1.5)]
+    [InlineData(1440, 900, 2.0)]
+    public async Task PreservesScrollableSetupLayoutAcrossSupportedSizesAndScales(
+        double width,
+        double height,
+        double renderScaling)
+    {
+        await _session.Dispatch(
+            () =>
+            {
+                var view = new SetupWizardView();
+                var window = new Window
+                {
+                    Width = width,
+                    Height = height,
+                    Content = view,
+                };
+                window.Show();
+                try
+                {
+                    window.SetRenderScaling(renderScaling);
+                    Assert.Equal(renderScaling, window.RenderScaling);
+                    Assert.Equal(width, window.ClientSize.Width);
+                    Assert.Equal(height, window.ClientSize.Height);
+                    Assert.NotNull(view.GetLogicalDescendants().OfType<ScrollViewer>().SingleOrDefault());
+                    Assert.True(view.FindControl<Grid>("ContentFrame")!.Bounds.Width <= width);
                 }
                 finally
                 {
