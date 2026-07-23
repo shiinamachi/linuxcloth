@@ -2,21 +2,29 @@
     x:Class="LinuxCloth.Desktop.Views.SetupWizardView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:localization="using:LinuxCloth.Desktop.Localization"
     AutomationProperties.AutomationId="Setup.Flow">
   <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppBackgroundBrush}">
-    <Border Grid.Row="0" Classes="chrome-bar" IsVisible="{Binding IsReady}">
+    <Border
+        x:Name="ReadyHeader"
+        Grid.Row="0"
+        Classes="chrome-bar"
+        Padding="64,32,168,16"
+        IsVisible="{Binding IsReady}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <StackPanel Spacing="4">
-          <TextBlock Text="Windows 환경 준비" Classes="page-title" />
           <TextBlock
-              Text="필요한 항목을 선택하면 설치부터 확인까지 한 번에 진행합니다."
+              Text="{Binding [Setup.Title], Source={x:Static localization:UiStrings.Instance}}"
+              Classes="page-title" />
+          <TextBlock
+              Text="{Binding [Setup.Description], Source={x:Static localization:UiStrings.Instance}}"
               Classes="caption"
               TextWrapping="Wrap" />
         </StackPanel>
         <Button
             Grid.Column="1"
             Classes="secondary"
-            Content="나중에"
+            Content="{Binding [Setup.Later], Source={x:Static localization:UiStrings.Instance}}"
             Command="{Binding LaterCommand}"
             VerticalAlignment="Top"
             AutomationProperties.AutomationId="Setup.Later" />
@@ -24,7 +32,7 @@
     </Border>
 
     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-      <Grid x:Name="ContentFrame" MaxWidth="720" Margin="24,8,24,24" HorizontalAlignment="Stretch">
+      <Grid x:Name="ContentFrame" MaxWidth="1010" Margin="32,16,32,32" HorizontalAlignment="Stretch">
 
         <!-- Ready: inputs -->
         <StackPanel IsVisible="{Binding IsReady}" Spacing="12">
@@ -45,7 +53,10 @@
                   Data="{StaticResource IconAlert}"
                   IsVisible="{Binding !IsHostReady}" />
               <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                <TextBlock Text="시스템 준비" Classes="instruction" FontWeight="SemiBold" />
+                <TextBlock
+                    Text="{Binding [Setup.Host.Title], Source={x:Static localization:UiStrings.Instance}}"
+                    Classes="instruction"
+                    FontWeight="SemiBold" />
                 <TextBlock
                     Text="{Binding HostStatus}"
                     Classes="caption"
@@ -64,10 +75,12 @@
                   VerticalAlignment="Center"
                   Command="{Binding ReinspectCommand}"
                   AutomationProperties.AutomationId="Setup.Host.Refresh"
-                  AutomationProperties.Name="시스템 준비 다시 확인">
+                  AutomationProperties.Name="{Binding [Setup.Host.RefreshName], Source={x:Static localization:UiStrings.Instance}}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <PathIcon Width="14" Height="14" Data="{StaticResource IconRefresh}" />
-                  <TextBlock Text="다시 확인" VerticalAlignment="Center" />
+                  <TextBlock
+                      Text="{Binding [Setup.Host.Refresh], Source={x:Static localization:UiStrings.Instance}}"
+                      VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
             </Grid>
@@ -76,7 +89,10 @@
           <Border Classes="card" Padding="0">
             <StackPanel>
               <Border Classes="form-row" BorderThickness="0,0,0,1">
-                <TextBlock Text="설치 파일" Classes="instruction" FontWeight="SemiBold" />
+                <TextBlock
+                    Text="{Binding [Setup.Files.Title], Source={x:Static localization:UiStrings.Instance}}"
+                    Classes="instruction"
+                    FontWeight="SemiBold" />
               </Border>
 
               <Border Classes="form-row">
@@ -88,7 +104,10 @@
                       Foreground="{DynamicResource TextSecondaryBrush}"
                       Data="{StaticResource IconFile}" />
                   <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="Windows 11" Classes="body" FontWeight="SemiBold" />
+                    <TextBlock
+                        Text="{Binding [Setup.Windows.Title], Source={x:Static localization:UiStrings.Instance}}"
+                        Classes="body"
+                        FontWeight="SemiBold" />
                     <TextBlock
                         Text="{Binding WindowsMediaName}"
                         Classes="meta"
@@ -125,17 +144,19 @@
                   <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <Button
                         Classes="ghost"
-                        Content="받기"
+                        Content="{Binding [Setup.Windows.Download], Source={x:Static localization:UiStrings.Instance}}"
                         Click="OnOpenWindowsDownload"
                         AutomationProperties.AutomationId="Setup.Windows.Download" />
                     <Button
                         Classes="secondary"
                         Click="OnBrowseWindowsIso"
                         AutomationProperties.AutomationId="Setup.Windows.Select"
-                        AutomationProperties.Name="Windows 11 설치 파일 선택">
+                        AutomationProperties.Name="{Binding [Setup.Windows.SelectName], Source={x:Static localization:UiStrings.Instance}}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <PathIcon Width="14" Height="14" Data="{StaticResource IconFolder}" />
-                        <TextBlock Text="파일 선택" VerticalAlignment="Center" />
+                        <TextBlock
+                            Text="{Binding [Setup.Windows.Select], Source={x:Static localization:UiStrings.Instance}}"
+                            VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
                   </StackPanel>
@@ -143,12 +164,14 @@
               </Border>
 
               <StackPanel IsVisible="{Binding HasMultipleWindowsEditions}" Margin="16,0,16,12" Spacing="4">
-                <TextBlock Text="설치할 Windows 버전" Classes="caption" />
+                <TextBlock
+                    Text="{Binding [Setup.Windows.Edition], Source={x:Static localization:UiStrings.Instance}}"
+                    Classes="caption" />
                 <ComboBox
                     ItemsSource="{Binding WindowsEditions}"
                     SelectedItem="{Binding SelectedWindowsEdition}"
                     AutomationProperties.AutomationId="Setup.Windows.Edition"
-                    AutomationProperties.Name="설치할 Windows 버전">
+                    AutomationProperties.Name="{Binding [Setup.Windows.Edition], Source={x:Static localization:UiStrings.Instance}}">
                   <ComboBox.ItemTemplate>
                     <DataTemplate>
                       <TextBlock Text="{Binding DisplayName}" />
@@ -166,7 +189,10 @@
                       Foreground="{DynamicResource TextSecondaryBrush}"
                       Data="{StaticResource IconGear}" />
                   <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="Windows 장치 드라이버" Classes="body" FontWeight="SemiBold" />
+                    <TextBlock
+                        Text="{Binding [Setup.Drivers.Title], Source={x:Static localization:UiStrings.Instance}}"
+                        Classes="body"
+                        FontWeight="SemiBold" />
                     <TextBlock
                         Text="{Binding VirtioMediaName}"
                         Classes="meta"
@@ -206,10 +232,12 @@
                       Click="OnBrowseVirtioIso"
                       VerticalAlignment="Center"
                       AutomationProperties.AutomationId="Setup.Drivers.Select"
-                      AutomationProperties.Name="Windows 장치 드라이버 파일 선택">
+                      AutomationProperties.Name="{Binding [Setup.Drivers.SelectName], Source={x:Static localization:UiStrings.Instance}}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                       <PathIcon Width="14" Height="14" Data="{StaticResource IconFolder}" />
-                      <TextBlock Text="로컬 파일 선택" VerticalAlignment="Center" />
+                      <TextBlock
+                          Text="{Binding [Setup.Drivers.Select], Source={x:Static localization:UiStrings.Instance}}"
+                          VerticalAlignment="Center" />
                     </StackPanel>
                   </Button>
                 </Grid>
@@ -220,32 +248,36 @@
           <StackPanel Spacing="8" Margin="4,0">
             <CheckBox
                 IsChecked="{Binding IsLicenseConfirmed}"
-                Content="이 Windows 버전을 사용할 수 있는 라이선스가 있습니다"
+                Content="{Binding [Setup.License], Source={x:Static localization:UiStrings.Instance}}"
                 AutomationProperties.AutomationId="Setup.License"
-                AutomationProperties.HelpText="Windows 사용 권한 확인" />
+                AutomationProperties.HelpText="{Binding [Setup.License.Help], Source={x:Static localization:UiStrings.Instance}}" />
             <CheckBox
                 IsChecked="{Binding RememberMediaPaths}"
-                Content="다음 실행을 위해 파일 위치 기억"
+                Content="{Binding [Setup.Remember], Source={x:Static localization:UiStrings.Instance}}"
                 AutomationProperties.AutomationId="Setup.RememberMedia" />
           </StackPanel>
 
           <Border Classes="card" Padding="0">
             <Expander
                 Classes="technical"
-                Header="고급 설정"
+                Header="{Binding [Setup.Advanced], Source={x:Static localization:UiStrings.Instance}}"
                 Margin="12,4"
                 AutomationProperties.AutomationId="Setup.Advanced">
               <StackPanel Spacing="10" Margin="4,8,4,12">
                 <StackPanel Spacing="4">
-                  <TextBlock Text="환경 이름" Classes="caption" />
+                  <TextBlock
+                      Text="{Binding [Setup.Advanced.EnvironmentName], Source={x:Static localization:UiStrings.Instance}}"
+                      Classes="caption" />
                   <TextBox
                       Text="{Binding ImageIdText}"
                       AutomationProperties.AutomationId="Setup.ImageId"
-                      AutomationProperties.Name="Windows 환경 이름" />
+                      AutomationProperties.Name="{Binding [Setup.Advanced.EnvironmentNameAccess], Source={x:Static localization:UiStrings.Instance}}" />
                 </StackPanel>
                 <WrapPanel Orientation="Horizontal">
                   <StackPanel Width="190" Margin="0,0,10,8">
-                    <TextBlock Text="디스크 (GiB)" Classes="caption" />
+                    <TextBlock
+                        Text="{Binding [Setup.Advanced.Disk], Source={x:Static localization:UiStrings.Instance}}"
+                        Classes="caption" />
                     <NumericUpDown
                         Value="{Binding DiskSizeGiB}"
                         Minimum="64"
@@ -254,7 +286,9 @@
                         AutomationProperties.AutomationId="Setup.DiskSize" />
                   </StackPanel>
                   <StackPanel Width="190" Margin="0,0,10,8">
-                    <TextBlock Text="가상 CPU" Classes="caption" />
+                    <TextBlock
+                        Text="{Binding [Setup.Advanced.Cpu], Source={x:Static localization:UiStrings.Instance}}"
+                        Classes="caption" />
                     <NumericUpDown
                         Value="{Binding CpuCount}"
                         Minimum="2"
@@ -262,7 +296,9 @@
                         AutomationProperties.AutomationId="Setup.CpuCount" />
                   </StackPanel>
                   <StackPanel Width="190" Margin="0,0,0,8">
-                    <TextBlock Text="메모리 (MiB)" Classes="caption" />
+                    <TextBlock
+                        Text="{Binding [Setup.Advanced.Memory], Source={x:Static localization:UiStrings.Instance}}"
+                        Classes="caption" />
                     <NumericUpDown
                         Value="{Binding MemoryMiB}"
                         Minimum="4096"
@@ -283,7 +319,7 @@
           <Border Classes="card" Padding="0">
             <Expander
                 Classes="technical"
-                Header="기술 세부정보"
+                Header="{Binding [Setup.TechnicalDetails], Source={x:Static localization:UiStrings.Instance}}"
                 Margin="12,4"
                 AutomationProperties.AutomationId="Setup.Media.TechnicalDetails">
               <Border Classes="subtle-card" Margin="4,8,4,12" Padding="10">
@@ -299,7 +335,7 @@
 
           <Button
               Classes="primary"
-              Content="Windows 환경 준비하기"
+              Content="{Binding [Setup.Prepare], Source={x:Static localization:UiStrings.Instance}}"
               Command="{Binding PrepareCommand}"
               IsEnabled="{Binding CanPrepare}"
               HorizontalAlignment="Right"
@@ -308,19 +344,19 @@
               Margin="0,8,0,0"
               IsDefault="True"
               AutomationProperties.AutomationId="Setup.Prepare"
-              AutomationProperties.HelpText="선택한 파일로 Windows 환경 준비를 시작합니다." />
+              AutomationProperties.HelpText="{Binding [Setup.Prepare.Help], Source={x:Static localization:UiStrings.Instance}}" />
         </StackPanel>
 
         <!-- Running: progress -->
         <StackPanel IsVisible="{Binding IsRunning}" Spacing="20" Margin="0,24,0,0">
           <StackPanel Spacing="8" HorizontalAlignment="Center" MaxWidth="560">
             <TextBlock
-                Text="Windows 환경을 준비하고 있습니다"
+                Text="{Binding [Setup.Running.Title], Source={x:Static localization:UiStrings.Instance}}"
                 Classes="page-title"
                 TextAlignment="Center"
                 TextWrapping="Wrap" />
             <TextBlock
-                Text="앱을 닫아도 다음 실행에서 안전한 지점부터 계속할 수 있습니다."
+                Text="{Binding [Setup.Running.Description], Source={x:Static localization:UiStrings.Instance}}"
                 Classes="caption"
                 TextAlignment="Center"
                 TextWrapping="Wrap" />
@@ -429,7 +465,7 @@
                   TextWrapping="Wrap"
                   Classes="body"
                   VerticalAlignment="Center"
-                  AutomationProperties.Name="Windows 환경 준비 상태"
+                  AutomationProperties.Name="{Binding [Setup.Running.StatusName], Source={x:Static localization:UiStrings.Instance}}"
                   AutomationProperties.LiveSetting="Polite" />
               <StackPanel
                   Grid.Column="1"
@@ -438,14 +474,14 @@
                   VerticalAlignment="Center">
                 <Button
                     Classes="secondary"
-                    Content="설치 화면 보기"
+                    Content="{Binding [Setup.Running.ViewInstaller], Source={x:Static localization:UiStrings.Instance}}"
                     Command="{Binding ViewInstallerCommand}"
                     IsEnabled="{Binding CanViewInstaller}"
                     AutomationProperties.AutomationId="Setup.ViewInstaller"
-                    AutomationProperties.HelpText="문제를 확인할 때만 Windows 설치 화면을 엽니다." />
+                    AutomationProperties.HelpText="{Binding [Setup.Running.ViewInstallerHelp], Source={x:Static localization:UiStrings.Instance}}" />
                 <Button
                     Classes="secondary"
-                    Content="안전하게 중단"
+                    Content="{Binding [Setup.Running.Stop], Source={x:Static localization:UiStrings.Instance}}"
                     Command="{Binding CancelCommand}"
                     AutomationProperties.AutomationId="Setup.Cancel" />
               </StackPanel>
@@ -454,7 +490,7 @@
                   Grid.ColumnSpan="2"
                   Margin="0,12,0,0"
                   IsIndeterminate="True"
-                  AutomationProperties.Name="Windows 환경 준비 진행 중" />
+                  AutomationProperties.Name="{Binding [Setup.Running.ProgressName], Source={x:Static localization:UiStrings.Instance}}" />
             </Grid>
           </Border>
         </StackPanel>
@@ -485,7 +521,9 @@
 
           <Border IsVisible="{Binding ShowManualCommand}" Classes="card">
             <StackPanel Spacing="8">
-              <TextBlock Text="터미널에서 실행할 명령" Classes="caption" />
+              <TextBlock
+                  Text="{Binding [Setup.Blocked.ManualTitle], Source={x:Static localization:UiStrings.Instance}}"
+                  Classes="caption" />
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <TextBox
                     Text="{Binding ManualInstallCommand}"
@@ -495,7 +533,7 @@
                 <Button
                     Grid.Column="1"
                     Classes="secondary"
-                    Content="복사"
+                    Content="{Binding [Setup.Blocked.Copy], Source={x:Static localization:UiStrings.Instance}}"
                     Click="OnCopyManualCommand"
                     AutomationProperties.AutomationId="Setup.CopyManualCommand" />
               </Grid>
@@ -505,11 +543,11 @@
           <Border Classes="card" Padding="0">
             <Expander
                 Classes="technical"
-                Header="기술 세부정보"
+                Header="{Binding [Setup.TechnicalDetails], Source={x:Static localization:UiStrings.Instance}}"
                 Margin="12,4"
                 AutomationProperties.AutomationId="Setup.Blocker.TechnicalDetails">
               <StackPanel Spacing="4" Margin="4,8,4,12">
-                <TextBlock Text="{Binding BlockerCode, StringFormat=오류 코드: {0}}" Classes="mono" />
+                <TextBlock Text="{Binding BlockerCodeText}" Classes="mono" />
                 <TextBlock
                     Text="{Binding TechnicalDetail}"
                     IsVisible="{Binding HasTechnicalDetail}"
@@ -538,7 +576,7 @@
           Classes="danger caption"
           TextWrapping="Wrap"
           Focusable="True"
-          AutomationProperties.Name="설치 준비 오류"
+          AutomationProperties.Name="{Binding [Setup.ErrorName], Source={x:Static localization:UiStrings.Instance}}"
           AutomationProperties.LiveSetting="Assertive" />
     </Border>
   </Grid>

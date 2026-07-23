@@ -62,6 +62,9 @@ public sealed class UiStrings : INotifyPropertyChanged
         Resources.GetString(key, CurrentCulture) ??
         throw new InvalidOperationException($"UI 문자열 리소스가 없습니다: {key}");
 
+    public string GetOrDefault(string key, string fallback) =>
+        Resources.GetString(key, CurrentCulture) ?? fallback;
+
     public string Format(string key, params object?[] arguments) =>
         string.Format(CurrentCulture, this[key], arguments);
 

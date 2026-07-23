@@ -1,7 +1,9 @@
 using LinuxCloth.Desktop.Localization;
+using LinuxCloth.Desktop.ViewModels;
 
 namespace LinuxCloth.Desktop.Tests;
 
+[Collection(HeadlessUiTestGroup.Name)]
 public sealed class UiStringsTests
 {
     [Fact]
@@ -41,5 +43,28 @@ public sealed class UiStringsTests
                 Assert.Equal("en-US", english.CultureName);
                 Assert.Equal("English", english.DisplayName);
             });
+    }
+
+    [Fact]
+    public void SetupPhaseCopyUpdatesWithSelectedLanguage()
+    {
+        var strings = UiStrings.Instance;
+        var originalCulture = strings.SelectedLanguage.CultureName;
+        using var phase = new SetupFlowPhaseItemViewModel(1, "Setup.Phase.System");
+        try
+        {
+            strings.SelectCulture("ko-KR");
+            phase.Update(isComplete: false, isCurrent: true);
+            Assert.Equal("시스템 확인", phase.Title);
+            Assert.Equal("진행 중", phase.Marker);
+
+            strings.SelectCulture("en-US");
+            Assert.Equal("System check", phase.Title);
+            Assert.Equal("In progress", phase.Marker);
+        }
+        finally
+        {
+            strings.SelectCulture(originalCulture);
+        }
     }
 }

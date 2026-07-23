@@ -3,13 +3,14 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using LinuxCloth.Desktop.Localization;
 using LinuxCloth.Desktop.ViewModels;
 
 namespace LinuxCloth.Desktop.Views;
 
 public sealed partial class SetupWizardView : UserControl
 {
-    private static readonly FilePickerFileType IsoFileType = new("ISO 디스크 이미지")
+    private static FilePickerFileType IsoFileType => new(UiStrings.Instance["Setup.FilePicker.Type"])
     {
         Patterns = ["*.iso", "*.ISO"],
     };
@@ -39,7 +40,7 @@ public sealed partial class SetupWizardView : UserControl
     {
         _ = sender;
         _ = eventArgs;
-        var path = await PickIsoAsync("Windows 11 x64 ISO 선택");
+        var path = await PickIsoAsync(UiStrings.Instance["Setup.FilePicker.WindowsTitle"]);
         if (path is not null)
         {
             await ViewModel.ValidateWindowsMediaAsync(path);
@@ -50,7 +51,7 @@ public sealed partial class SetupWizardView : UserControl
     {
         _ = sender;
         _ = eventArgs;
-        var path = await PickIsoAsync("Windows 드라이버 ISO 선택");
+        var path = await PickIsoAsync(UiStrings.Instance["Setup.FilePicker.DriversTitle"]);
         if (path is not null)
         {
             await ViewModel.ValidateVirtioMediaAsync(path);
@@ -132,7 +133,10 @@ public sealed partial class SetupWizardView : UserControl
         var width = Bounds.Width > 0 ? Bounds.Width : 980;
         var isCompact = width < 900;
         ContentFrame.Margin = isCompact
-            ? new Thickness(12, 10)
-            : new Thickness(20, 16);
+            ? new Thickness(12, 12, 12, 24)
+            : new Thickness(32, 16, 32, 32);
+        ReadyHeader.Padding = isCompact
+            ? new Thickness(16, 56, 16, 12)
+            : new Thickness(64, 32, 168, 16);
     }
 }

@@ -68,7 +68,10 @@ public sealed class SetupWizardHeadlessTests
                     Assert.True(imageId.Focusable);
                     Assert.Equal(980, window.ClientSize.Width);
                     Assert.Equal(760, window.ClientSize.Height);
-                    Assert.Equal(new Thickness(20, 16), view.FindControl<Grid>("ContentFrame")!.Margin);
+                    Assert.Equal(new Thickness(32, 16, 32, 32), view.FindControl<Grid>("ContentFrame")!.Margin);
+                    Assert.Equal(
+                        new Thickness(64, 32, 168, 16),
+                        view.FindControl<Border>("ReadyHeader")!.Padding);
                 }
                 finally
                 {
@@ -96,7 +99,10 @@ public sealed class SetupWizardHeadlessTests
                 window.Show();
                 try
                 {
-                    Assert.Equal(new Thickness(12, 10), view.FindControl<Grid>("ContentFrame")!.Margin);
+                    Assert.Equal(new Thickness(12, 12, 12, 24), view.FindControl<Grid>("ContentFrame")!.Margin);
+                    Assert.Equal(
+                        new Thickness(16, 56, 16, 12),
+                        view.FindControl<Border>("ReadyHeader")!.Padding);
                     Assert.NotNull(view.GetLogicalDescendants().OfType<ScrollViewer>().SingleOrDefault());
                     window.SetRenderScaling(2);
                     Assert.Equal(2, window.RenderScaling);

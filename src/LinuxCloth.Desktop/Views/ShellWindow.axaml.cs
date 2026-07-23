@@ -72,8 +72,8 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
 
     private async Task ShowSetupAsync(FirstRunSnapshot firstRun)
     {
-        Width = 1000;
-        Height = 760;
+        Width = 1440;
+        Height = 900;
         MinWidth = 720;
         MinHeight = 480;
         Title = "linuxcloth";

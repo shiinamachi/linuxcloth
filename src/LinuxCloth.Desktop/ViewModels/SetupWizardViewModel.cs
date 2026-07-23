@@ -4,6 +4,7 @@ using LinuxCloth.Application.ImageBuilding;
 using LinuxCloth.Application.Images;
 using LinuxCloth.Application.Setup;
 using LinuxCloth.Desktop.Infrastructure;
+using LinuxCloth.Desktop.Localization;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Desktop.Setup;
 
@@ -31,7 +32,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private string? _errorMessage;
     private bool _hostInspected;
     private bool _isHostReady;
-    private string _hostStatus = "자동 확인을 시작합니다.";
+    private string _hostStatus;
     private string _imageIdText = "windows-11";
     private bool _isBusy;
     private bool _isDisposed;
@@ -41,14 +42,14 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private int _memoryMiB = 6144;
     private bool _rememberMediaPaths;
     private WindowsInstallationImage? _selectedWindowsEdition;
-    private string _statusText = "Windows 설치 파일과 장치 드라이버를 선택하세요.";
+    private string _statusText;
     private SetupState _state = SetupState.Default;
     private string _virtioMediaPath = string.Empty;
     private SetupFileFingerprint? _virtioFingerprint;
-    private string _virtioMediaStatus = "시작하면 검증된 Windows 장치 드라이버를 자동으로 준비합니다.";
+    private string _virtioMediaStatus;
     private string _windowsMediaPath = string.Empty;
     private SetupFileFingerprint? _windowsFingerprint;
-    private string _windowsMediaStatus = "Windows 11 설치 파일을 선택하세요.";
+    private string _windowsMediaStatus;
 
     public SetupWizardViewModel(
         IDesktopSetupService runtime,
@@ -68,20 +69,25 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(packagePlanResolver);
         _packageInstaller = packageInstaller ?? throw new ArgumentNullException(nameof(packageInstaller));
         _hostCapacity = hostCapacity ?? throw new ArgumentNullException(nameof(hostCapacity));
+        _hostStatus = Text("Setup.Status.HostPending");
+        _statusText = Text("Setup.Status.ChooseFiles");
+        _virtioMediaStatus = Text("Setup.Status.DriversAuto");
+        _windowsMediaStatus = Text("Setup.Status.ChooseWindows");
 
         var phaseTitles = new[]
         {
-            "시스템 확인",
-            "필수 구성 요소",
-            "설치 파일 확인",
-            "Windows 설치",
-            "환경 확인",
-            "마무리",
+            "Setup.Phase.System",
+            "Setup.Phase.Components",
+            "Setup.Phase.Files",
+            "Setup.Phase.Install",
+            "Setup.Phase.Verify",
+            "Setup.Phase.Finish",
         };
         for (var index = 0; index < phaseTitles.Length; index++)
         {
             Phases.Add(new SetupFlowPhaseItemViewModel(index + 1, phaseTitles[index]));
         }
+        UiStrings.Instance.CultureChanged += OnCultureChanged;
 
         var imageProgress = new Progress<DesktopImageBuildProgress>(ApplyImageBuildProgress);
         _orchestrator = new SetupOrchestrator(
@@ -217,13 +223,15 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
-    public string BlockerTitle => _blocker?.Title ?? string.Empty;
+    public string BlockerTitle => BlockerText("Title", _blocker?.Title);
 
-    public string BlockerDescription => _blocker?.Description ?? string.Empty;
+    public string BlockerDescription => BlockerText("Description", _blocker?.Description);
 
-    public string BlockerActionLabel => _blocker?.ActionLabel ?? "다시 시도";
+    public string BlockerActionLabel => BlockerText("Action", _blocker?.ActionLabel);
 
     public string BlockerCode => _blocker?.Code ?? string.Empty;
+
+    public string BlockerCodeText => UiStrings.Instance.Format("Setup.Blocked.ErrorCode", BlockerCode);
 
     public string TechnicalDetail => _blocker?.TechnicalDetail ?? string.Empty;
 
@@ -248,7 +256,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    public string WindowsMediaName => MediaName(WindowsMediaPath, "선택되지 않음");
+    public string WindowsMediaName => MediaName(WindowsMediaPath, Text("Setup.Media.None"));
 
     public string WindowsMediaStatus
     {
@@ -272,7 +280,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    public string VirtioMediaName => MediaName(VirtioMediaPath, "자동 준비");
+    public string VirtioMediaName => MediaName(VirtioMediaPath, Text("Setup.Media.Automatic"));
 
     public string VirtioMediaStatus
     {
@@ -377,13 +385,15 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
             var warnings = new List<string>();
             if (_hostCapacity.LogicalProcessorCount > 0 && CpuCount > _hostCapacity.LogicalProcessorCount)
             {
-                warnings.Add($"가상 CPU가 이 컴퓨터의 논리 CPU {_hostCapacity.LogicalProcessorCount}개보다 많습니다.");
+                warnings.Add(UiStrings.Instance.Format(
+                    "Setup.Resource.Cpu",
+                    _hostCapacity.LogicalProcessorCount));
             }
 
             if (_hostCapacity.AvailableMemoryBytes > 0 &&
                 (long)MemoryMiB * 1024 * 1024 > _hostCapacity.AvailableMemoryBytes * 3 / 4)
             {
-                warnings.Add("메모리 설정이 현재 사용 가능한 메모리의 75%를 초과합니다.");
+                warnings.Add(Text("Setup.Resource.Memory"));
             }
 
             return string.Join(' ', warnings);
@@ -453,7 +463,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         WindowsEditions.Clear();
         SelectedWindowsEdition = null;
         _windowsFingerprint = null;
-        WindowsMediaStatus = "설치 가능한 Windows 버전과 파일 무결성을 확인하고 있습니다…";
+        WindowsMediaStatus = Text("Setup.Status.WindowsChecking");
         RaiseMediaState();
         try
         {
@@ -472,18 +482,20 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
                 ? WindowsEditions.Single(image => image.Index == suggested)
                 : null;
             WindowsMediaStatus = SelectedWindowsEdition is null
-                ? "파일 확인 완료 · 설치할 Windows 버전을 선택하세요."
-                : $"파일 확인 완료 · {SelectedWindowsEdition.DisplayName}";
+                ? Text("Setup.Status.WindowsChooseEdition")
+                : UiStrings.Instance.Format(
+                    "Setup.Status.WindowsVerified",
+                    SelectedWindowsEdition.DisplayName);
             await SavePreferencesAsync().ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            WindowsMediaStatus = "파일 확인을 중단했습니다.";
+            WindowsMediaStatus = Text("Setup.Status.FileCanceled");
         }
         catch (Exception exception)
         {
             Trace.TraceError("Windows media analysis failed: {0}", exception);
-            WindowsMediaStatus = "Windows 11 설치 파일을 확인하지 못했습니다. 다른 파일을 선택하세요.";
+            WindowsMediaStatus = Text("Setup.Status.WindowsFailed");
             ErrorMessage = WindowsMediaStatus;
         }
         finally
@@ -513,7 +525,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         ErrorMessage = null;
         VirtioMediaPath = Path.GetFullPath(path);
         _virtioFingerprint = null;
-        VirtioMediaStatus = "Windows 장치 드라이버를 확인하고 있습니다…";
+        VirtioMediaStatus = Text("Setup.Status.DriversChecking");
         RaiseMediaState();
         try
         {
@@ -522,17 +534,17 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
                     cancellation.Token)
                 .ConfigureAwait(true);
             _virtioFingerprint = ToSetupFingerprint(fingerprint);
-            VirtioMediaStatus = "파일 확인 완료 · Windows 11 드라이버 사용 가능";
+            VirtioMediaStatus = Text("Setup.Status.DriversVerified");
             await SavePreferencesAsync().ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            VirtioMediaStatus = "파일 확인을 중단했습니다.";
+            VirtioMediaStatus = Text("Setup.Status.FileCanceled");
         }
         catch (Exception exception)
         {
             Trace.TraceError("Windows driver media validation failed: {0}", exception);
-            VirtioMediaStatus = "Windows 장치 드라이버 파일을 확인하지 못했습니다. 다른 파일을 선택하세요.";
+            VirtioMediaStatus = Text("Setup.Status.DriversFailed");
             ErrorMessage = VirtioMediaStatus;
         }
         finally
@@ -590,6 +602,11 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         }
 
         _orchestrator.Dispose();
+        UiStrings.Instance.CultureChanged -= OnCultureChanged;
+        foreach (var phase in Phases)
+        {
+            phase.Dispose();
+        }
         _operationCancellation?.Dispose();
         _shutdown.Dispose();
         GC.SuppressFinalize(this);
@@ -685,15 +702,15 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
 
     private async Task RefreshHostCoreAsync()
     {
-        HostStatus = "이 컴퓨터를 확인하고 있습니다…";
+        HostStatus = Text("Setup.Status.HostChecking");
         IsHostReady = false;
         var doctor = await _runtime.InspectHostAsync(_shutdown.Token).ConfigureAwait(true);
         _hostInspected = true;
         var ready = DesktopSetupOperationFactory.CanBuildImage(doctor);
         IsHostReady = ready;
         HostStatus = ready
-            ? "준비됨"
-            : "필요한 구성 요소를 시작할 때 자동으로 준비합니다.";
+            ? Text("Setup.Status.Ready")
+            : Text("Setup.Status.HostAutoPrepare");
         RaiseState();
     }
 
@@ -707,12 +724,12 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         _blocker = null;
         ErrorMessage = null;
         IsRunning = true;
-        ApplyFlowProgress(0, "설치 준비를 시작합니다.");
+        ApplyFlowProgress(0, Text("Setup.Status.Starting"));
         _operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
         var cancellation = _operationCancellation;
         var progress = new Progress<SetupProgress>(item =>
         {
-            StatusText = item.Status;
+            StatusText = StatusForPhase(item.Phase);
             ApplyPhase(item.Phase);
         });
         _operationTask = ExecuteOrchestratorAsync(resume, progress, cancellation.Token);
@@ -746,26 +763,26 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
             if (run.Phase == SetupPhase.Blocked)
             {
                 _blocker = run.Blocker;
-                StatusText = run.Blocker?.Description ?? "사용자 확인이 필요합니다.";
+                StatusText = BlockerDescription;
                 RaiseBlockerState();
                 return;
             }
 
             if (run.Phase == SetupPhase.Completed)
             {
-                ApplyFlowProgress(Phases.Count, "Windows 환경 준비를 완료했습니다.");
-                StatusText = "Windows 환경 준비를 완료했습니다.";
+                ApplyFlowProgress(Phases.Count, Text("Setup.Status.Completed"));
+                StatusText = Text("Setup.Status.Completed");
                 Completed?.Invoke(this, EventArgs.Empty);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            StatusText = "현재 작업을 안전하게 중단했습니다. 다음 실행에서 계속할 수 있습니다.";
+            StatusText = Text("Setup.Status.Stopped");
         }
         catch (Exception exception)
         {
             ShowError(exception);
-            StatusText = "설치 준비를 마치지 못했습니다. 보존된 작업에서 다시 시도할 수 있습니다.";
+            StatusText = Text("Setup.Status.Failed");
             var run = await _runStore.LoadAsync(CancellationToken.None).ConfigureAwait(true);
             _blocker = new SetupBlocker(
                 run?.Phase ?? SetupPhase.Discovering,
@@ -825,26 +842,28 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         CpuCount = inputs.CpuCount;
         MemoryMiB = inputs.MemoryMiB;
         IsLicenseConfirmed = inputs.LicenseConfirmed;
-        WindowsMediaStatus = _windowsFingerprint is null ? "파일을 다시 선택하세요." : "이전 작업의 설치 파일";
+        WindowsMediaStatus = _windowsFingerprint is null
+            ? Text("Setup.Status.ChooseWindows")
+            : UiStrings.Instance.Format("Setup.Status.WindowsVerified", "Windows 11");
         VirtioMediaStatus = _virtioFingerprint is null
-            ? "필요할 때 검증된 Windows 장치 드라이버를 자동으로 준비합니다."
-            : "이전 작업의 장치 드라이버";
+            ? Text("Setup.Status.DriversAuto")
+            : Text("Setup.Status.DriversVerified");
         RaiseMediaState();
     }
 
     private async Task LoadCachedVirtioMediaAsync()
     {
-        VirtioMediaStatus = "캐시된 Windows 장치 드라이버를 확인하고 있습니다…";
+        VirtioMediaStatus = Text("Setup.Status.DriversChecking");
         var cached = await _runtime.FindCachedVirtioMediaAsync(_shutdown.Token).ConfigureAwait(true);
         if (cached is null)
         {
-            VirtioMediaStatus = "시작하면 검증된 Windows 장치 드라이버를 자동으로 준비합니다.";
+            VirtioMediaStatus = Text("Setup.Status.DriversAuto");
             return;
         }
 
         VirtioMediaPath = cached.Path;
         _virtioFingerprint = ToSetupFingerprint(cached);
-        VirtioMediaStatus = "자동 준비됨 · 고정된 Windows 11 드라이버";
+        VirtioMediaStatus = Text("Setup.Status.DriversPrepared");
         RaiseMediaState();
     }
 
@@ -913,6 +932,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         OnPropertyChanged(nameof(BlockerDescription));
         OnPropertyChanged(nameof(BlockerActionLabel));
         OnPropertyChanged(nameof(BlockerCode));
+        OnPropertyChanged(nameof(BlockerCodeText));
         OnPropertyChanged(nameof(TechnicalDetail));
         OnPropertyChanged(nameof(HasTechnicalDetail));
         OnPropertyChanged(nameof(ShowManualCommand));
@@ -957,8 +977,86 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(exception);
         Trace.TraceError("Desktop setup operation failed: {0}", exception);
-        ErrorMessage = "작업을 완료하지 못했습니다. 기술 세부정보를 확인한 뒤 다시 시도하세요.";
+        ErrorMessage = Text("Setup.Error.Generic");
     }
+
+    private void OnCultureChanged(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        HostStatus = !_hostInspected
+            ? Text("Setup.Status.HostPending")
+            : IsHostReady
+                ? Text("Setup.Status.Ready")
+                : Text("Setup.Status.HostAutoPrepare");
+        WindowsMediaStatus = _windowsFingerprint is null
+            ? Text("Setup.Status.ChooseWindows")
+            : SelectedWindowsEdition is null
+                ? Text("Setup.Status.WindowsChooseEdition")
+                : UiStrings.Instance.Format(
+                    "Setup.Status.WindowsVerified",
+                    SelectedWindowsEdition.DisplayName);
+        VirtioMediaStatus = _virtioFingerprint is null
+            ? Text("Setup.Status.DriversAuto")
+            : Text("Setup.Status.DriversVerified");
+        StatusText = IsBlocked
+            ? BlockerDescription
+            : IsRunning
+                ? StatusForCurrentPhase()
+                : Text("Setup.Status.ChooseFiles");
+        if (HasError)
+        {
+            ErrorMessage = Text("Setup.Error.Generic");
+        }
+
+        OnPropertyChanged(nameof(WindowsMediaName));
+        OnPropertyChanged(nameof(VirtioMediaName));
+        OnPropertyChanged(nameof(ResourceWarning));
+        RaiseBlockerState();
+    }
+
+    private string StatusForCurrentPhase()
+    {
+        var currentIndex = Phases
+            .Select((phase, index) => (phase, index))
+            .FirstOrDefault(item => item.phase.IsCurrent)
+            .index;
+        return currentIndex switch
+        {
+            0 => Text("Setup.Status.CheckSystem"),
+            1 => Text("Setup.Status.Components"),
+            2 => Text("Setup.Status.Files"),
+            3 => Text("Setup.Status.Installing"),
+            4 => Text("Setup.Status.Verifying"),
+            5 => Text("Setup.Status.Finishing"),
+            _ => Text("Setup.Status.Starting"),
+        };
+    }
+
+    private static string StatusForPhase(SetupPhase phase) => phase switch
+    {
+        SetupPhase.Discovering or SetupPhase.AwaitingInputs => Text("Setup.Status.CheckSystem"),
+        SetupPhase.InstallingDependencies => Text("Setup.Status.Components"),
+        SetupPhase.ValidatingMedia or SetupPhase.PlanningWindows => Text("Setup.Status.Files"),
+        SetupPhase.BuildingImage => Text("Setup.Status.Installing"),
+        SetupPhase.Finalizing => Text("Setup.Status.Finishing"),
+        SetupPhase.Completed => Text("Setup.Status.Completed"),
+        _ => Text("Setup.Status.Starting"),
+    };
+
+    private string BlockerText(string suffix, string? fallback)
+    {
+        if (_blocker is null)
+        {
+            return suffix == "Action" ? Text("Setup.Host.Refresh") : string.Empty;
+        }
+
+        return UiStrings.Instance.GetOrDefault(
+            $"Setup.Blocker.{_blocker.Code}.{suffix}",
+            fallback ?? string.Empty);
+    }
+
+    private static string Text(string key) => UiStrings.Instance[key];
 
     private static SetupFileFingerprint ToSetupFingerprint(ImageBuildFileFingerprint fingerprint) =>
         new(
@@ -973,20 +1071,22 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         string.IsNullOrWhiteSpace(value) ? null : value;
 }
 
-public sealed class SetupFlowPhaseItemViewModel : ObservableObject
+public sealed class SetupFlowPhaseItemViewModel : ObservableObject, IDisposable
 {
     private bool _isComplete;
     private bool _isCurrent;
+    private readonly string _titleKey;
 
-    public SetupFlowPhaseItemViewModel(int index, string title)
+    public SetupFlowPhaseItemViewModel(int index, string titleKey)
     {
         Index = index;
-        Title = title;
+        _titleKey = titleKey;
+        UiStrings.Instance.CultureChanged += OnCultureChanged;
     }
 
     public int Index { get; }
 
-    public string Title { get; }
+    public string Title => UiStrings.Instance[_titleKey];
 
     public bool IsComplete
     {
@@ -1002,7 +1102,11 @@ public sealed class SetupFlowPhaseItemViewModel : ObservableObject
 
     public bool IsPending => !IsComplete && !IsCurrent;
 
-    public string Marker => IsComplete ? "완료" : IsCurrent ? "진행 중" : "대기";
+    public string Marker => IsComplete
+        ? UiStrings.Instance["Setup.Phase.Complete"]
+        : IsCurrent
+            ? UiStrings.Instance["Setup.Phase.Current"]
+            : UiStrings.Instance["Setup.Phase.Pending"];
 
     public void Update(bool isComplete, bool isCurrent)
     {
@@ -1010,5 +1114,24 @@ public sealed class SetupFlowPhaseItemViewModel : ObservableObject
         IsCurrent = isCurrent;
         OnPropertyChanged(nameof(Marker));
         OnPropertyChanged(nameof(IsPending));
+    }
+
+    public void RefreshLocalization()
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Marker));
+    }
+
+    public void Dispose()
+    {
+        UiStrings.Instance.CultureChanged -= OnCultureChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnCultureChanged(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        RefreshLocalization();
     }
 }

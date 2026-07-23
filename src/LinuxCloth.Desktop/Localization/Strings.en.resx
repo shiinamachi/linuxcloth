@@ -21,4 +21,409 @@
   <data name="Startup.Progress" xml:space="preserve">
     <value>Preparing to start</value>
   </data>
+  <data name="Setup.Title" xml:space="preserve">
+    <value>Prepare a Windows environment</value>
+  </data>
+  <data name="Setup.Description" xml:space="preserve">
+    <value>Choose the required items to install and verify everything in one flow.</value>
+  </data>
+  <data name="Setup.Later" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="Setup.Host.Title" xml:space="preserve">
+    <value>System readiness</value>
+  </data>
+  <data name="Setup.Host.Refresh" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Host.RefreshName" xml:space="preserve">
+    <value>Check system readiness again</value>
+  </data>
+  <data name="Setup.Files.Title" xml:space="preserve">
+    <value>Installation files</value>
+  </data>
+  <data name="Setup.Windows.Title" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
+  <data name="Setup.Windows.Download" xml:space="preserve">
+    <value>Get</value>
+  </data>
+  <data name="Setup.Windows.Select" xml:space="preserve">
+    <value>Choose file</value>
+  </data>
+  <data name="Setup.Windows.SelectName" xml:space="preserve">
+    <value>Choose a Windows 11 installation file</value>
+  </data>
+  <data name="Setup.Windows.Edition" xml:space="preserve">
+    <value>Windows edition to install</value>
+  </data>
+  <data name="Setup.FilePicker.Type" xml:space="preserve">
+    <value>ISO disk image</value>
+  </data>
+  <data name="Setup.FilePicker.WindowsTitle" xml:space="preserve">
+    <value>Choose Windows 11 x64 ISO</value>
+  </data>
+  <data name="Setup.FilePicker.DriversTitle" xml:space="preserve">
+    <value>Choose Windows driver ISO</value>
+  </data>
+  <data name="Setup.Drivers.Title" xml:space="preserve">
+    <value>Windows device drivers</value>
+  </data>
+  <data name="Setup.Drivers.Select" xml:space="preserve">
+    <value>Choose local file</value>
+  </data>
+  <data name="Setup.Drivers.SelectName" xml:space="preserve">
+    <value>Choose a Windows device driver file</value>
+  </data>
+  <data name="Setup.License" xml:space="preserve">
+    <value>I have a license to use this Windows edition</value>
+  </data>
+  <data name="Setup.License.Help" xml:space="preserve">
+    <value>Confirm your right to use Windows</value>
+  </data>
+  <data name="Setup.Remember" xml:space="preserve">
+    <value>Remember file locations for next time</value>
+  </data>
+  <data name="Setup.Advanced" xml:space="preserve">
+    <value>Advanced settings</value>
+  </data>
+  <data name="Setup.Advanced.EnvironmentName" xml:space="preserve">
+    <value>Environment name</value>
+  </data>
+  <data name="Setup.Advanced.EnvironmentNameAccess" xml:space="preserve">
+    <value>Windows environment name</value>
+  </data>
+  <data name="Setup.Advanced.Disk" xml:space="preserve">
+    <value>Disk (GiB)</value>
+  </data>
+  <data name="Setup.Advanced.Cpu" xml:space="preserve">
+    <value>Virtual CPUs</value>
+  </data>
+  <data name="Setup.Advanced.Memory" xml:space="preserve">
+    <value>Memory (MiB)</value>
+  </data>
+  <data name="Setup.TechnicalDetails" xml:space="preserve">
+    <value>Technical details</value>
+  </data>
+  <data name="Setup.Prepare" xml:space="preserve">
+    <value>Prepare Windows environment</value>
+  </data>
+  <data name="Setup.Prepare.Help" xml:space="preserve">
+    <value>Start preparing a Windows environment with the selected files.</value>
+  </data>
+  <data name="Setup.Running.Title" xml:space="preserve">
+    <value>Preparing the Windows environment</value>
+  </data>
+  <data name="Setup.Running.Description" xml:space="preserve">
+    <value>You can close the app and continue from a safe point next time.</value>
+  </data>
+  <data name="Setup.Running.StatusName" xml:space="preserve">
+    <value>Windows environment preparation status</value>
+  </data>
+  <data name="Setup.Running.ViewInstaller" xml:space="preserve">
+    <value>View installer</value>
+  </data>
+  <data name="Setup.Running.ViewInstallerHelp" xml:space="preserve">
+    <value>Open the Windows installer only when you need to diagnose a problem.</value>
+  </data>
+  <data name="Setup.Running.Stop" xml:space="preserve">
+    <value>Stop safely</value>
+  </data>
+  <data name="Setup.Running.ProgressName" xml:space="preserve">
+    <value>Windows environment preparation in progress</value>
+  </data>
+  <data name="Setup.Blocked.ManualTitle" xml:space="preserve">
+    <value>Command to run in a terminal</value>
+  </data>
+  <data name="Setup.Blocked.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Setup.Blocked.ErrorCode" xml:space="preserve">
+    <value>Error code: {0}</value>
+  </data>
+  <data name="Setup.ErrorName" xml:space="preserve">
+    <value>Setup error</value>
+  </data>
+  <data name="Setup.Status.HostPending" xml:space="preserve">
+    <value>Automatic check will start shortly.</value>
+  </data>
+  <data name="Setup.Status.HostChecking" xml:space="preserve">
+    <value>Checking this computer…</value>
+  </data>
+  <data name="Setup.Status.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Setup.Status.HostAutoPrepare" xml:space="preserve">
+    <value>Required components will be prepared automatically when you start.</value>
+  </data>
+  <data name="Setup.Status.ChooseFiles" xml:space="preserve">
+    <value>Choose the Windows installation file and device drivers.</value>
+  </data>
+  <data name="Setup.Status.ChooseWindows" xml:space="preserve">
+    <value>Choose a Windows 11 installation file.</value>
+  </data>
+  <data name="Setup.Status.WindowsChecking" xml:space="preserve">
+    <value>Checking available Windows editions and file integrity…</value>
+  </data>
+  <data name="Setup.Status.WindowsVerified" xml:space="preserve">
+    <value>File verified · {0}</value>
+  </data>
+  <data name="Setup.Status.WindowsChooseEdition" xml:space="preserve">
+    <value>File verified · Choose a Windows edition to install.</value>
+  </data>
+  <data name="Setup.Status.FileCanceled" xml:space="preserve">
+    <value>File verification stopped.</value>
+  </data>
+  <data name="Setup.Status.WindowsFailed" xml:space="preserve">
+    <value>Could not verify the Windows 11 installation file. Choose another file.</value>
+  </data>
+  <data name="Setup.Status.DriversAuto" xml:space="preserve">
+    <value>Verified Windows device drivers will be prepared automatically.</value>
+  </data>
+  <data name="Setup.Status.DriversChecking" xml:space="preserve">
+    <value>Checking Windows device drivers…</value>
+  </data>
+  <data name="Setup.Status.DriversVerified" xml:space="preserve">
+    <value>File verified · Windows 11 drivers are available</value>
+  </data>
+  <data name="Setup.Status.DriversFailed" xml:space="preserve">
+    <value>Could not verify the Windows device driver file. Choose another file.</value>
+  </data>
+  <data name="Setup.Status.DriversPrepared" xml:space="preserve">
+    <value>Prepared automatically · Verified Windows 11 drivers</value>
+  </data>
+  <data name="Setup.Status.Starting" xml:space="preserve">
+    <value>Starting preparation.</value>
+  </data>
+  <data name="Setup.Status.CheckSystem" xml:space="preserve">
+    <value>Checking this computer.</value>
+  </data>
+  <data name="Setup.Status.Components" xml:space="preserve">
+    <value>Preparing required components.</value>
+  </data>
+  <data name="Setup.Status.Files" xml:space="preserve">
+    <value>Checking installation files.</value>
+  </data>
+  <data name="Setup.Status.Installing" xml:space="preserve">
+    <value>Installing Windows automatically.</value>
+  </data>
+  <data name="Setup.Status.Verifying" xml:space="preserve">
+    <value>Verifying the installed Windows environment.</value>
+  </data>
+  <data name="Setup.Status.Finishing" xml:space="preserve">
+    <value>Finishing the Windows environment.</value>
+  </data>
+  <data name="Setup.Status.Completed" xml:space="preserve">
+    <value>Windows environment preparation is complete.</value>
+  </data>
+  <data name="Setup.Status.Stopped" xml:space="preserve">
+    <value>The current task stopped safely. You can continue next time.</value>
+  </data>
+  <data name="Setup.Status.Failed" xml:space="preserve">
+    <value>Preparation did not finish. You can retry from the preserved work.</value>
+  </data>
+  <data name="Setup.Error.Generic" xml:space="preserve">
+    <value>Could not complete the task. Check technical details, then try again.</value>
+  </data>
+  <data name="Setup.Media.None" xml:space="preserve">
+    <value>Not selected</value>
+  </data>
+  <data name="Setup.Media.Automatic" xml:space="preserve">
+    <value>Automatic preparation</value>
+  </data>
+  <data name="Setup.Phase.System" xml:space="preserve">
+    <value>System check</value>
+  </data>
+  <data name="Setup.Phase.Components" xml:space="preserve">
+    <value>Required components</value>
+  </data>
+  <data name="Setup.Phase.Files" xml:space="preserve">
+    <value>Installation file check</value>
+  </data>
+  <data name="Setup.Phase.Install" xml:space="preserve">
+    <value>Windows installation</value>
+  </data>
+  <data name="Setup.Phase.Verify" xml:space="preserve">
+    <value>Environment verification</value>
+  </data>
+  <data name="Setup.Phase.Finish" xml:space="preserve">
+    <value>Finish</value>
+  </data>
+  <data name="Setup.Phase.Complete" xml:space="preserve">
+    <value>Complete</value>
+  </data>
+  <data name="Setup.Phase.Current" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="Setup.Phase.Pending" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-LICENSE.Title" xml:space="preserve">
+    <value>Confirm your Windows license</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-LICENSE.Description" xml:space="preserve">
+    <value>Confirm that you have a valid license before creating a Windows environment.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-LICENSE.Action" xml:space="preserve">
+    <value>Return to inputs</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-PLATFORM.Title" xml:space="preserve">
+    <value>A supported Linux environment is required</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-PLATFORM.Description" xml:space="preserve">
+    <value>This computer cannot prepare a Windows environment.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-PLATFORM.Action" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-KVM.Title" xml:space="preserve">
+    <value>Virtualization is unavailable</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-KVM.Description" xml:space="preserve">
+    <value>Check firmware virtualization settings and your current user permissions.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-KVM.Action" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-GUEST-COMPONENT.Title" xml:space="preserve">
+    <value>A Windows connection component is missing</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-GUEST-COMPONENT.Description" xml:space="preserve">
+    <value>Check that the linuxcloth installation is complete, then reinstall the app.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-HOST-GUEST-COMPONENT.Action" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-WINDOWS.Title" xml:space="preserve">
+    <value>Check the setup inputs</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-WINDOWS.Description" xml:space="preserve">
+    <value>Choose the Windows 11 installation file again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-WINDOWS.Action" xml:space="preserve">
+    <value>Return to inputs</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-DRIVERS.Title" xml:space="preserve">
+    <value>Check the setup inputs</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-DRIVERS.Description" xml:space="preserve">
+    <value>Choose the Windows device driver file again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-INPUT-DRIVERS.Action" xml:space="preserve">
+    <value>Return to inputs</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-CAPABILITY-MANUAL.Title" xml:space="preserve">
+    <value>Required components need manual preparation</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-CAPABILITY-MANUAL.Description" xml:space="preserve">
+    <value>No automatic installation method was found. Review missing items in technical details, prepare them, then check again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-CAPABILITY-MANUAL.Action" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-MANUAL.Title" xml:space="preserve">
+    <value>Required components need manual installation</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-MANUAL.Description" xml:space="preserve">
+    <value>Run the command below in a terminal, then check again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-MANUAL.Action" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-UNRESOLVED.Title" xml:space="preserve">
+    <value>Some components were not found</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-UNRESOLVED.Description" xml:space="preserve">
+    <value>Refresh package sources, then try again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-UNRESOLVED.Action" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-INSTALL.Title" xml:space="preserve">
+    <value>Required components were not installed</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-INSTALL.Description" xml:space="preserve">
+    <value>Check system authentication, then try again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-PKG-INSTALL.Action" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-CAPABILITY-MISSING.Title" xml:space="preserve">
+    <value>Required components are still unavailable</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-CAPABILITY-MISSING.Description" xml:space="preserve">
+    <value>Required capabilities are still unavailable after installation. Review technical details.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-CAPABILITY-MISSING.Action" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-WINDOWS-IMAGE-CHANGED.Title" xml:space="preserve">
+    <value>The Windows installation file changed</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-WINDOWS-IMAGE-CHANGED.Description" xml:space="preserve">
+    <value>Choose the installation file again and confirm the Windows edition.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-WINDOWS-IMAGE-CHANGED.Action" xml:space="preserve">
+    <value>Choose file again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-MEDIA-DRIVER-DOWNLOAD.Title" xml:space="preserve">
+    <value>Windows device drivers could not be prepared</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-MEDIA-DRIVER-DOWNLOAD.Description" xml:space="preserve">
+    <value>Check the network connection and try again, or choose a local ISO file.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-MEDIA-DRIVER-DOWNLOAD.Action" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-WINDOWS-IMAGE-AMBIGUOUS.Title" xml:space="preserve">
+    <value>Choose a Windows edition to install</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-WINDOWS-IMAGE-AMBIGUOUS.Description" xml:space="preserve">
+    <value>Check the installation file again and choose a Windows edition.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-WINDOWS-IMAGE-AMBIGUOUS.Action" xml:space="preserve">
+    <value>Choose edition</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-BUILD-DEFAULTS.Title" xml:space="preserve">
+    <value>Windows environment components are not ready</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-BUILD-DEFAULTS.Description" xml:space="preserve">
+    <value>Check the required components again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-BUILD-DEFAULTS.Action" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-BUILD-WINDOWS.Title" xml:space="preserve">
+    <value>Windows environment preparation did not finish</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-BUILD-WINDOWS.Description" xml:space="preserve">
+    <value>You can retry from the preserved work.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-BUILD-WINDOWS.Action" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-FINALIZE-VERIFY.Title" xml:space="preserve">
+    <value>Windows environment verification did not finish</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-FINALIZE-VERIFY.Description" xml:space="preserve">
+    <value>Review diagnostic details, then try the task again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-FINALIZE-VERIFY.Action" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-UNEXPECTED.Title" xml:space="preserve">
+    <value>Windows environment preparation did not finish</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-UNEXPECTED.Description" xml:space="preserve">
+    <value>The current work was preserved. Try again.</value>
+  </data>
+  <data name="Setup.Blocker.SETUP-UNEXPECTED.Action" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Setup.Resource.Cpu" xml:space="preserve">
+    <value>The virtual CPU count exceeds this computer's {0} logical CPUs.</value>
+  </data>
+  <data name="Setup.Resource.Memory" xml:space="preserve">
+    <value>The memory setting exceeds 75% of currently available memory.</value>
+  </data>
 </root>
