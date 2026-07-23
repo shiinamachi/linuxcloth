@@ -2,6 +2,7 @@
     x:Class="LinuxCloth.Desktop.Views.RecoveryView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:localization="using:LinuxCloth.Desktop.Localization"
     Background="{DynamicResource AppBackgroundBrush}">
   <Border Padding="32">
     <Border
@@ -19,12 +20,12 @@
               Foreground="{DynamicResource WarningBrush}"
               Data="{StaticResource IconShieldRefresh}" />
           <TextBlock
-              Text="이전 작업 정리가 필요합니다"
+              Text="{Binding [Recovery.Title], Source={x:Static localization:UiStrings.Instance}}"
               Classes="dialog-title"
               TextAlignment="Center"
               TextWrapping="Wrap" />
           <TextBlock
-              Text="이전 Windows 환경의 안전한 정리가 끝날 때까지 새 서비스를 열거나 환경을 만들 수 없습니다."
+              Text="{Binding [Recovery.Description], Source={x:Static localization:UiStrings.Instance}}"
               Classes="body muted"
               TextAlignment="Center"
               TextWrapping="Wrap" />
@@ -35,7 +36,7 @@
             <Expander
                 x:Name="TechnicalDetails"
                 Classes="technical"
-                Header="기술 세부정보"
+                Header="{Binding [Recovery.TechnicalDetails], Source={x:Static localization:UiStrings.Instance}}"
                 AutomationProperties.AutomationId="Recovery.TechnicalDetails">
               <TextBlock
                   x:Name="DetailsText"
@@ -46,7 +47,7 @@
             <Button
                 x:Name="RetryButton"
                 Classes="primary"
-                Content="복구 다시 시도"
+                Content="{Binding [Recovery.Retry], Source={x:Static localization:UiStrings.Instance}}"
                 HorizontalAlignment="Left"
                 AutomationProperties.AutomationId="Recovery.Retry" />
           </StackPanel>

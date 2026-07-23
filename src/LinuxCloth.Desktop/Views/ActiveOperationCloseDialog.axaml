@@ -2,7 +2,8 @@
     x:Class="LinuxCloth.Desktop.Views.ActiveOperationCloseDialog"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="linuxcloth — 작업 중단 확인"
+    xmlns:localization="using:LinuxCloth.Desktop.Localization"
+    Title="{Binding [CloseDialog.WindowTitle], Source={x:Static localization:UiStrings.Instance}}"
     Width="480"
     Height="220"
     CanResize="False"
@@ -10,9 +11,12 @@
     Background="{DynamicResource SurfaceRaisedBrush}">
   <Grid RowDefinitions="*,Auto" Margin="24">
     <StackPanel Spacing="12">
-      <TextBlock Text="진행 중인 작업을 중단할까요?" Classes="dialog-title" TextWrapping="Wrap" />
       <TextBlock
-          Text="Windows 환경 만들기는 안전하게 중단하고 나중에 다시 시작할 수 있도록 현재 상태를 보존합니다."
+          Text="{Binding [CloseDialog.Title], Source={x:Static localization:UiStrings.Instance}}"
+          Classes="dialog-title"
+          TextWrapping="Wrap" />
+      <TextBlock
+          Text="{Binding [CloseDialog.Description], Source={x:Static localization:UiStrings.Instance}}"
           Classes="body muted"
           TextWrapping="Wrap" />
     </StackPanel>
@@ -24,12 +28,14 @@
         Margin="0,20,0,0">
       <Button
           Classes="secondary"
-          Content="계속 작업"
+          Content="{Binding [CloseDialog.KeepWorking], Source={x:Static localization:UiStrings.Instance}}"
           Click="OnKeepWorking"
+          IsDefault="True"
+          IsCancel="True"
           AutomationProperties.AutomationId="ActiveOperation.KeepWorking" />
       <Button
           Classes="primary"
-          Content="안전하게 중단하고 닫기"
+          Content="{Binding [CloseDialog.Stop], Source={x:Static localization:UiStrings.Instance}}"
           Click="OnStopAndClose"
           AutomationProperties.AutomationId="ActiveOperation.StopAndClose" />
     </StackPanel>

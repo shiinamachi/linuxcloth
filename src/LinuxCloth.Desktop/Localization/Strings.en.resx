@@ -672,4 +672,40 @@
   <data name="Catalog.Check.Recommended" xml:space="preserve">
     <value>Recommended</value>
   </data>
+  <data name="Recovery.Title" xml:space="preserve">
+    <value>Previous work needs cleanup</value>
+  </data>
+  <data name="Recovery.Description" xml:space="preserve">
+    <value>You cannot open a new service or create an environment until the previous Windows environment is safely cleaned up.</value>
+  </data>
+  <data name="Recovery.TechnicalDetails" xml:space="preserve">
+    <value>Technical details</value>
+  </data>
+  <data name="Recovery.Retry" xml:space="preserve">
+    <value>Retry recovery</value>
+  </data>
+  <data name="CloseDialog.WindowTitle" xml:space="preserve">
+    <value>linuxcloth — Confirm stop</value>
+  </data>
+  <data name="CloseDialog.Title" xml:space="preserve">
+    <value>Stop the current task?</value>
+  </data>
+  <data name="CloseDialog.Description" xml:space="preserve">
+    <value>The current state is preserved so you can safely stop creating the Windows environment and resume later.</value>
+  </data>
+  <data name="CloseDialog.KeepWorking" xml:space="preserve">
+    <value>Keep working</value>
+  </data>
+  <data name="CloseDialog.Stop" xml:space="preserve">
+    <value>Stop safely and close</value>
+  </data>
+  <data name="Shell.Error.Startup" xml:space="preserve">
+    <value>Could not finish startup. Restart the app or check the logs.</value>
+  </data>
+  <data name="Shell.Error.Setup" xml:space="preserve">
+    <value>Could not open initial setup. Try again shortly.</value>
+  </data>
+  <data name="Shell.Error.Catalog" xml:space="preserve">
+    <value>Could not open the service catalog. Try again shortly.</value>
+  </data>
 </root>

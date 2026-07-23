@@ -29,6 +29,17 @@ public sealed class DesktopUiPolicyTests
         "src/LinuxCloth.Desktop/Views/ShellWindow.axaml",
     };
 
+    public static TheoryData<string> LocalizedXamlFiles => new()
+    {
+        "src/LinuxCloth.Desktop/Controls/LanguageSelector.axaml",
+        "src/LinuxCloth.Desktop/Controls/ServiceDetails.axaml",
+        "src/LinuxCloth.Desktop/Views/ActiveOperationCloseDialog.axaml",
+        "src/LinuxCloth.Desktop/Views/MainWindow.axaml",
+        "src/LinuxCloth.Desktop/Views/RecoveryView.axaml",
+        "src/LinuxCloth.Desktop/Views/SetupWizardView.axaml",
+        "src/LinuxCloth.Desktop/Views/ShellWindow.axaml",
+    };
+
     [Theory]
     [MemberData(nameof(InteractiveXamlFiles))]
     public void InteractiveControlsHaveStableAutomationIdentifiers(string relativePath)
@@ -95,6 +106,45 @@ public sealed class DesktopUiPolicyTests
         }
     }
 
+    [Fact]
+    public void KoreanAndEnglishResourcesExposeMatchingKeys()
+    {
+        var korean = ResourceKeys("src/LinuxCloth.Desktop/Localization/Strings.resx");
+        var english = ResourceKeys("src/LinuxCloth.Desktop/Localization/Strings.en.resx");
+
+        Assert.Equal(korean, english);
+    }
+
+    [Theory]
+    [MemberData(nameof(LocalizedXamlFiles))]
+    public void UserFacingXamlCopyComesFromLocaleResources(string relativePath)
+    {
+        var document = XDocument.Load(Path.Combine(RepositoryRoot, relativePath));
+        var userFacingAttributeNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "AutomationProperties.HelpText",
+            "AutomationProperties.Name",
+            "Content",
+            "Header",
+            "PlaceholderText",
+            "Text",
+            "Title",
+        };
+        var hardCoded = document
+            .Root!
+            .DescendantsAndSelf()
+            .Attributes()
+            .Where(attribute => userFacingAttributeNames.Contains(attribute.Name.LocalName))
+            .Where(attribute => !attribute.Value.StartsWith('{'))
+            .Where(attribute => !string.Equals(attribute.Value, "linuxcloth", StringComparison.Ordinal))
+            .Select(attribute => $"{attribute.Parent?.Name.LocalName}.{attribute.Name.LocalName}={attribute.Value}")
+            .ToArray();
+
+        Assert.True(
+            hardCoded.Length == 0,
+            $"로케일 리소스를 사용하지 않은 사용자 문구: {string.Join(", ", hardCoded)} ({relativePath})");
+    }
+
     private static string? AutomationId(XElement element) => element
         .Attributes()
         .FirstOrDefault(attribute => attribute.Name.LocalName == "AutomationProperties.AutomationId")
@@ -109,6 +159,16 @@ public sealed class DesktopUiPolicyTests
         .Attributes()
         .FirstOrDefault(attribute => attribute.Name.LocalName == "Key")
         ?.Value;
+
+    private static string[] ResourceKeys(string relativePath) =>
+        XDocument.Load(Path.Combine(RepositoryRoot, relativePath))
+            .Root!
+            .Elements("data")
+            .Select(element => element.Attribute("name")?.Value)
+            .Where(static value => !string.IsNullOrWhiteSpace(value))
+            .Select(static value => value!)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
 
     private static Rgb ResourceColor(XElement dictionary, string key)
     {

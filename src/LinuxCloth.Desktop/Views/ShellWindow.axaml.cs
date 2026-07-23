@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Avalonia.Controls;
 using LinuxCloth.Application.Setup;
+using LinuxCloth.Desktop.Localization;
 using LinuxCloth.Desktop.Services;
 using LinuxCloth.Desktop.Setup;
 using LinuxCloth.Desktop.ViewModels;
@@ -55,7 +56,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            ShowStartupFailure("시작 준비를 완료하지 못했습니다. 앱을 다시 실행하거나 로그를 확인하세요.", exception);
+            ShowStartupFailure(UiStrings.Instance["Shell.Error.Startup"], exception);
         }
     }
 
@@ -144,7 +145,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            ShowStartupFailure("초기 설정을 열지 못했습니다. 잠시 후 다시 시도하세요.", exception);
+            ShowStartupFailure(UiStrings.Instance["Shell.Error.Setup"], exception);
         }
     }
 
@@ -167,7 +168,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            ShowStartupFailure("서비스 화면을 열지 못했습니다. 잠시 후 다시 시도하세요.", exception);
+            ShowStartupFailure(UiStrings.Instance["Shell.Error.Catalog"], exception);
         }
     }
 

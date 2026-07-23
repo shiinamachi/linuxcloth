@@ -672,4 +672,40 @@
   <data name="Catalog.Check.Recommended" xml:space="preserve">
     <value>권장</value>
   </data>
+  <data name="Recovery.Title" xml:space="preserve">
+    <value>이전 작업 정리가 필요합니다</value>
+  </data>
+  <data name="Recovery.Description" xml:space="preserve">
+    <value>이전 Windows 환경의 안전한 정리가 끝날 때까지 새 서비스를 열거나 환경을 만들 수 없습니다.</value>
+  </data>
+  <data name="Recovery.TechnicalDetails" xml:space="preserve">
+    <value>기술 세부정보</value>
+  </data>
+  <data name="Recovery.Retry" xml:space="preserve">
+    <value>복구 다시 시도</value>
+  </data>
+  <data name="CloseDialog.WindowTitle" xml:space="preserve">
+    <value>linuxcloth — 작업 중단 확인</value>
+  </data>
+  <data name="CloseDialog.Title" xml:space="preserve">
+    <value>진행 중인 작업을 중단할까요?</value>
+  </data>
+  <data name="CloseDialog.Description" xml:space="preserve">
+    <value>Windows 환경 만들기는 안전하게 중단하고 나중에 다시 시작할 수 있도록 현재 상태를 보존합니다.</value>
+  </data>
+  <data name="CloseDialog.KeepWorking" xml:space="preserve">
+    <value>계속 작업</value>
+  </data>
+  <data name="CloseDialog.Stop" xml:space="preserve">
+    <value>안전하게 중단하고 닫기</value>
+  </data>
+  <data name="Shell.Error.Startup" xml:space="preserve">
+    <value>시작 준비를 완료하지 못했습니다. 앱을 다시 실행하거나 로그를 확인하세요.</value>
+  </data>
+  <data name="Shell.Error.Setup" xml:space="preserve">
+    <value>초기 설정을 열지 못했습니다. 잠시 후 다시 시도하세요.</value>
+  </data>
+  <data name="Shell.Error.Catalog" xml:space="preserve">
+    <value>서비스 화면을 열지 못했습니다. 잠시 후 다시 시도하세요.</value>
+  </data>
 </root>
