@@ -36,14 +36,18 @@ supported 720×480 minimum without hiding the primary action.
 
 | Screen | Korean | English | Source surface |
 |---|---|---|---|
-| Startup | `01-startup-ko.png` | `01-startup-en.png` | `ShellWindow` startup panel |
-| Setup inputs | `02-setup-ready-ko.png` | `02-setup-ready-en.png` | `SetupWizardView.IsReady` |
-| Setup progress | `03-setup-progress-ko.png` | `03-setup-progress-en.png` | `SetupWizardView.IsRunning` |
-| Setup blocker | `04-setup-blocked-ko.png` | `04-setup-blocked-en.png` | `SetupWizardView.IsBlocked` |
-| Catalog | `05-catalog-ko.png` | `05-catalog-en.png` | `MainWindow` wide layout |
-| Service details | `06-service-details-ko.png` | `06-service-details-en.png` | `ServiceDetails` medium drawer |
-| Recovery | `07-recovery-ko.png` | `07-recovery-en.png` | `RecoveryView` |
-| Close confirmation | `08-close-confirmation-ko.png` | `08-close-confirmation-en.png` | `ActiveOperationCloseDialog` |
+| Startup | [Korean](01-startup-ko.png) | [English](01-startup-en.png) | `ShellWindow` startup panel |
+| Setup inputs | [Korean](02-setup-ready-ko.png) | [English](02-setup-ready-en.png) | `SetupWizardView.IsReady` |
+| Setup progress | [Korean](03-setup-progress-ko.png) | [English](03-setup-progress-en.png) | `SetupWizardView.IsRunning` |
+| Setup blocker | [Korean](04-setup-blocked-ko.png) | [English](04-setup-blocked-en.png) | `SetupWizardView.IsBlocked` |
+| Catalog | [Korean](05-catalog-ko.png) | [English](05-catalog-en.png) | `MainWindow` wide layout |
+| Service details | [Korean](06-service-details-ko.png) | [English](06-service-details-en.png) | `ServiceDetails` medium drawer |
+| Recovery | [Korean](07-recovery-ko.png) | [English](07-recovery-en.png) | `RecoveryView` |
+| Close confirmation | [Korean](08-close-confirmation-ko.png) | [English](08-close-confirmation-en.png) | `ActiveOperationCloseDialog` |
+
+The raster files are visual references, not localization sources. Implemented
+copy must come from locale resources so text can reflow, expose correct screen
+reader language metadata, and remain sharp at every render scale.
 
 ## Image-generation prompt set
 
