@@ -2,6 +2,8 @@
     x:Class="LinuxCloth.Desktop.Views.ShellWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:LinuxCloth.Desktop.Controls"
+    xmlns:localization="using:LinuxCloth.Desktop.Localization"
     Title="linuxcloth"
     Width="1440"
     Height="900"
@@ -19,7 +21,7 @@
             HorizontalAlignment="Center" />
         <TextBlock
             x:Name="StartupStatus"
-            Text="준비 중…"
+            Text="{Binding [Startup.Status], Source={x:Static localization:UiStrings.Instance}}"
             Classes="caption"
             TextWrapping="Wrap"
             TextAlignment="Center" />
@@ -27,8 +29,13 @@
             Width="200"
             IsIndeterminate="True"
             HorizontalAlignment="Center"
-            AutomationProperties.Name="시작 준비 진행 중" />
+            AutomationProperties.Name="{Binding [Startup.Progress], Source={x:Static localization:UiStrings.Instance}}" />
       </StackPanel>
     </Border>
+    <controls:LanguageSelector
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Margin="0,12,12,0"
+        ZIndex="100" />
   </Grid>
 </Window>

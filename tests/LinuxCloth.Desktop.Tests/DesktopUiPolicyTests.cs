@@ -20,6 +20,7 @@ public sealed class DesktopUiPolicyTests
 
     public static TheoryData<string> InteractiveXamlFiles => new()
     {
+        "src/LinuxCloth.Desktop/Controls/LanguageSelector.axaml",
         "src/LinuxCloth.Desktop/Controls/ServiceDetails.axaml",
         "src/LinuxCloth.Desktop/Views/ActiveOperationCloseDialog.axaml",
         "src/LinuxCloth.Desktop/Views/MainWindow.axaml",
