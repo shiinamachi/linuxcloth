@@ -4,33 +4,54 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="{DynamicResource AppBackgroundBrush}">
   <Border Padding="32">
-    <StackPanel
-        MaxWidth="640"
+    <Border
+        Classes="card"
+        MaxWidth="520"
         HorizontalAlignment="Center"
         VerticalAlignment="Center"
-        Spacing="12">
-      <TextBlock Text="이전 작업 정리가 필요합니다" Classes="dialog-title" TextWrapping="Wrap" />
-      <TextBlock
-          Text="이전 Windows 환경의 안전한 정리가 끝날 때까지 새 서비스를 열거나 환경을 만들 수 없습니다."
-          Classes="body"
-          TextWrapping="Wrap" />
-      <Expander
-          x:Name="TechnicalDetails"
-          Classes="technical"
-          Header="기술 세부정보"
-          AutomationProperties.AutomationId="Recovery.TechnicalDetails">
-        <TextBlock
-            x:Name="DetailsText"
-            Classes="caption mono"
-            TextWrapping="Wrap"
-            Margin="0,6,0,0" />
-      </Expander>
-      <Button
-          x:Name="RetryButton"
-          Classes="primary"
-          Content="복구 다시 시도"
-          HorizontalAlignment="Left"
-          AutomationProperties.AutomationId="Recovery.Retry" />
-    </StackPanel>
+        Padding="0">
+      <StackPanel>
+        <StackPanel Spacing="12" Margin="32,28,32,20" HorizontalAlignment="Stretch">
+          <PathIcon
+              Width="48"
+              Height="48"
+              HorizontalAlignment="Center"
+              Foreground="{DynamicResource WarningBrush}"
+              Data="{StaticResource IconShieldRefresh}" />
+          <TextBlock
+              Text="이전 작업 정리가 필요합니다"
+              Classes="dialog-title"
+              TextAlignment="Center"
+              TextWrapping="Wrap" />
+          <TextBlock
+              Text="이전 Windows 환경의 안전한 정리가 끝날 때까지 새 서비스를 열거나 환경을 만들 수 없습니다."
+              Classes="body muted"
+              TextAlignment="Center"
+              TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="20,12,20,20">
+          <StackPanel Spacing="12">
+            <Expander
+                x:Name="TechnicalDetails"
+                Classes="technical"
+                Header="기술 세부정보"
+                AutomationProperties.AutomationId="Recovery.TechnicalDetails">
+              <TextBlock
+                  x:Name="DetailsText"
+                  Classes="caption mono"
+                  TextWrapping="Wrap"
+                  Margin="0,6,0,0" />
+            </Expander>
+            <Button
+                x:Name="RetryButton"
+                Classes="primary"
+                Content="복구 다시 시도"
+                HorizontalAlignment="Left"
+                AutomationProperties.AutomationId="Recovery.Retry" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Border>
   </Border>
 </UserControl>

@@ -6,19 +6,36 @@
     Background="{DynamicResource AppBackgroundBrush}"
     KeyDown="OnKeyDown">
   <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Compact header -->
     <Border
         x:Name="CompactHeader"
         Grid.Row="0"
         IsVisible="False"
-        Classes="chrome-bar">
-      <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-          <TextBlock Text="linuxcloth" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
-          <Border Grid.Column="1" Classes="badge-neutral" VerticalAlignment="Center">
+        Classes="chrome-bar"
+        Padding="12,10">
+      <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+          <TextBlock Text="linuxcloth" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+          <Border Grid.Column="1" Classes="badge-success" VerticalAlignment="Center" IsVisible="{Binding IsReady}">
             <StackPanel Orientation="Horizontal" Spacing="4">
-              <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
-              <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
-              <TextBlock Text="{Binding DoctorSummary}" Classes="meta" />
+              <PathIcon
+                  Width="12"
+                  Height="12"
+                  Foreground="{DynamicResource SuccessBrush}"
+                  Data="{StaticResource IconCheckCircle}"
+                  VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DoctorSummary}" Classes="meta" Foreground="{DynamicResource SuccessBrush}" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="1" Classes="badge-warning" VerticalAlignment="Center" IsVisible="{Binding !IsReady}">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <PathIcon
+                  Width="12"
+                  Height="12"
+                  Foreground="{DynamicResource WarningBrush}"
+                  Data="{StaticResource IconAlert}"
+                  VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DoctorSummary}" Classes="meta" Foreground="{DynamicResource WarningBrush}" />
             </StackPanel>
           </Border>
           <Button
@@ -32,13 +49,23 @@
         </Grid>
         <Grid Grid.Row="1" ColumnDefinitions="*,140" ColumnSpacing="6">
           <Border Classes="search-field">
-            <TextBox
-                x:Name="CompactSearchBox"
-                Classes="search"
-                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                PlaceholderText="검색 키워드 입력"
-                AutomationProperties.AutomationId="Catalog.Search.Compact"
-                AutomationProperties.Name="서비스 검색" />
+            <Grid ColumnDefinitions="Auto,*" Margin="8,0">
+              <PathIcon
+                  Width="14"
+                  Height="14"
+                  Margin="0,0,4,0"
+                  Foreground="{DynamicResource TextSecondaryBrush}"
+                  Data="{StaticResource IconSearch}"
+                  VerticalAlignment="Center" />
+              <TextBox
+                  x:Name="CompactSearchBox"
+                  Grid.Column="1"
+                  Classes="search"
+                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                  PlaceholderText="서비스 검색"
+                  AutomationProperties.AutomationId="Catalog.Search.Compact"
+                  AutomationProperties.Name="서비스 검색" />
+            </Grid>
           </Border>
           <ComboBox
               Grid.Column="1"
@@ -57,16 +84,23 @@
       </Grid>
     </Border>
 
+    <!-- Desktop header -->
     <Border
         x:Name="DesktopHeader"
         Grid.Row="0"
-        Classes="chrome-bar">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-        <TextBlock Text="linuxcloth" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" />
+        Classes="chrome-bar"
+        Padding="16,10"
+        BorderBrush="{DynamicResource BorderSubtleBrush}"
+        BorderThickness="0,0,0,1"
+        Background="{DynamicResource SurfaceRaisedBrush}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+        <TextBlock Text="linuxcloth" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
         <Button
             x:Name="ReadinessButton"
             Grid.Column="2"
-            Classes="secondary"
+            Classes="ghost"
+            Padding="8,4"
+            VerticalAlignment="Center"
             AutomationProperties.AutomationId="Catalog.Readiness"
             AutomationProperties.Name="실행 준비 상태">
           <Button.Flyout>
@@ -74,9 +108,21 @@
               <Border Classes="card" Width="340">
                 <StackPanel Spacing="10">
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" VerticalAlignment="Center" />
-                    <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding DoctorSummary}" FontWeight="Bold" />
+                    <PathIcon
+                        Width="16"
+                        Height="16"
+                        Foreground="{DynamicResource SuccessBrush}"
+                        Data="{StaticResource IconCheckCircle}"
+                        IsVisible="{Binding IsReady}"
+                        VerticalAlignment="Center" />
+                    <PathIcon
+                        Width="16"
+                        Height="16"
+                        Foreground="{DynamicResource WarningBrush}"
+                        Data="{StaticResource IconAlert}"
+                        IsVisible="{Binding !IsReady}"
+                        VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding DoctorSummary}" FontWeight="SemiBold" VerticalAlignment="Center" />
                   </StackPanel>
                   <Button
                       Classes="secondary"
@@ -92,17 +138,19 @@
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
                           <Grid ColumnDefinitions="Auto,100,*" ColumnSpacing="8" Margin="0,4">
-                            <Ellipse
-                                Width="8"
-                                Height="8"
+                            <PathIcon
+                                Width="12"
+                                Height="12"
                                 VerticalAlignment="Center"
-                                Fill="{DynamicResource SuccessBrush}"
+                                Foreground="{DynamicResource SuccessBrush}"
+                                Data="{StaticResource IconCheck}"
                                 IsVisible="{Binding IsAvailable}" />
-                            <Ellipse
-                                Width="8"
-                                Height="8"
+                            <PathIcon
+                                Width="12"
+                                Height="12"
                                 VerticalAlignment="Center"
-                                Fill="{DynamicResource WarningBrush}"
+                                Foreground="{DynamicResource WarningBrush}"
+                                Data="{StaticResource IconAlert}"
                                 IsVisible="{Binding !IsAvailable}" />
                             <TextBlock Grid.Column="1" Text="{Binding Label}" Classes="caption" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="meta" TextWrapping="Wrap" />
@@ -115,31 +163,63 @@
               </Border>
             </Flyout>
           </Button.Flyout>
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsReady}" />
-            <Ellipse Width="8" Height="8" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding !IsReady}" />
-            <TextBlock Text="{Binding DoctorSummary}" Classes="caption" VerticalAlignment="Center" />
-          </StackPanel>
+          <Grid>
+            <Border Classes="badge-success" IsVisible="{Binding IsReady}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon
+                    Width="14"
+                    Height="14"
+                    Foreground="{DynamicResource SuccessBrush}"
+                    Data="{StaticResource IconCheckCircle}"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    Text="{Binding DoctorSummary}"
+                    Classes="caption"
+                    Foreground="{DynamicResource SuccessBrush}"
+                    VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+            <Border Classes="badge-warning" IsVisible="{Binding !IsReady}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon
+                    Width="14"
+                    Height="14"
+                    Foreground="{DynamicResource WarningBrush}"
+                    Data="{StaticResource IconAlert}"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    Text="{Binding DoctorSummary}"
+                    Classes="caption"
+                    Foreground="{DynamicResource WarningBrush}"
+                    VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+          </Grid>
         </Button>
         <Button
             Grid.Column="3"
             Classes="secondary"
-            Content="Windows 환경"
             Click="OnOpenImageSetup"
             IsEnabled="{Binding CanConfigureImages}"
+            VerticalAlignment="Center"
             AutomationProperties.AutomationId="Catalog.WindowsEnvironment"
-            AutomationProperties.Name="Windows 환경 관리" />
+            AutomationProperties.Name="Windows 환경 관리">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <PathIcon Width="14" Height="14" Data="{StaticResource IconDesktop}" VerticalAlignment="Center" />
+            <TextBlock Text="Windows 환경" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
       </Grid>
     </Border>
 
-    <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="150,*,320">
+    <Grid x:Name="ContentGrid" Grid.Row="1" ColumnDefinitions="168,*,340">
       <Border
           x:Name="CategoryRail"
           Grid.Column="0"
-          Background="{DynamicResource AppBackgroundBrush}"
+          Background="{DynamicResource SurfaceRaisedBrush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
           BorderThickness="0,0,1,0"
-          Padding="2,8,2,8">
+          Padding="4,12,4,12">
         <Grid RowDefinitions="*,Auto">
           <ListBox
               Grid.Row="0"
@@ -150,13 +230,13 @@
               AutomationProperties.Name="서비스 분류">
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <StackPanel Orientation="Horizontal" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="10">
                   <Ellipse
                       Classes="category-radio"
-                      Width="12"
-                      Height="12"
+                      Width="14"
+                      Height="14"
                       Stroke="{DynamicResource TextSecondaryBrush}"
-                      StrokeThickness="1"
+                      StrokeThickness="1.5"
                       Fill="Transparent"
                       VerticalAlignment="Center" />
                   <TextBlock Classes="category-label body" Text="{Binding Label}" VerticalAlignment="Center" />
@@ -166,7 +246,6 @@
           </ListBox>
 
           <StackPanel Grid.Row="1" Margin="8,8,8,4" Spacing="6">
-            <TextBlock Text="Windows 환경" Classes="meta" />
             <ComboBox
                 ItemsSource="{Binding Images}"
                 SelectedItem="{Binding SelectedImage}"
@@ -175,36 +254,34 @@
                 AutomationProperties.Name="Windows 환경 선택">
               <ComboBox.ItemTemplate>
                 <DataTemplate>
-                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon
+                        Width="14"
+                        Height="14"
+                        Data="{StaticResource IconDesktop}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
+                        VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  </StackPanel>
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button
-                Classes="secondary"
-                Content="환경 관리"
-                Click="OnOpenImageSetup"
-                IsEnabled="{Binding CanConfigureImages}"
-                AutomationProperties.AutomationId="Catalog.WindowsEnvironment.Manage"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Center" />
           </StackPanel>
         </Grid>
       </Border>
 
-      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*">
-        <Grid Grid.Row="0" ColumnDefinitions="*,220" MinHeight="45" Margin="8,4,8,0">
+      <Grid x:Name="ServicesContent" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="16,12,16,8">
+        <StackPanel Grid.Row="0" Spacing="10">
           <TextBlock
               Classes="instruction"
-              VerticalAlignment="Center"
-              Margin="0,0,8,0"
               TextWrapping="Wrap"
               Text="접속하려는 사이트를 선택하거나, 검색창에서 검색어를 입력하세요." />
-          <Border Grid.Column="1" Classes="search-field" VerticalAlignment="Center" Margin="0,6">
-            <Grid ColumnDefinitions="Auto,*" Margin="6,0">
+          <Border Classes="search-field">
+            <Grid ColumnDefinitions="Auto,*" Margin="10,0">
               <PathIcon
                   Width="14"
                   Height="14"
-                  Margin="0,0,4,0"
+                  Margin="0,0,6,0"
                   Foreground="{DynamicResource TextSecondaryBrush}"
                   Data="{StaticResource IconSearch}"
                   VerticalAlignment="Center" />
@@ -213,19 +290,19 @@
                   Grid.Column="1"
                   Classes="search"
                   Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                  PlaceholderText="검색 키워드 입력"
+                  PlaceholderText="서비스 검색"
                   AutomationProperties.AutomationId="Catalog.Search"
                   AutomationProperties.Name="서비스 검색"
                   AutomationProperties.HelpText="서비스 이름으로 카탈로그를 검색합니다." />
             </Grid>
           </Border>
-        </Grid>
+        </StackPanel>
 
         <Grid
             x:Name="AdaptiveFilterBar"
             Grid.Row="1"
             IsVisible="False"
-            Margin="8,0,8,4"
+            Margin="0,10,0,0"
             ColumnDefinitions="Auto,*">
           <TextBlock Text="분류" Classes="caption" VerticalAlignment="Center" Margin="0,0,8,0" />
           <ComboBox
@@ -251,7 +328,7 @@
             ItemsSource="{Binding FilteredServices}"
             SelectedItem="{Binding SelectedService}"
             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-            Margin="4,0,4,4"
+            Margin="0,8,0,0"
             AutomationProperties.AutomationId="Catalog.Services"
             AutomationProperties.Name="서비스 목록">
           <ListBox.ItemsPanel>
@@ -261,27 +338,33 @@
           </ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <Grid Width="64" MinHeight="88" VerticalAlignment="Top">
+              <Grid Width="72" MinHeight="92" VerticalAlignment="Top">
                 <Grid.RowDefinitions>
                   <RowDefinition Height="48" />
-                  <RowDefinition Height="2" />
-                  <RowDefinition Height="Auto" MinHeight="38" />
+                  <RowDefinition Height="4" />
+                  <RowDefinition Height="Auto" MinHeight="36" />
                 </Grid.RowDefinitions>
-                <Image
+                <Border
                     Grid.Row="0"
-                    Source="{Binding Image}"
+                    Classes="logo-frame"
                     Width="48"
                     Height="48"
-                    Stretch="Uniform"
+                    Padding="4"
                     HorizontalAlignment="Center"
-                    VerticalAlignment="Center" />
+                    VerticalAlignment="Center">
+                  <Image
+                      Source="{Binding Image}"
+                      Stretch="Uniform"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center" />
+                </Border>
                 <TextBlock
                     Grid.Row="2"
                     Text="{Binding DisplayName}"
                     TextAlignment="Center"
                     TextWrapping="Wrap"
                     Classes="meta"
-                    MaxHeight="46"
+                    MaxHeight="44"
                     TextTrimming="CharacterEllipsis"
                     VerticalAlignment="Top" />
               </Grid>
@@ -296,7 +379,7 @@
           Background="{DynamicResource SurfaceRaisedBrush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
           BorderThickness="1,0,0,0"
-          Padding="12">
+          Padding="16">
         <Grid>
           <TextBlock
               Text="사이트를 선택하세요"
@@ -310,13 +393,29 @@
     </Grid>
 
     <Border Grid.Row="2" Classes="status-strip">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-        <ProgressBar
-            Grid.Column="0"
-            Width="80"
-            IsIndeterminate="True"
-            IsVisible="{Binding IsBusy}"
-            AutomationProperties.Name="작업 진행 중" />
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <ProgressBar
+              Width="80"
+              IsIndeterminate="True"
+              IsVisible="{Binding IsBusy}"
+              VerticalAlignment="Center"
+              AutomationProperties.Name="작업 진행 중" />
+          <PathIcon
+              Width="14"
+              Height="14"
+              Foreground="{DynamicResource SuccessBrush}"
+              Data="{StaticResource IconCheckCircle}"
+              IsVisible="{Binding IsReady}"
+              VerticalAlignment="Center" />
+          <PathIcon
+              Width="14"
+              Height="14"
+              Foreground="{DynamicResource WarningBrush}"
+              Data="{StaticResource IconAlert}"
+              IsVisible="{Binding !IsReady}"
+              VerticalAlignment="Center" />
+        </StackPanel>
         <TextBlock
             Grid.Column="1"
             Text="{Binding SessionStatus}"
@@ -353,21 +452,25 @@
           x:Name="DetailsDrawer"
           Background="{DynamicResource SurfaceRaisedBrush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
-          BorderThickness="1"
+          BorderThickness="1,0,0,0"
           Width="400"
           MaxWidth="400"
-          Padding="12"
+          Padding="16"
           HorizontalAlignment="Right"
           VerticalAlignment="Stretch">
         <Grid RowDefinitions="Auto,*">
           <Button
               Grid.Row="0"
-              Classes="ghost icon-sm"
+              Classes="ghost"
               HorizontalAlignment="Left"
+              Margin="0,0,0,8"
               Click="OnCloseDetails"
               AutomationProperties.AutomationId="Catalog.Details.Close"
               AutomationProperties.Name="서비스 상세정보 닫기">
-            <PathIcon Width="16" Height="16" Data="{StaticResource IconClose}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <PathIcon Width="14" Height="14" Data="{StaticResource IconClose}" VerticalAlignment="Center" />
+              <TextBlock Text="서비스 상세정보 닫기" Classes="caption" VerticalAlignment="Center" />
+            </StackPanel>
           </Button>
           <controls:ServiceDetails Grid.Row="1" />
         </Grid>

@@ -132,8 +132,8 @@ public sealed partial class MainWindow : UserControl
         WideDetailsPanel.IsVisible = isWide;
         AdaptiveFilterBar.IsVisible = !isWide && !isCompact;
 
-        ContentGrid.ColumnDefinitions[0].Width = new GridLength(isWide ? 150 : 0);
-        ContentGrid.ColumnDefinitions[2].Width = new GridLength(isWide ? 320 : 0);
+        ContentGrid.ColumnDefinitions[0].Width = new GridLength(isWide ? 168 : 0);
+        ContentGrid.ColumnDefinitions[2].Width = new GridLength(isWide ? 340 : 0);
         ServicesContent.Margin = isWide
             ? new Thickness(0)
             : isCompact

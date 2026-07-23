@@ -30,6 +30,7 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private int _diskSizeGiB = 96;
     private string? _errorMessage;
     private bool _hostInspected;
+    private bool _isHostReady;
     private string _hostStatus = "자동 확인을 시작합니다.";
     private string _imageIdText = "windows-11";
     private bool _isBusy;
@@ -68,17 +69,18 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
         _packageInstaller = packageInstaller ?? throw new ArgumentNullException(nameof(packageInstaller));
         _hostCapacity = hostCapacity ?? throw new ArgumentNullException(nameof(hostCapacity));
 
-        foreach (var title in new[]
-                 {
-                     "시스템 확인",
-                     "필수 구성 요소",
-                     "설치 파일 확인",
-                     "Windows 설치",
-                     "환경 확인",
-                     "마무리",
-                 })
+        var phaseTitles = new[]
         {
-            Phases.Add(new SetupFlowPhaseItemViewModel(title));
+            "시스템 확인",
+            "필수 구성 요소",
+            "설치 파일 확인",
+            "Windows 설치",
+            "환경 확인",
+            "마무리",
+        };
+        for (var index = 0; index < phaseTitles.Length; index++)
+        {
+            Phases.Add(new SetupFlowPhaseItemViewModel(index + 1, phaseTitles[index]));
         }
 
         var imageProgress = new Progress<DesktopImageBuildProgress>(ApplyImageBuildProgress);
@@ -147,6 +149,12 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     public bool IsBlocked => _blocker is not null;
 
     public bool IsReady => !IsRunning && !IsBlocked;
+
+    public bool IsHostReady
+    {
+        get => _isHostReady;
+        private set => SetProperty(ref _isHostReady, value);
+    }
 
     public bool HasActiveOperation => IsBusy || IsRunning;
 
@@ -678,9 +686,12 @@ public sealed class SetupWizardViewModel : ObservableObject, IAsyncDisposable
     private async Task RefreshHostCoreAsync()
     {
         HostStatus = "이 컴퓨터를 확인하고 있습니다…";
+        IsHostReady = false;
         var doctor = await _runtime.InspectHostAsync(_shutdown.Token).ConfigureAwait(true);
         _hostInspected = true;
-        HostStatus = DesktopSetupOperationFactory.CanBuildImage(doctor)
+        var ready = DesktopSetupOperationFactory.CanBuildImage(doctor);
+        IsHostReady = ready;
+        HostStatus = ready
             ? "준비됨"
             : "필요한 구성 요소를 시작할 때 자동으로 준비합니다.";
         RaiseState();
@@ -967,10 +978,13 @@ public sealed class SetupFlowPhaseItemViewModel : ObservableObject
     private bool _isComplete;
     private bool _isCurrent;
 
-    public SetupFlowPhaseItemViewModel(string title)
+    public SetupFlowPhaseItemViewModel(int index, string title)
     {
+        Index = index;
         Title = title;
     }
+
+    public int Index { get; }
 
     public string Title { get; }
 
@@ -986,6 +1000,8 @@ public sealed class SetupFlowPhaseItemViewModel : ObservableObject
         private set => SetProperty(ref _isCurrent, value);
     }
 
+    public bool IsPending => !IsComplete && !IsCurrent;
+
     public string Marker => IsComplete ? "완료" : IsCurrent ? "진행 중" : "대기";
 
     public void Update(bool isComplete, bool isCurrent)
@@ -993,5 +1009,6 @@ public sealed class SetupFlowPhaseItemViewModel : ObservableObject
         IsComplete = isComplete;
         IsCurrent = isCurrent;
         OnPropertyChanged(nameof(Marker));
+        OnPropertyChanged(nameof(IsPending));
     }
 }

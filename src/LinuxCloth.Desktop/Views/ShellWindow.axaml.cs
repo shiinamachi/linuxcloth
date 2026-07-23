@@ -76,6 +76,7 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
         Height = 760;
         MinWidth = 720;
         MinHeight = 480;
+        Title = "linuxcloth";
         if (_mainViewModel is not null)
         {
             _mainViewModel.SetupRequested -= OnSetupRequested;
@@ -106,10 +107,11 @@ public sealed partial class ShellWindow : Window, IAsyncDisposable
 
     private async Task ShowMainAsync(DesktopStartupSnapshot startup)
     {
-        Width = 1280;
-        Height = 820;
+        Width = 1440;
+        Height = 900;
         MinWidth = 720;
         MinHeight = 480;
+        Title = "linuxcloth";
         await DisposeSetupAsync();
         if (_mainViewModel is not null)
         {

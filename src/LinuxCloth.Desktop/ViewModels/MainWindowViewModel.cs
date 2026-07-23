@@ -195,9 +195,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _isInitialized = true;
-            SessionStatus = HasImages
-                ? "서비스를 선택하세요."
-                : "Windows 환경을 먼저 준비하세요.";
+            SessionStatus = ComposeSessionStatus();
         }
         catch (Exception exception)
         {
@@ -417,10 +415,34 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _canHostLaunch = result.CanLaunch;
         var missing = result.Report.Checks.Count(check => check.IsRequired && !check.IsAvailable);
         DoctorSummary = result.CanLaunch
-            ? "준비 완료"
+            ? "준비됨"
             : $"설정 {missing}개 필요";
+        if (_isInitialized && _runningSession is null && !IsBusy)
+        {
+            SessionStatus = ComposeSessionStatus();
+        }
+
         OnPropertyChanged(nameof(IsReady));
         RaiseCommandState();
+    }
+
+    private string ComposeSessionStatus()
+    {
+        if (_hasUnresolvedRecovery)
+        {
+            return "이전 작업 정리가 필요합니다";
+        }
+
+        if (!HasImages)
+        {
+            return IsReady
+                ? "준비됨 · Windows 환경을 먼저 준비하세요"
+                : "Windows 환경을 먼저 준비하세요";
+        }
+
+        return IsReady
+            ? "준비됨 · 서비스를 선택하세요"
+            : "서비스를 선택하세요";
     }
 
     private void ApplyFilter()

@@ -7,13 +7,13 @@
     Height="220"
     CanResize="False"
     WindowStartupLocation="CenterOwner"
-    Background="{DynamicResource AppBackgroundBrush}">
-  <Grid RowDefinitions="*,Auto" Margin="20">
-    <StackPanel Spacing="10">
+    Background="{DynamicResource SurfaceRaisedBrush}">
+  <Grid RowDefinitions="*,Auto" Margin="24">
+    <StackPanel Spacing="12">
       <TextBlock Text="진행 중인 작업을 중단할까요?" Classes="dialog-title" TextWrapping="Wrap" />
       <TextBlock
-          Text="설치는 현재 시스템 상태를 따릅니다. Windows 환경 만들기는 안전하게 중단하고 나중에 다시 시작할 수 있도록 현재 상태를 보존합니다."
-          Classes="body"
+          Text="Windows 환경 만들기는 안전하게 중단하고 나중에 다시 시작할 수 있도록 현재 상태를 보존합니다."
+          Classes="body muted"
           TextWrapping="Wrap" />
     </StackPanel>
     <StackPanel
@@ -21,7 +21,7 @@
         Orientation="Horizontal"
         HorizontalAlignment="Right"
         Spacing="8"
-        Margin="0,16,0,0">
+        Margin="0,20,0,0">
       <Button
           Classes="secondary"
           Content="계속 작업"

@@ -4,33 +4,55 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Grid RowDefinitions="*,Auto">
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-      <StackPanel Spacing="10">
-        <Grid ColumnDefinitions="96,*" ColumnSpacing="8">
+      <StackPanel Spacing="14">
+        <TextBlock Text="서비스 상세" Classes="section-title" />
+
+        <Grid ColumnDefinitions="96,*" ColumnSpacing="12">
           <Border Classes="logo-frame" Width="88" Height="88" HorizontalAlignment="Left" VerticalAlignment="Top">
             <Image Source="{Binding SelectedService.Image}" Stretch="Uniform" />
           </Border>
-          <StackPanel Grid.Column="1" Spacing="6">
+          <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
             <TextBlock
                 Text="{Binding SelectedService.DisplayName}"
-                Classes="page-title"
+                Classes="dialog-title"
                 TextWrapping="Wrap"
                 TextTrimming="CharacterEllipsis" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
               <Border Classes="badge-success" IsVisible="{Binding SelectedService.IsVerified}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" Classes="meta" Foreground="{DynamicResource SuccessBrush}" />
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <PathIcon
+                      Width="12"
+                      Height="12"
+                      Foreground="{DynamicResource SuccessBrush}"
+                      Data="{StaticResource IconCheck}"
+                      VerticalAlignment="Center" />
+                  <TextBlock
+                      Text="{Binding SelectedService.CompatibilityLabel}"
+                      Classes="meta"
+                      Foreground="{DynamicResource SuccessBrush}"
+                      VerticalAlignment="Center" />
+                </StackPanel>
               </Border>
               <Border Classes="badge-warning" IsVisible="{Binding SelectedService.IsPartial}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" Classes="meta" Foreground="{DynamicResource WarningBrush}" />
+                <TextBlock
+                    Text="{Binding SelectedService.CompatibilityLabel}"
+                    Classes="meta"
+                    Foreground="{DynamicResource WarningBrush}" />
               </Border>
               <Border Classes="badge-danger" IsVisible="{Binding SelectedService.IsBlocked}">
-                <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" Classes="meta" Foreground="{DynamicResource DangerBrush}" />
+                <TextBlock
+                    Text="{Binding SelectedService.CompatibilityLabel}"
+                    Classes="meta"
+                    Foreground="{DynamicResource DangerBrush}" />
               </Border>
               <Border Classes="badge-neutral" IsVisible="{Binding SelectedService.IsUnknown}">
                 <TextBlock Text="{Binding SelectedService.CompatibilityLabel}" Classes="meta" />
               </Border>
-              <TextBlock Text="{Binding SelectedService.Category}" Classes="caption" VerticalAlignment="Center" />
+              <TextBlock
+                  Text="{Binding SelectedService.Category}"
+                  Classes="caption"
+                  VerticalAlignment="Center" />
             </StackPanel>
-            <TextBlock Text="{Binding SelectedService.Url}" Classes="caption" TextWrapping="Wrap" />
           </StackPanel>
         </Grid>
 
@@ -40,15 +62,25 @@
             Classes="caption" />
 
         <Border Classes="notice-warning">
-          <TextBlock
-              Text="닫으면 이번 실행의 파일과 변경사항이 삭제됩니다."
-              TextWrapping="Wrap"
-              Classes="caption warning"
-              FontWeight="Bold" />
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <PathIcon
+                Width="16"
+                Height="16"
+                Foreground="{DynamicResource WarningBrush}"
+                Data="{StaticResource IconAlert}"
+                VerticalAlignment="Top"
+                Margin="0,1,0,0" />
+            <TextBlock
+                Grid.Column="1"
+                Text="닫으면 이번 실행의 파일과 변경사항이 삭제됩니다."
+                TextWrapping="Wrap"
+                Classes="caption warning"
+                FontWeight="SemiBold" />
+          </Grid>
         </Border>
 
-        <StackPanel Spacing="4">
-          <TextBlock Text="Windows 환경" FontWeight="Bold" Classes="caption" />
+        <StackPanel Spacing="6">
+          <TextBlock Text="Windows 환경" FontWeight="SemiBold" Classes="caption" />
           <ComboBox
               ItemsSource="{Binding Images}"
               SelectedItem="{Binding SelectedImage}"
@@ -57,7 +89,15 @@
               AutomationProperties.Name="서비스를 열 Windows 환경">
             <ComboBox.ItemTemplate>
               <DataTemplate>
-                <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <PathIcon
+                      Width="14"
+                      Height="14"
+                      Data="{StaticResource IconDesktop}"
+                      Foreground="{DynamicResource TextSecondaryBrush}"
+                      VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </StackPanel>
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
@@ -88,6 +128,7 @@
                 Text="추가 준비 단계를 사용합니다."
                 TextWrapping="Wrap"
                 Classes="caption" />
+            <TextBlock Text="{Binding SelectedService.Url}" Classes="meta mono" TextWrapping="Wrap" />
           </StackPanel>
         </Expander>
       </StackPanel>
@@ -96,7 +137,8 @@
     <Button
         Grid.Row="1"
         Classes="primary"
-        Margin="0,12,0,0"
+        Margin="0,16,0,0"
+        MinHeight="40"
         Content="실행하기"
         Command="{Binding LaunchCommand}"
         IsEnabled="{Binding CanLaunch}"

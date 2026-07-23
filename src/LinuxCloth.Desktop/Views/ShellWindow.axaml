@@ -3,8 +3,8 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="linuxcloth"
-    Width="1000"
-    Height="700"
+    Width="1440"
+    Height="900"
     MinWidth="720"
     MinHeight="480"
     WindowStartupLocation="CenterScreen"
@@ -12,10 +12,10 @@
   <Grid>
     <ContentControl x:Name="ShellContent" />
     <Border x:Name="StartupPanel" Background="{DynamicResource AppBackgroundBrush}" IsVisible="True">
-      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="360">
         <TextBlock
             Text="linuxcloth"
-            Classes="dialog-title"
+            Classes="brand-title"
             HorizontalAlignment="Center" />
         <TextBlock
             x:Name="StartupStatus"

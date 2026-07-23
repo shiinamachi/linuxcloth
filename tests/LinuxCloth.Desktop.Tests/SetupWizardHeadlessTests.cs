@@ -29,27 +29,38 @@ public sealed class SetupWizardHeadlessTests
                 try
                 {
                     var buttons = view.GetLogicalDescendants().OfType<Button>().ToArray();
-                    var labels = buttons
-                        .Select(button => button.Content?.ToString() ?? string.Empty)
+                    var automationIds = buttons
+                        .Select(AutomationProperties.GetAutomationId)
+                        .Where(static id => !string.IsNullOrWhiteSpace(id))
                         .ToArray();
-                    Assert.Equal(1, labels.Count(label => label == "파일 선택"));
-                    Assert.Contains("로컬 파일 선택", labels);
-                    Assert.Contains("Windows 환경 준비하기", labels);
-                    Assert.DoesNotContain("뒤로", labels);
-                    Assert.DoesNotContain("계속", labels);
-                    Assert.DoesNotContain(labels, label => label.Contains("OVMF", StringComparison.Ordinal));
-                    Assert.DoesNotContain(labels, label => label.Contains("GuestBridge", StringComparison.Ordinal));
+                    var accessibleNames = buttons
+                        .Select(AutomationProperties.GetName)
+                        .Where(static name => !string.IsNullOrWhiteSpace(name))
+                        .ToArray();
 
-                    var fileButtons = buttons.Where(button =>
-                        (button.Content?.ToString() ?? string.Empty) == "파일 선택");
-                    Assert.All(fileButtons, button =>
-                        Assert.False(string.IsNullOrWhiteSpace(AutomationProperties.GetName(button))));
-                    Assert.Contains(
-                        buttons,
-                        button => AutomationProperties.GetAutomationId(button) == "Setup.Prepare");
-                    Assert.Contains(
-                        buttons,
-                        button => AutomationProperties.GetAutomationId(button) == "Setup.ViewInstaller");
+                    Assert.Contains("Setup.Windows.Select", automationIds);
+                    Assert.Contains("Setup.Drivers.Select", automationIds);
+                    Assert.Contains("Setup.Prepare", automationIds);
+                    Assert.Contains("Setup.ViewInstaller", automationIds);
+                    Assert.Contains("Windows 11 설치 파일 선택", accessibleNames);
+                    Assert.Contains("Windows 장치 드라이버 파일 선택", accessibleNames);
+                    Assert.DoesNotContain(
+                        automationIds,
+                        static id => id is not null && id.Contains("Back", StringComparison.Ordinal));
+                    Assert.DoesNotContain(
+                        accessibleNames,
+                        static name => name is not null && name.Contains("OVMF", StringComparison.Ordinal));
+                    Assert.DoesNotContain(
+                        accessibleNames,
+                        static name => name is not null && name.Contains("GuestBridge", StringComparison.Ordinal));
+
+                    var windowsSelect = buttons.Single(button =>
+                        AutomationProperties.GetAutomationId(button) == "Setup.Windows.Select");
+                    Assert.False(string.IsNullOrWhiteSpace(AutomationProperties.GetName(windowsSelect)));
+
+                    var prepare = buttons.Single(button =>
+                        AutomationProperties.GetAutomationId(button) == "Setup.Prepare");
+                    Assert.Equal("Windows 환경 준비하기", prepare.Content?.ToString());
 
                     var imageId = view.GetLogicalDescendants()
                         .OfType<TextBox>()
